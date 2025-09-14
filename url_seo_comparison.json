@@ -1,0 +1,474 @@
+{
+  "mapping_stats": {
+    "exact_matches": 2,
+    "slug_matches": 9,
+    "type_matches": 17,
+    "no_matches": 45,
+    "missing_routes": [
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/ace/",
+        "wp_slug": "ace",
+        "wp_type": "page",
+        "wp_title": "ACE Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/settings",
+        "wp_slug": "settings",
+        "wp_type": "page",
+        "wp_title": "Settings | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/iceberg/",
+        "wp_slug": "iceberg",
+        "wp_type": "page",
+        "wp_title": "ICEBERG Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org",
+        "wp_slug": "homepage",
+        "wp_type": "homepage",
+        "wp_title": "Nicotine Pouches UK: Compare Prices & Deals..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/baron/",
+        "wp_slug": "baron",
+        "wp_type": "page",
+        "wp_title": "Baron Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/on/",
+        "wp_slug": "on",
+        "wp_type": "page",
+        "wp_title": "ON! Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/white/",
+        "wp_slug": "white",
+        "wp_type": "page",
+        "wp_title": "White Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/loop/",
+        "wp_slug": "loop",
+        "wp_type": "page",
+        "wp_title": "LOOP Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/klint/",
+        "wp_slug": "klint",
+        "wp_type": "page",
+        "wp_title": "KLINT Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/zone/",
+        "wp_slug": "zone",
+        "wp_type": "page",
+        "wp_title": "Zone Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/my-account/",
+        "wp_slug": "my-account",
+        "wp_type": "page",
+        "wp_title": "Watchlist | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/apres/",
+        "wp_slug": "apres",
+        "wp_type": "page",
+        "wp_title": "Après Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/fedrs-stripe/",
+        "wp_slug": "fedrs-stripe",
+        "wp_type": "page",
+        "wp_title": "FEDRS Stripe Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/kurwa/",
+        "wp_slug": "kurwa",
+        "wp_type": "page",
+        "wp_title": "KURWA Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/lundgrens/",
+        "wp_slug": "lundgrens",
+        "wp_type": "page",
+        "wp_title": "Lundgrens Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/find-the-right-product/",
+        "wp_slug": "find-the-right-product",
+        "wp_type": "page",
+        "wp_title": "Find the right product | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/xqs",
+        "wp_slug": "xqs",
+        "wp_type": "page",
+        "wp_title": "XQS Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/lyft/",
+        "wp_slug": "lyft",
+        "wp_type": "page",
+        "wp_title": "LYFT Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/about",
+        "wp_slug": "about",
+        "wp_type": "page",
+        "wp_title": "About us | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/zyn/",
+        "wp_slug": "zyn",
+        "wp_type": "page",
+        "wp_title": "Zyn Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/hit/",
+        "wp_slug": "hit",
+        "wp_type": "page",
+        "wp_title": "HIT Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/nicotine-pouches-api-doc/",
+        "wp_slug": "nicotine-pouches-api-doc",
+        "wp_type": "page",
+        "wp_title": "Nicotine Pouches API #5 | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/zixs/",
+        "wp_slug": "zixs",
+        "wp_type": "page",
+        "wp_title": "ZiXS Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/shop",
+        "wp_slug": "shop",
+        "wp_type": "page",
+        "wp_title": "Shop | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/ubbs/",
+        "wp_slug": "ubbs",
+        "wp_type": "page",
+        "wp_title": "Übbs Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/velo/",
+        "wp_slug": "velo",
+        "wp_type": "page",
+        "wp_title": "Velo Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/nordic-spirit/",
+        "wp_slug": "nordic-spirit",
+        "wp_type": "page",
+        "wp_title": "Nordic Spirit Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/extreme/",
+        "wp_slug": "extreme",
+        "wp_type": "page",
+        "wp_title": "Extreme Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/nicotine-pouches/",
+        "wp_slug": "nicotine-pouches",
+        "wp_type": "page",
+        "wp_title": "Nicotine Pouches Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/rave/",
+        "wp_slug": "rave",
+        "wp_type": "page",
+        "wp_title": "RAVE Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/fumi/",
+        "wp_slug": "fumi",
+        "wp_type": "page",
+        "wp_title": "FUMI Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/rabbit/",
+        "wp_slug": "rabbit",
+        "wp_type": "page",
+        "wp_title": "Rabbit Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/volt/",
+        "wp_slug": "volt",
+        "wp_type": "page",
+        "wp_title": "VOLT Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/xqs/",
+        "wp_slug": "xqs",
+        "wp_type": "page",
+        "wp_title": "XQS Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/cuba/",
+        "wp_slug": "cuba",
+        "wp_type": "page",
+        "wp_title": "CUBA Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/siberia/",
+        "wp_slug": "siberia",
+        "wp_type": "page",
+        "wp_title": "Siberia Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/blck/",
+        "wp_slug": "blck",
+        "wp_type": "page",
+        "wp_title": "BLCK Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/helwit/",
+        "wp_slug": "helwit",
+        "wp_type": "page",
+        "wp_title": "Helwit Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/pablo/",
+        "wp_slug": "pablo",
+        "wp_type": "page",
+        "wp_title": "PABLO Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/garant/",
+        "wp_slug": "garant",
+        "wp_type": "page",
+        "wp_title": "GARANT Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/killa/",
+        "wp_slug": "killa",
+        "wp_type": "page",
+        "wp_title": "KILLA Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/77/",
+        "wp_slug": "77",
+        "wp_type": "page",
+        "wp_title": "77 Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/skruf/",
+        "wp_slug": "skruf",
+        "wp_type": "page",
+        "wp_title": "SKRUF Archives | Nicotine Pouches..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/us/",
+        "wp_slug": "us",
+        "wp_type": "page",
+        "wp_title": "Nicotine Pouches US | Compare Prices on all vendor..."
+      },
+      {
+        "wp_url": "https://nicotine-pouches.org/product-category/grant/",
+        "wp_slug": "grant",
+        "wp_type": "page",
+        "wp_title": "Grant Archives | Nicotine Pouches..."
+      }
+    ],
+    "potential_redirects": [
+      {
+        "from": "https://nicotine-pouches.org/product/loop-habanero-mint-extra-strong/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/sustainability/",
+        "to": "https://nicotine-pouches.org/sustainability",
+        "confidence": 90
+      },
+      {
+        "from": "https://nicotine-pouches.org/safe-online-shopping/",
+        "to": "https://nicotine-pouches.org/safe-online-shopping",
+        "confidence": 90
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/on-island-twist-6mg-mini-strong/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/ice-cool-nicotine-pouches-by-velo/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/elderflower-nicotine-pouches-by-nordic-spirit-3/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/cherry-nicotine-pouches-by-helwit-3/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/cool-mint-mini-nicotine-pouches-by-zyn-3/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/loop-jalapeno-lime/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/citrus-mini-nicotine-pouches-by-zyn-3/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/loop-habanero-mint-slim-extra-strong/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/polar-mint-nicotine-pouches-by-velo/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/contact-us/",
+        "to": "https://nicotine-pouches.org/contact-us",
+        "confidence": 90
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/mocha-nicotine-pouches-by-helwit-3/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/frequently-asked-questions/",
+        "to": "https://nicotine-pouches.org/frequently-asked-questions",
+        "confidence": 90
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/loop-cassis-bliss-strong/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/cooling-storm-nicotine-pouches-by-velo/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/on-plus-berry-slim-normal/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/guides/",
+        "to": "https://nicotine-pouches.org/guides",
+        "confidence": 90
+      },
+      {
+        "from": "https://nicotine-pouches.org/become-a-member/",
+        "to": "https://nicotine-pouches.org/become-a-member",
+        "confidence": 90
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/espressino-mini-nicotine-pouches-by-zyn-3/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/terms-and-conditions/",
+        "to": "https://nicotine-pouches.org/terms-and-conditions",
+        "confidence": 90
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/icy-blackcurrant-nicotine-pouches-by-zyn-3/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/product/spearmint-nicotine-pouches-by-nordic-spirit-3/",
+        "to": "https://nicotine-pouches.org/product/slug",
+        "confidence": 70
+      },
+      {
+        "from": "https://nicotine-pouches.org/why-nicotine-pouches/",
+        "to": "https://nicotine-pouches.org/why-nicotine-pouches",
+        "confidence": 90
+      },
+      {
+        "from": "https://nicotine-pouches.org/digital-services-act/",
+        "to": "https://nicotine-pouches.org/digital-services-act",
+        "confidence": 90
+      }
+    ]
+  },
+  "seo_stats": {
+    "total_pages": 73,
+    "has_title": 73,
+    "has_description": 32,
+    "has_keywords": 0,
+    "has_og_title": 73,
+    "has_og_description": 32,
+    "has_og_image": 73,
+    "has_canonical": 72,
+    "missing_titles": [],
+    "missing_descriptions": [
+      "https://nicotine-pouches.org/product-category/ace/",
+      "https://nicotine-pouches.org/product-category/iceberg/",
+      "https://nicotine-pouches.org/product-category/baron/",
+      "https://nicotine-pouches.org/product-category/on/",
+      "https://nicotine-pouches.org/product-category/white/",
+      "https://nicotine-pouches.org/product-category/loop/",
+      "https://nicotine-pouches.org/product-category/klint/",
+      "https://nicotine-pouches.org/product/on-island-twist-6mg-mini-strong/",
+      "https://nicotine-pouches.org/product-category/zone/",
+      "https://nicotine-pouches.org/my-account/",
+      "https://nicotine-pouches.org/product-category/apres/",
+      "https://nicotine-pouches.org/product-category/fedrs-stripe/",
+      "https://nicotine-pouches.org/product-category/kurwa/",
+      "https://nicotine-pouches.org/product-category/lundgrens/",
+      "https://nicotine-pouches.org/product-category/xqs",
+      "https://nicotine-pouches.org/product-category/lyft/",
+      "https://nicotine-pouches.org/product-category/zyn/",
+      "https://nicotine-pouches.org/product-category/hit/",
+      "https://nicotine-pouches.org/product-category/zixs/",
+      "https://nicotine-pouches.org/shop",
+      "https://nicotine-pouches.org/product-category/ubbs/",
+      "https://nicotine-pouches.org/product-category/velo/",
+      "https://nicotine-pouches.org/product-category/nordic-spirit/",
+      "https://nicotine-pouches.org/product-category/extreme/",
+      "https://nicotine-pouches.org/product-category/nicotine-pouches/",
+      "https://nicotine-pouches.org/product-category/rave/",
+      "https://nicotine-pouches.org/product-category/fumi/",
+      "https://nicotine-pouches.org/product-category/rabbit/",
+      "https://nicotine-pouches.org/product-category/volt/",
+      "https://nicotine-pouches.org/product-category/xqs/",
+      "https://nicotine-pouches.org/product-category/cuba/",
+      "https://nicotine-pouches.org/product-category/siberia/",
+      "https://nicotine-pouches.org/product-category/blck/",
+      "https://nicotine-pouches.org/guides/",
+      "https://nicotine-pouches.org/product-category/helwit/",
+      "https://nicotine-pouches.org/product-category/pablo/",
+      "https://nicotine-pouches.org/product-category/garant/",
+      "https://nicotine-pouches.org/product-category/killa/",
+      "https://nicotine-pouches.org/product-category/77/",
+      "https://nicotine-pouches.org/product-category/skruf/",
+      "https://nicotine-pouches.org/product-category/grant/"
+    ],
+    "duplicate_titles": [
+      "Nicotine Pouches UK: Compare Prices & Deals",
+      "XQS Archives | Nicotine Pouches"
+    ],
+    "duplicate_descriptions": [
+      "Discover top deals on nicotine pouches in the UK. Compare prices from leading brands for the best value. Fast delivery available!"
+    ]
+  },
+  "timestamp": "2025-09-11T19:29:54.491945"
+}
