@@ -4,20 +4,33 @@ import path from 'path';
 
 export async function GET() {
   try {
-    const filePath = path.join(process.cwd(), 'all_blog_posts_complete.json');
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    const posts = JSON.parse(fileContents);
+    // Load both files
+    const completeFilePath = path.join(process.cwd(), 'all_blog_posts_complete.json');
+    const mergedFilePath = path.join(process.cwd(), 'all_blog_posts_merged.json');
     
-    // Use the full content with local images from the updated JSON file
-    const postsWithContent = posts.map((post: any) => {
+    const completeFileContents = fs.readFileSync(completeFilePath, 'utf8');
+    const mergedFileContents = fs.readFileSync(mergedFilePath, 'utf8');
+    
+    const completePosts = JSON.parse(completeFileContents);
+    const mergedPosts = JSON.parse(mergedFileContents);
+    
+    // Create a map of merged posts by slug for quick lookup
+    const mergedPostsMap = new Map();
+    mergedPosts.forEach((post: any) => {
+      mergedPostsMap.set(post.slug, post);
+    });
+    
+    // Merge the data: use complete posts as base, add content from merged posts
+    const mergedData = completePosts.map((post: any) => {
+      const mergedPost = mergedPostsMap.get(post.slug);
       return {
         ...post,
-        content: post.content || post.excerpt, // Use full content if available, fallback to excerpt
-        fullContent: post.content || post.excerpt
+        content: mergedPost?.content || post.content || post.excerpt,
+        fullContent: mergedPost?.content || post.content || post.excerpt
       };
     });
     
-    return NextResponse.json(postsWithContent);
+    return NextResponse.json(mergedData);
   } catch (error) {
     console.error('Error loading blog posts:', error);
     return NextResponse.json([], { status: 500 });

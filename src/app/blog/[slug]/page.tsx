@@ -21,6 +21,7 @@ interface BlogPost {
   format: string;
   sticky: boolean;
   featured_image_local?: string;
+  featured_image?: string;
   featured_image_compressed?: string;
   seo_meta?: {
     url: string;
@@ -40,22 +41,20 @@ interface BlogPost {
   };
 }
 
-// Load extracted blog posts data
-const loadBlogPosts = (): BlogPost[] => {
-  try {
-    const filePath = path.join(process.cwd(), 'all_blog_posts_complete.json');
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(fileContents);
-  } catch (error) {
-    console.error('Error loading blog posts:', error);
-    return [];
-  }
-};
-
-// Get blog post by slug
+// Get blog post by slug from API
 const getBlogPost = async (slug: string): Promise<BlogPost | null> => {
-  const posts = loadBlogPosts();
-  return posts.find(post => post.slug === slug) || null;
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/blog-posts`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch blog posts');
+    }
+    const posts = await response.json();
+    const post = posts.find((p: BlogPost) => p.slug === slug);
+    return post || null;
+  } catch (error) {
+    console.error('Error loading blog post:', error);
+    return null;
+  }
 };
 
 // Format date for display
@@ -124,7 +123,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
     seo_meta_og_image: post.seo_meta?.og_image
   });
   
-  const displayImage = post.featured_image_local || post.seo_meta?.og_image || 'https://via.placeholder.com/1200x400/f3f4f6/666666?text=Nicotine+Pouches+Guide';
+  const displayImage = post.featured_image_local || post.featured_image || '/placeholder-product.jpg';
 
   return (
     <div style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>

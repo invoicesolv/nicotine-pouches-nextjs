@@ -110,19 +110,6 @@ const Header = () => {
                 How to use
               </Link>
               
-              <Link href="/vendors" style={{
-                color: '#333',
-                textDecoration: 'none',
-                fontSize: '16px',
-                fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
-                fontWeight: '500',
-                padding: '10px 15px',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
-              }}>
-                Vendors
-              </Link>
-              
               <Link href="/compare" style={{
                 color: '#FD8E98',
                 textDecoration: 'none',
@@ -131,9 +118,7 @@ const Header = () => {
                 fontWeight: '500',
                 padding: '10px 15px',
                 borderRadius: '8px',
-                transition: 'all 0.3s ease',
-                backgroundColor: '#FFF5F6',
-                border: '1px solid #FD8E98'
+                transition: 'all 0.3s ease'
               }}>
                 Compare
               </Link>

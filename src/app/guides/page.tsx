@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import BlogSearch from '@/components/BlogSearch';
 // Load extracted blog posts data
 const loadBlogPosts = async (): Promise<BlogPost[]> => {
   try {
@@ -36,6 +37,7 @@ interface BlogPost {
 
 export default function GuidesPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,9 +46,14 @@ export default function GuidesPage() {
       // Sort posts by date (newest first)
       const sortedPosts = data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setPosts(sortedPosts);
+      setFilteredPosts(sortedPosts);
       setLoading(false);
     };
     fetchPosts();
+  }, []);
+
+  const handleSearchResults = useCallback((results: BlogPost[]) => {
+    setFilteredPosts(results);
   }, []);
 
   if (loading) {
@@ -64,8 +71,8 @@ export default function GuidesPage() {
     );
   }
 
-  const featuredPost = posts[0]; // Latest post as featured
-  const otherPosts = posts.slice(1);
+  const featuredPost = filteredPosts[0]; // Latest post as featured
+  const otherPosts = filteredPosts.slice(1);
 
   return (
     <div id="boxed-wrapper">
@@ -126,10 +133,10 @@ export default function GuidesPage() {
                 }}>
                   <h1 style={{
                     fontSize: '80px',
-                    fontWeight: '900',
+                    fontWeight: '1000',
                     color: '#0B051D',
                     margin: '0 0 20px 0',
-                    lineHeight: '1.1',
+                    lineHeight: '0.9',
                     fontFamily: 'Klarna Text, sans-serif',
                     letterSpacing: '-0.05em'
                   }}>
@@ -245,28 +252,33 @@ export default function GuidesPage() {
               padding: '0 20px'
             }}>
               
-              {/* Section Header with Filters */}
+              {/* Section Header with Search and Filters */}
               <div style={{
                 display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
+                flexDirection: 'column',
+                gap: '20px',
                 marginBottom: '40px'
               }}>
-                <h2 style={{
-                  fontSize: '2.5rem',
-                  fontWeight: 'bold',
-                  color: '#333',
-                  margin: '0',
-                  fontFamily: 'Klarna Text, sans-serif'
-                }}>
-                  Discover more
-                </h2>
-                
                 <div style={{
                   display: 'flex',
-                  gap: '12px',
+                  justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
+                  <h2 style={{
+                    fontSize: '2.5rem',
+                    fontWeight: 'bold',
+                    color: '#333',
+                    margin: '0',
+                    fontFamily: 'Klarna Text, sans-serif'
+                  }}>
+                    Discover more
+                  </h2>
+                  
+                  <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    alignItems: 'center'
+                  }}>
                   {/* Select Categories Filter */}
                   <select style={{
                     padding: '8px 16px',
@@ -310,6 +322,17 @@ export default function GuidesPage() {
                     <option value="newest">Newest</option>
                     <option value="oldest">Oldest</option>
                   </select>
+                  </div>
+                </div>
+                
+                {/* Search Field */}
+                <div style={{
+                  maxWidth: '500px'
+                }}>
+                  <BlogSearch 
+                    posts={posts} 
+                    onSearchResults={handleSearchResults}
+                  />
                 </div>
               </div>
 

@@ -510,7 +510,7 @@ export default function MegaMenu() {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          gap: '4px',
           padding: '10px 15px',
           color: '#333',
           fontSize: '16px',

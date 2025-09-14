@@ -23,6 +23,7 @@ interface BlogPost {
   format: string;
   sticky: boolean;
   featured_image_local?: string;
+  featured_image?: string;
   featured_image_compressed?: string;
   seo_meta?: {
     url: string;
@@ -42,23 +43,14 @@ interface BlogPost {
   };
 }
 
-// Get blog post by slug
-// Load blog posts from JSON file
-const loadBlogPosts = (): BlogPost[] => {
+// Get blog post by slug from API
+const getBlogPost = async (slug: string): Promise<BlogPost | null> => {
   try {
-    const filePath = path.join(process.cwd(), 'all_blog_posts_merged.json');
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(fileContents);
-  } catch (error) {
-    console.error('Error loading blog posts:', error);
-    return [];
-  }
-};
-
-// Get blog post by slug
-const getBlogPost = (slug: string): BlogPost | null => {
-  try {
-    const posts = loadBlogPosts();
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/blog-posts`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch blog posts');
+    }
+    const posts = await response.json();
     const post = posts.find((p: BlogPost) => p.slug === slug);
     return post || null;
   } catch (error) {
@@ -324,7 +316,7 @@ const cleanHtmlContent = (html: string): string => {
 
 export default async function GuidePost({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
-  const post = getBlogPost(resolvedParams.slug);
+  const post = await getBlogPost(resolvedParams.slug);
   
   if (!post) {
     notFound();
@@ -350,21 +342,7 @@ export default async function GuidePost({ params }: { params: Promise<{ slug: st
   const displayDescription = post.seo_meta?.description || post.excerpt.replace(/<[^>]*>/g, '');
   
   
-  const displayImage = post.featured_image_local || 
-    (post.seo_meta?.og_image ? 
-      post.seo_meta.og_image.replace(/https:\/\/nicotine-pouches\.org\/wp-content\/uploads\/[^"'\s]+/, (match) => {
-        const filename = match.split('/').pop()?.split('?')[0] || '';
-        console.log('Converting featured image:', match, '->', `/blog-images/compressed/${filename}`);
-        return `/blog-images/compressed/${filename}`;
-      }) : 
-      null);
-
-  console.log('Display image URL:', displayImage);
-  
-  // Check if the image file actually exists, if not, use a fallback
-  const finalDisplayImage = displayImage && displayImage.includes('pexels-photo-30403220') 
-    ? '/blog-images/compressed/pexels-photo-16601238.jpeg' // Use an existing image as fallback
-    : displayImage || '/blog-images/compressed/pexels-photo-16601238.jpeg'; // Default fallback image
+  const displayImage = post.featured_image_local || post.featured_image || '/placeholder-product.jpg';
 
   return (
     <div style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
@@ -408,14 +386,14 @@ export default async function GuidePost({ params }: { params: Promise<{ slug: st
         </div>
 
         {/* Featured Image Section */}
-        {finalDisplayImage && (
+        {displayImage && (
           <div style={{
             padding: '20px 0',
             maxWidth: '800px',
             margin: '0 auto'
           }}>
             <img 
-              src={finalDisplayImage}
+              src={displayImage}
               alt={displayTitle}
               style={{
                 width: '100%',

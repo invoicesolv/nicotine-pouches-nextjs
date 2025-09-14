@@ -203,22 +203,23 @@ export default function ProductPage({ params }: ProductPageProps) {
           
           {/* Breadcrumb */}
           <div style={{
-            backgroundColor: '#333',
-            padding: '15px 0',
-            borderBottom: '1px solid #555'
+            backgroundColor: '#ffffff',
+            padding: '0'
           }}>
             <div style={{
               maxWidth: '1200px',
               margin: '0 auto',
               padding: '0 20px',
               fontSize: '14px',
-              color: '#fff'
+              color: '#666',
+              fontFamily: 'Klarna Text, sans-serif',
+              textAlign: 'left'
             }}>
-              <a href="/" style={{ color: '#fff', textDecoration: 'none' }}>Home</a>
-              <span style={{ margin: '0 8px' }}>»</span>
-              <a href="/compare-nicotine-pouches" style={{ color: '#fff', textDecoration: 'none' }}>Compare Nicotine Pouches</a>
-              <span style={{ margin: '0 8px' }}>»</span>
-              <span>{product.title}</span>
+              <a href="/" style={{ color: '#0B051D', textDecoration: 'none', fontFamily: 'Klarna Text, sans-serif', fontWeight: '800' }}>Start</a>
+              <span style={{ margin: '0 8px' }}>/</span>
+              <a href="/compare" style={{ color: '#0B051D', textDecoration: 'none', fontFamily: 'Klarna Text, sans-serif', fontWeight: '800' }}>Compare Nicotine Pouches</a>
+              <span style={{ margin: '0 8px' }}>/</span>
+              <span style={{ fontFamily: 'Klarna Text, sans-serif' }}>{product.title}</span>
             </div>
           </div>
 
@@ -261,10 +262,12 @@ export default function ProductPage({ params }: ProductPageProps) {
               <div>
                 <h1 style={{
                   fontSize: '3rem',
-                  fontWeight: 'bold',
-                  color: '#333',
+                  fontWeight: '1000',
+                  color: '#0B051D',
                   margin: '0 0 15px 0',
-                  lineHeight: '1.1'
+                  lineHeight: '1.1',
+                  fontFamily: 'Klarna Text, sans-serif',
+                  letterSpacing: '-0.05em'
                 }}>
                   {product.title}
                 </h1>
@@ -296,15 +299,16 @@ export default function ProductPage({ params }: ProductPageProps) {
                 </p>
 
                 <button style={{
-                  backgroundColor: '#333',
+                  backgroundColor: '#000',
                   color: 'white',
                   border: 'none',
-                  padding: '15px 30px',
-                  borderRadius: '8px',
-                  fontSize: '16px',
+                  padding: '8px 16px',
+                  borderRadius: '25px',
+                  fontSize: '12px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease'
+                  transition: 'all 0.3s ease',
+                  fontFamily: 'Klarna Text, sans-serif'
                 }}>
                   Compare prices
                 </button>
