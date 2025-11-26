@@ -8,6 +8,8 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  triggerLoginModal: () => void;
+  loginModalTrigger: number;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -15,6 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loginModalTrigger, setLoginModalTrigger] = useState(0);
 
   useEffect(() => {
     // Get initial session
@@ -41,10 +44,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase().auth.signOut();
   };
 
+  const triggerLoginModal = () => {
+    setLoginModalTrigger(prev => prev + 1);
+  };
+
   const value = {
     user,
     loading,
-    signOut
+    signOut,
+    triggerLoginModal,
+    loginModalTrigger
   };
 
   return (

@@ -1,386 +1,345 @@
-'use client';
-
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import { getSEOTags } from '@/lib/seo-core';
+import { blogPosts, getAllCategories, getAllTags } from '@/lib/blog-content';
 
-interface BlogPost {
-  wp_id: number;
-  title: string;
-  link: string;
-  excerpt: string;
-  date: string;
-  modified: string;
-  slug: string;
-  featured_media: number;
-  categories: number[];
-  tags: number[];
-  status: string;
-  type: string;
-  format: string;
-  sticky: boolean;
-  featured_image_local?: string;
-  featured_image_compressed?: string;
-  seo_meta?: {
-    url: string;
-    title: string;
-    description: string;
-    keywords: string;
-    og_title: string;
-    og_description: string;
-    og_image: string;
-    canonical: string;
-    robots: string;
-    author: string;
-    published_time: string;
-    modified_time: string;
-    article_section: string;
-    article_tags: string[];
-  };
-}
-
-// Get blog posts from API
-const getBlogPosts = async (): Promise<BlogPost[]> => {
-  try {
-    const response = await fetch('/api/blog-posts');
-    if (!response.ok) {
-      throw new Error('Failed to fetch blog posts');
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error loading blog posts:', error);
-    return [];
-  }
-};
-
-// Format date for display
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-};
-
-// Clean HTML content for display
-const cleanExcerpt = (html: string): string => {
-  return html
-    .replace(/<[^>]*>/g, '')
-    .replace(/&hellip;/g, '...')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#8217;/g, "'")
-    .replace(/&#8211;/g, "–")
-    .replace(/&#8212;/g, "—")
-    .replace(/&#8230;/g, "...")
-    .substring(0, 150) + '...';
-};
+export const metadata: Metadata = getSEOTags('blog', {
+  title: 'Nicotine Pouches Blog - Guides, Reviews & News',
+  description: 'Stay updated with the latest nicotine pouches news, reviews, and guides. Expert insights on brands, flavors, and best practices.',
+  canonical: 'https://nicotine-pouches.org/blog',
+  keywords: 'nicotine pouches blog, news, reviews, guides, UK, ZYN, VELO, LOOP'
+});
 
 export default function BlogPage() {
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchPosts = async () => {
-      const postsData = await getBlogPosts();
-      setPosts(postsData);
-      setLoading(false);
-    };
-    fetchPosts();
-  }, []);
-
-  if (loading) {
-    return (
-      <div style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
-        <Header />
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: '50vh',
-          fontSize: '18px',
-          fontFamily: 'Klarna Text, sans-serif'
-        }}>
-          Loading blog posts...
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-  
-  // Sort posts by date (newest first)
-  const sortedPosts = posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const categories = getAllCategories();
+  const tags = getAllTags();
 
   return (
-    <div style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
-      {/* Header */}
-      <Header />
-      
-      {/* Main Content Container */}
-      <div style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '0 20px'
-      }}>
+    <div id="boxed-wrapper">
+      <div id="wrapper" className="fusion-wrapper">
+        <Header />
         
-        {/* Page Header */}
-        <div style={{
-          padding: '60px 0 40px 0',
-          textAlign: 'center'
+        <main id="main" className="clearfix" style={{
+          backgroundColor: '#ffffff',
+          minHeight: '100vh',
+          padding: '0',
+          margin: '0',
+          width: '100%'
         }}>
-          <h1 style={{
-            fontSize: '48px',
-            fontWeight: '700',
-            color: '#1a1a1a',
-            margin: '0 0 20px 0',
-            fontFamily: 'Klarna Text, sans-serif',
-            lineHeight: '1.2'
-          }}>
-            Nicotine Pouches Blog
-          </h1>
           
-          <p style={{
-            fontSize: '20px',
-            color: '#666',
-            margin: '0 0 40px 0',
-            fontFamily: 'Klarna Text, sans-serif',
-            lineHeight: '1.6'
+          {/* Page Header */}
+          <div className="page-header" style={{
+            backgroundColor: '#f8f9fa',
+            padding: '60px 0',
+            borderBottom: '1px solid #e9ecef'
           }}>
-            Everything you need to know about nicotine pouches, brands, and more
-          </p>
-        </div>
-
-        {/* Filters */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '40px',
-          padding: '0 20px'
-        }}>
-          <div style={{
-            display: 'flex',
-            gap: '15px',
-            alignItems: 'center'
-          }}>
-            <span style={{
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#1a1a1a',
-              fontFamily: 'Klarna Text, sans-serif'
+            <div style={{
+              maxWidth: '1200px',
+              margin: '0 auto',
+              padding: '0 20px',
+              textAlign: 'center'
             }}>
-              Categories:
-            </span>
-            <select style={{
-              padding: '8px 16px',
-              borderRadius: '25px',
-              border: '2px solid #e5e7eb',
-              backgroundColor: '#ffffff',
-              fontSize: '14px',
-              fontFamily: 'Klarna Text, sans-serif',
-              cursor: 'pointer'
-            }}>
-              <option>All Categories</option>
-              <option>Nicotine Pouches</option>
-              <option>Brands</option>
-              <option>Health & Safety</option>
-              <option>Reviews</option>
-            </select>
+              <h1 style={{
+                fontSize: '3rem',
+                fontWeight: 'bold',
+                color: '#333',
+                margin: '0 0 20px 0',
+                fontFamily: 'Klarna Text, sans-serif'
+              }}>
+                Nicotine Pouches Blog
+              </h1>
+              <p style={{
+                fontSize: '1.2rem',
+                color: '#666',
+                maxWidth: '800px',
+                margin: '0 auto',
+                lineHeight: '1.6'
+              }}>
+                Expert insights, reviews, and guides to help you make informed decisions about nicotine pouches.
+                Stay updated with the latest news and trends in the UK market.
+              </p>
+            </div>
           </div>
-          
-          <div style={{
-            display: 'flex',
-            gap: '15px',
-            alignItems: 'center'
-          }}>
-            <span style={{
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#1a1a1a',
-              fontFamily: 'Klarna Text, sans-serif'
-            }}>
-              Sort by:
-            </span>
-            <select style={{
-              padding: '8px 16px',
-              borderRadius: '25px',
-              border: '2px solid #e5e7eb',
-              backgroundColor: '#ffffff',
-              fontSize: '14px',
-              fontFamily: 'Klarna Text, sans-serif',
-              cursor: 'pointer'
-            }}>
-              <option>Newest</option>
-              <option>Oldest</option>
-              <option>Most Popular</option>
-              <option>Alphabetical</option>
-            </select>
-          </div>
-        </div>
 
-        {/* Blog Posts Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '30px',
-          marginBottom: '60px'
-        }}>
-          {sortedPosts.map((post) => {
-            const displayTitle = post.seo_meta?.title || post.title;
-            const displayDescription = post.seo_meta?.description || cleanExcerpt(post.excerpt);
-            const displayImage = post.featured_image_local || post.seo_meta?.og_image || 'https://via.placeholder.com/400x250/f3f4f6/666666?text=Nicotine+Pouches';
+          {/* Blog Content */}
+          <div style={{
+            maxWidth: '1200px',
+            margin: '0 auto',
+            padding: '60px 20px'
+          }}>
             
-            return (
-              <Link 
-                key={post.wp_id} 
-                href={`/blog/${post.slug}`}
-                style={{ textDecoration: 'none', color: 'inherit' }}
-              >
-                <article style={{
-                  backgroundColor: '#ffffff',
-                  borderRadius: '12px',
-                  overflow: 'hidden',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-5px)';
-                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-                }}
+            {/* Categories Filter */}
+            <div style={{
+              marginBottom: '40px',
+              textAlign: 'center'
+            }}>
+              <h3 style={{
+                fontSize: '1.5rem',
+                fontWeight: '600',
+                color: '#333',
+                marginBottom: '20px'
+              }}>
+                Browse by Category
+              </h3>
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '10px',
+                justifyContent: 'center'
+              }}>
+                {categories.map(category => (
+                  <span
+                    key={category}
+                    style={{
+                      backgroundColor: '#007cba',
+                      color: 'white',
+                      padding: '8px 16px',
+                      borderRadius: '20px',
+                      fontSize: '0.9rem',
+                      fontWeight: '500'
+                    }}
+                  >
+                    {category}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Blog Posts Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+              gap: '30px',
+              marginBottom: '60px'
+            }}>
+              {blogPosts.map((post) => (
+                <article
+                  key={post.slug}
+                  style={{
+                    backgroundColor: '#fff',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                    overflow: 'hidden',
+                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                    cursor: 'pointer'
+                  }}
+                  className="hover:transform hover:scale-105 hover:shadow-lg"
                 >
-                  {/* Featured Image */}
-                  <div style={{
-                    width: '100%',
-                    height: '250px',
-                    overflow: 'hidden'
-                  }}>
-                    <img 
-                      src={displayImage}
-                      alt={displayTitle}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        borderRadius: '12px 12px 0 0'
-                      }}
-                    />
-                  </div>
-                  
-                  {/* Content */}
-                  <div style={{
-                    padding: '25px'
-                  }}>
-                    <h2 style={{
-                      fontSize: '22px',
-                      fontWeight: '700',
-                      color: '#1a1a1a',
-                      margin: '0 0 15px 0',
-                      fontFamily: 'Klarna Text, sans-serif',
-                      lineHeight: '1.3'
-                    }}>
-                      {displayTitle}
-                    </h2>
-                    
-                    <p style={{
-                      fontSize: '16px',
-                      color: '#666',
-                      margin: '0 0 20px 0',
-                      fontFamily: 'Klarna Text, sans-serif',
-                      lineHeight: '1.6'
-                    }}>
-                      {displayDescription}
-                    </p>
-                    
+                  <Link href={`/blog/${post.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    {/* Featured Image */}
                     <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      fontSize: '14px',
-                      color: '#999',
-                      fontFamily: 'Klarna Text, sans-serif'
+                      width: '100%',
+                      height: '200px',
+                      position: 'relative',
+                      overflow: 'hidden'
                     }}>
-                      <span>{formatDate(post.date)}</span>
-                      <span>Read more →</span>
+                      <Image
+                        src={post.image}
+                        alt={post.title}
+                        fill
+                        style={{
+                          objectFit: 'cover',
+                          transition: 'transform 0.3s ease'
+                        }}
+                        className="hover:scale-110"
+                      />
+                      {/* Category Badge */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '15px',
+                        left: '15px',
+                        backgroundColor: '#007cba',
+                        color: 'white',
+                        padding: '4px 12px',
+                        borderRadius: '15px',
+                        fontSize: '0.8rem',
+                        fontWeight: '500'
+                      }}>
+                        {post.category}
+                      </div>
                     </div>
-                  </div>
+
+                    {/* Content */}
+                    <div style={{ padding: '25px' }}>
+                      <h2 style={{
+                        fontSize: '1.4rem',
+                        fontWeight: '700',
+                        color: '#333',
+                        margin: '0 0 15px 0',
+                        lineHeight: '1.3',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}>
+                        {post.title}
+                      </h2>
+                      
+                      <p style={{
+                        fontSize: '1rem',
+                        color: '#666',
+                        lineHeight: '1.5',
+                        margin: '0 0 20px 0',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}>
+                        {post.description}
+                      </p>
+
+                      {/* Meta Information */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '15px'
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px'
+                        }}>
+                          <Image
+                            src={post.author.avatar}
+                            alt={post.author.name}
+                            width={32}
+                            height={32}
+                            style={{
+                              borderRadius: '50%',
+                              objectFit: 'cover'
+                            }}
+                          />
+                          <span style={{
+                            fontSize: '0.9rem',
+                            color: '#666',
+                            fontWeight: '500'
+                          }}>
+                            {post.author.name}
+                          </span>
+                        </div>
+                        <span style={{
+                          fontSize: '0.8rem',
+                          color: '#999'
+                        }}>
+                          {post.readTime} min read
+                        </span>
+                      </div>
+
+                      {/* Date */}
+                      <div style={{
+                        fontSize: '0.9rem',
+                        color: '#999',
+                        marginBottom: '15px'
+                      }}>
+                        {new Date(post.date).toLocaleDateString('en-GB', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </div>
+
+                      {/* Tags */}
+                      <div style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '6px'
+                      }}>
+                        {post.tags.slice(0, 3).map(tag => (
+                          <span
+                            key={tag}
+                            style={{
+                              backgroundColor: '#f1f3f4',
+                              color: '#666',
+                              padding: '4px 8px',
+                              borderRadius: '12px',
+                              fontSize: '0.75rem',
+                              fontWeight: '500'
+                            }}
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                        {post.tags.length > 3 && (
+                          <span style={{
+                            color: '#999',
+                            fontSize: '0.75rem'
+                          }}>
+                            +{post.tags.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
                 </article>
-              </Link>
-            );
-          })}
-        </div>
+              ))}
+            </div>
 
-        {/* Pagination */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: '10px',
-          marginBottom: '60px'
-        }}>
-          <button style={{
-            padding: '10px 20px',
-            borderRadius: '25px',
-            border: '2px solid #e5e7eb',
-            backgroundColor: '#ffffff',
-            fontSize: '14px',
-            fontFamily: 'Klarna Text, sans-serif',
-            cursor: 'pointer',
-            color: '#666'
-          }}>
-            Previous
-          </button>
-          
-          <div style={{
-            display: 'flex',
-            gap: '5px'
-          }}>
-            {[1, 2, 3, 4, 5].map((page) => (
-              <button 
-                key={page}
-                style={{
-                  padding: '10px 15px',
-                  borderRadius: '25px',
-                  border: page === 1 ? '2px solid #2563eb' : '2px solid #e5e7eb',
-                  backgroundColor: page === 1 ? '#2563eb' : '#ffffff',
-                  fontSize: '14px',
-                  fontFamily: 'Klarna Text, sans-serif',
+            {/* Newsletter Signup */}
+            <div style={{
+              backgroundColor: '#f8f9fa',
+              padding: '40px',
+              borderRadius: '12px',
+              textAlign: 'center',
+              border: '1px solid #e9ecef'
+            }}>
+              <h3 style={{
+                fontSize: '1.8rem',
+                fontWeight: '700',
+                color: '#333',
+                marginBottom: '15px'
+              }}>
+                Stay Updated
+              </h3>
+              <p style={{
+                fontSize: '1.1rem',
+                color: '#666',
+                marginBottom: '25px',
+                maxWidth: '600px',
+                margin: '0 auto 25px auto'
+              }}>
+                Get the latest nicotine pouches news, reviews, and exclusive deals delivered to your inbox.
+              </p>
+              <div style={{
+                display: 'flex',
+                gap: '10px',
+                maxWidth: '400px',
+                margin: '0 auto'
+              }}>
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  style={{
+                    flex: 1,
+                    padding: '12px 16px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '1rem'
+                  }}
+                />
+                <button style={{
+                  backgroundColor: '#007cba',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  fontWeight: '600',
                   cursor: 'pointer',
-                  color: page === 1 ? '#ffffff' : '#666'
-                }}
-              >
-                {page}
-              </button>
-            ))}
+                  transition: 'background-color 0.3s ease'
+                }}>
+                  Subscribe
+                </button>
+              </div>
+            </div>
           </div>
-          
-          <button style={{
-            padding: '10px 20px',
-            borderRadius: '25px',
-            border: '2px solid #e5e7eb',
-            backgroundColor: '#ffffff',
-            fontSize: '14px',
-            fontFamily: 'Klarna Text, sans-serif',
-            cursor: 'pointer',
-            color: '#666'
-          }}>
-            Next
-          </button>
-        </div>
-      </div>
+        </main>
 
-      {/* Footer */}
-      <Footer />
+        <Footer />
+      </div>
     </div>
   );
 }

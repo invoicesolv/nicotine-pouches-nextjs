@@ -1,22 +1,27 @@
 import { notFound } from 'next/navigation';
+import { Metadata } from 'next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import Image from 'next/image';
-import { supabase } from '@/lib/supabase';
-import ProductGrid from '@/components/ProductGrid';
-import ReviewBalls from '@/components/ReviewBalls';
+import SSRProductGridWithSidebar from '@/components/SSRProductGridWithSidebar';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
+import { getSEOTags, renderSchemaTag, generateStandaloneAggregateRating, generateBreadcrumbSchema } from '@/lib/seo-core';
+import { getBrandSEOTemplate, generateBreadcrumbData } from '@/lib/seo-templates';
+import { getBrandAggregateRating } from '@/lib/aggregate-ratings';
+import { generateBrandHreflang, generateSafeHreflang } from '@/lib/hreflang';
+import './brand-page.css';
 
 // Fetch brand data from Supabase
 async function getBrandData(slug: string) {
   try {
     const brandName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     
-    // Get all products for this brand
+    // Get all products for this brand (filter by name starting with brand)
     const { data: products, error } = await supabase()
-      .from('products')
+      .from('wp_products')
       .select('*')
-      .ilike('brand', `%${brandName}%`)
+      .ilike('name', `${brandName}%`)
+      .not('image_url', 'is', null)
       .order('name');
 
     if (error) {
@@ -24,12 +29,11 @@ async function getBrandData(slug: string) {
       return null;
     }
 
-
     if (!products || products.length === 0) {
       return null;
     }
 
-    // Get the first product as the featured product for the header
+    // Get the first product as featured
     const featuredProduct = products[0];
 
     return {
@@ -38,27 +42,58 @@ async function getBrandData(slug: string) {
         id: featuredProduct.id,
         name: featuredProduct.name,
         image: featuredProduct.image_url || '/placeholder-product.jpg',
-        description: featuredProduct.description || `Premium ${brandName} nicotine pouches with various strengths and flavors.`,
-        brand: featuredProduct.brand,
-        strength_group: featuredProduct.strength_group,
-        flavour: featuredProduct.flavour,
-        format: featuredProduct.format
+        description: featuredProduct.content || `Compare ${brandName} nicotine pouches - best prices and deals UK.`,
+        brand: featuredProduct.name.split(' ')[0],
+        strength_group: 'Normal',
+        flavour: featuredProduct.name.split(' ').slice(1).join(' '),
+        format: 'Slim'
       },
       totalProducts: products.length
     };
   } catch (error) {
-    console.error('Error fetching brand data:', error);
+    console.error('Error in getBrandData:', error);
     return null;
   }
 }
 
-interface BrandPageProps {
-  params: Promise<{
-    slug: string;
-  }>;
+// Generate metadata for SEO
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const brandData = await getBrandData(slug);
+  
+  if (!brandData) {
+    return {
+      title: 'Brand Not Found',
+      description: 'The requested brand could not be found.'
+    };
+  }
+
+  // Fetch aggregate rating for the brand
+  const ratingData = await getBrandAggregateRating(brandData.brandName);
+  
+  // Prepare brand data for SEO template
+  const brandSEOData = {
+    brandName: brandData.brandName,
+    description: brandData.featuredProduct.description,
+    productCount: brandData.totalProducts,
+    image: brandData.featuredProduct.image,
+    aggregateRating: ratingData?.aggregateRating || {
+      "@type": "AggregateRating",
+      "ratingValue": "4.5",
+      "reviewCount": 0,
+      "bestRating": "5",
+      "worstRating": "1"
+    }
+  };
+
+  // Generate SEO data using centralized template
+  const seoData = getBrandSEOTemplate(brandSEOData);
+  
+  // Use centralized SEO function
+  return getSEOTags('brand', seoData);
 }
 
-export default async function BrandPage({ params }: BrandPageProps) {
+export default async function BrandPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const brandData = await getBrandData(slug);
 
@@ -66,12 +101,42 @@ export default async function BrandPage({ params }: BrandPageProps) {
     notFound();
   }
 
+  // Fetch aggregate rating for the brand
+  const ratingData = await getBrandAggregateRating(brandData.brandName);
+  
+  // Prepare brand data for schema
+  const brandSEOData = {
+    brandName: brandData.brandName,
+    description: brandData.featuredProduct.description,
+    productCount: brandData.totalProducts,
+    image: brandData.featuredProduct.image,
+    aggregateRating: ratingData?.aggregateRating || {
+      "@type": "AggregateRating",
+      "ratingValue": "4.5",
+      "reviewCount": 0,
+      "bestRating": "5",
+      "worstRating": "1"
+    }
+  };
+
+  // Generate breadcrumb data
+  const breadcrumbs = generateBreadcrumbData('brand', brandSEOData);
 
   return (
-    <div id="boxed-wrapper">
-      <div id="wrapper" className="fusion-wrapper">
-        {/* Header */}
-        <Header />
+    <>
+      {/* Standalone AggregateRating Schema */}
+      {ratingData && generateStandaloneAggregateRating('Brand', brandData.brandName, ratingData.aggregateRating)}
+      
+      {/* Brand Schema */}
+      {renderSchemaTag('brand', brandSEOData)}
+      
+      {/* Breadcrumb Schema */}
+      {generateBreadcrumbSchema(breadcrumbs)}
+      
+      <div id="boxed-wrapper">
+        <div id="wrapper" className="fusion-wrapper">
+          {/* Header */}
+          <Header />
 
         {/* Main Content */}
         <main id="main" className="clearfix" style={{
@@ -88,10 +153,10 @@ export default async function BrandPage({ params }: BrandPageProps) {
             padding: '15px 0',
             borderBottom: '1px solid #e9ecef'
           }}>
-            <div style={{
+            <div className="compare-container" style={{
               maxWidth: '100%',
               margin: '0',
-              padding: '0 10px',
+              padding: '0 15px',
               fontSize: '14px',
               color: '#666'
             }}>
@@ -99,150 +164,49 @@ export default async function BrandPage({ params }: BrandPageProps) {
               <span style={{ margin: '0 8px' }}>»</span>
               <Link href="/compare" style={{ color: '#666', textDecoration: 'none' }}>Compare Nicotine Pouches</Link>
               <span style={{ margin: '0 8px' }}>»</span>
+              <Link href="/guides" style={{ color: '#666', textDecoration: 'none' }}>Guides</Link>
+              <span style={{ margin: '0 8px' }}>»</span>
+              <Link href="/here-we-are" style={{ color: '#666', textDecoration: 'none' }}>About Us</Link>
+              <span style={{ margin: '0 8px' }}>»</span>
               <span>{brandData.brandName}</span>
             </div>
           </div>
 
-          {/* Brand Header Section */}
-          <div style={{
+          {/* Page Header */}
+          <div className="page-header" style={{
             backgroundColor: '#ffffff',
-            padding: '60px 0',
+            padding: '40px 0',
             borderBottom: '1px solid #e9ecef'
           }}>
-            <div style={{
+            <div className="compare-container" style={{
               maxWidth: '1200px',
               margin: '0 auto',
-              padding: '0 20px',
-              display: 'grid',
-              gridTemplateColumns: '1fr 400px',
-              gap: '60px',
-              alignItems: 'center'
+              padding: '0 15px',
+              textAlign: 'center'
             }}>
-              
-              {/* Brand Info - Left Side */}
-              <div>
-                <h1 style={{
-                  fontSize: '3rem',
-                  fontWeight: 'bold',
-                  color: '#333',
-                  margin: '0 0 15px 0',
-                  lineHeight: '1.1'
-                }}>
-                  {brandData.brandName} Products
-                </h1>
-
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  marginBottom: '20px'
-                }}>
-                  <div style={{ marginRight: '8px' }}>
-                    <ReviewBalls rating={5} />
-                  </div>
-                  <span style={{
-                    color: '#666',
-                    fontSize: '18px',
-                    fontWeight: '500'
-                  }}>
-                    4.5
-                  </span>
-                </div>
-
-                <p style={{
-                  fontSize: '18px',
-                  color: '#666',
-                  lineHeight: '1.6',
-                  marginBottom: '20px'
-                }}>
-                  Compare prices for all {brandData.brandName} nicotine pouches from top UK vendors. 
-                  Find the best deals on {brandData.totalProducts} products.
-                </p>
-
-                <div style={{
-                  display: 'flex',
-                  gap: '20px',
-                  marginBottom: '30px'
-                }}>
-                  <div>
-                    <span style={{
-                      fontSize: '14px',
-                      color: '#999',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px'
-                    }}>
-                      Products
-                    </span>
-                    <p style={{
-                      fontSize: '24px',
-                      fontWeight: 'bold',
-                      color: '#333',
-                      margin: '5px 0 0 0'
-                    }}>
-                      {brandData.totalProducts}
-                    </p>
-                  </div>
-                  <div>
-                    <span style={{
-                      fontSize: '14px',
-                      color: '#999',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px'
-                    }}>
-                      Featured
-                    </span>
-                    <p style={{
-                      fontSize: '16px',
-                      fontWeight: '500',
-                      color: '#333',
-                      margin: '5px 0 0 0'
-                    }}>
-                      {brandData.featuredProduct.name}
-                    </p>
-                  </div>
-                </div>
-
-                <button style={{
-                  backgroundColor: '#333',
-                  color: 'white',
-                  border: 'none',
-                  padding: '15px 30px',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}>
-                  Compare all {brandData.brandName} products
-                </button>
-              </div>
-
-              {/* Featured Product Image - Right Side */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '20px',
-                padding: '40px',
-                minHeight: '400px'
+              <h1 style={{
+                fontSize: '2.5rem',
+                fontWeight: 'bold',
+                color: '#333',
+                margin: '0 0 15px 0'
               }}>
-                <Image
-                  src={brandData.featuredProduct.image}
-                  alt={brandData.featuredProduct.name}
-                  width={300}
-                  height={300}
-                  style={{
-                    maxWidth: '100%',
-                    height: 'auto',
-                    objectFit: 'contain'
-                  }}
-                />
-              </div>
+                {brandData.brandName} Nicotine Pouches
+              </h1>
+              <p style={{
+                fontSize: '18px',
+                color: '#666',
+                maxWidth: '600px',
+                margin: '0 auto',
+                lineHeight: '1.6'
+              }}>
+                Find the best prices for {brandData.brandName} nicotine pouches from top UK vendors. 
+                Compare ratings, strengths, and flavors to find your perfect match.
+              </p>
             </div>
           </div>
 
-          {/* Product Grid */}
-          <ProductGrid brandFilter={brandData.brandName} />
+          {/* UK Products Section with Sidebar - Responsive */}
+          <SSRProductGridWithSidebar brandFilter={brandData.brandName} />
 
         </main>
 
@@ -250,49 +214,6 @@ export default async function BrandPage({ params }: BrandPageProps) {
         <Footer />
       </div>
     </div>
+    </>
   );
-}
-
-// Generate static params for known brands
-export async function generateStaticParams() {
-  try {
-    const { data: products } = await supabase()
-      .from('products')
-      .select('brand')
-      .not('brand', 'is', null);
-
-    if (!products) return [];
-
-    // Get unique brands
-    const uniqueBrands = Array.from(new Set(products.map((p: any) => p.brand)));
-    
-    return uniqueBrands.map((brand: any) => ({
-      slug: brand.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
-    }));
-  } catch (error) {
-    console.error('Error generating static params:', error);
-    return [];
-  }
-}
-
-// Dynamic metadata
-export async function generateMetadata({ params }: BrandPageProps) {
-  const { slug } = await params;
-  const brandData = await getBrandData(slug);
-  
-  if (!brandData) {
-    return {
-      title: 'Brand Not Found',
-    };
-  }
-
-  return {
-    title: `${brandData.brandName} - Compare Prices | Nicotine Pouches`,
-    description: `Compare prices for all ${brandData.brandName} nicotine pouches across multiple UK stores. ${brandData.totalProducts} products available.`,
-    openGraph: {
-      title: `${brandData.brandName} - Compare Prices`,
-      description: `Compare prices for all ${brandData.brandName} nicotine pouches across multiple UK stores.`,
-      images: [brandData.featuredProduct.image],
-    },
-  };
 }

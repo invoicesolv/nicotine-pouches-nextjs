@@ -78,11 +78,11 @@ interface USVendor {
   name: string;
   website: string;
   website_url?: string;
-  contact_email: string;
-  contact_phone: string;
-  description: string;
-  is_active: boolean;
-  region: string;
+  contact_email?: string;
+  contact_phone?: string;
+  description?: string;
+  status: string;
+  region?: string;
   created_at: string;
   updated_at?: string;
 }
@@ -192,7 +192,7 @@ export default function AdminDashboard() {
   
   // US-specific state
   const [usVendors, setUsVendors] = useState<USVendor[]>([]);
-  const [usVendorProducts, setUsVendorProducts] = useState<USVendorProduct[]>([]);
+  const [usVendorProducts, setUsVendorProducts] = useState<VendorProduct[]>([]);
   const [usProducts, setUsProducts] = useState<USProduct[]>([]);
   const [signups, setSignups] = useState<Signup[]>([]);
   const [signupsLoading, setSignupsLoading] = useState(false);
@@ -352,7 +352,7 @@ export default function AdminDashboard() {
         setUsVendors(usVendorsData || []);
 
         // Calculate stats
-        const activeUsVendors = usVendorsData?.filter((v: any) => v.is_active).length || 0;
+        const activeUsVendors = usVendorsData?.filter((v: any) => v.status === 'active').length || 0;
 
         setStats({
           totalVendors: usVendorsData?.length || 0,
@@ -363,7 +363,7 @@ export default function AdminDashboard() {
 
         // Fetch initial data for both tabs
         await fetchUSMainProducts();
-        await fetchUSVendorProducts();
+        await fetchVendorProducts();
       }
 
     } catch (error) {
@@ -380,7 +380,7 @@ export default function AdminDashboard() {
       const offset = (page - 1) * limit;
 
       let query = supabase()
-        .from('products')
+        .from('wp_products')
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -420,8 +420,11 @@ export default function AdminDashboard() {
       const limit = pageSize || vendorProductsPageSize;
       const offset = (page - 1) * limit;
 
+      // Use correct table based on region
+      const tableName = selectedRegion === 'UK' ? 'vendor_products' : 'us_vendor_products_new';
+      const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
       let query = supabase()
-        .from('vendor_products')
+        .from(tableName)
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -429,7 +432,7 @@ export default function AdminDashboard() {
       if (vendorId !== 'all') {
         // Handle both string and number vendor IDs
         const vendorIdValue = typeof vendorId === 'string' ? vendorId : String(vendorId);
-        query = query.eq('vendor_id', vendorIdValue);
+        query = query.eq(vendorIdField, vendorIdValue);
       }
 
       if (search) {
@@ -440,7 +443,12 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
-      setVendorProducts(data || []);
+      // Set the correct state based on region
+      if (selectedRegion === 'UK') {
+        setVendorProducts(data || []);
+      } else {
+        setUsVendorProducts(data || []);
+      }
       setVendorProductsTotalCount(count || 0);
       setVendorProductsTotalPages(Math.ceil((count || 0) / limit));
       setVendorProductsPage(page);
@@ -570,15 +578,18 @@ export default function AdminDashboard() {
 
     try {
       // First delete all vendor products and mappings
+      const vendorTableName = selectedRegion === 'UK' ? 'vendor_products' : 'us_vendor_products_new';
+      const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
       const { error: productsError } = await supabase()
-        .from('vendor_products')
+        .from(vendorTableName)
         .delete()
-        .eq('vendor_id', id);
+        .eq(vendorIdField, id);
 
       if (productsError) throw productsError;
 
+      const mappingTableName = selectedRegion === 'UK' ? 'vendor_product_mapping' : 'wp_product_mapping';
       const { error: mappingsError } = await supabase()
-        .from('vendor_product_mapping')
+        .from(mappingTableName)
         .delete()
         .eq('vendor_id', id);
 
@@ -610,7 +621,7 @@ export default function AdminDashboard() {
       if (typeof id === 'number') {
         // Main products table
         const { error } = await supabase()
-          .from('products')
+          .from('wp_products')
           .delete()
           .eq('id', id);
         
@@ -620,10 +631,11 @@ export default function AdminDashboard() {
         await fetchMainProducts(mainProductsPage, mainProductsSearchTerm, mainProductsPageSize);
       } else {
         // Vendor products table
-      const { error } = await supabase()
-        .from('vendor_products')
-        .delete()
-        .eq('id', id);
+        const vendorTableName = selectedRegion === 'UK' ? 'vendor_products' : 'us_vendor_products_new';
+        const { error } = await supabase()
+          .from(vendorTableName)
+          .delete()
+          .eq('id', id);
 
       if (error) throw error;
         
@@ -678,79 +690,121 @@ export default function AdminDashboard() {
       
       // Auto-map common columns for vendor products with flexible pack detection
       const autoMapping: Record<string, string> = {};
-      headers.forEach(header => {
+      headers.forEach((header, index) => {
         const lowerHeader = header.toLowerCase().trim();
+        console.log(`Processing header: "${header}" (index: ${index}, lower: "${lowerHeader}")`);
         
         // Basic field mapping
         if (lowerHeader.includes('name') || lowerHeader.includes('product')) {
-          autoMapping[header] = 'name';
+          autoMapping[`${header}-${index}`] = 'name';
+          console.log(`Mapped "${header}" to name`);
         } else if (lowerHeader.includes('brand')) {
-          autoMapping[header] = 'brand';
-        } else if (lowerHeader.includes('url') || lowerHeader.includes('link')) {
-          autoMapping[header] = 'url';
+          autoMapping[`${header}-${index}`] = 'brand';
+          console.log(`Mapped "${header}" to brand`);
+        } else if (lowerHeader.includes('url') || lowerHeader.includes('link') || lowerHeader.includes('page url')) {
+          autoMapping[`${header}-${index}`] = 'url';
+          console.log(`Mapped "${header}" to url`);
         } else {
           // Dynamic pack detection - look for any number followed by pack/can/unit (with plural support)
           const packMatch = lowerHeader.match(/(\d+)\s*(pack|packs|can|cans|unit|units|pcs?|pieces?)/);
           if (packMatch) {
             const packSize = packMatch[1];
             const packType = packMatch[2];
+            console.log(`Found pack match: "${header}" -> size: ${packSize}, type: ${packType}`);
             
-            // Map to standard pack column names
-            if (packSize === '1') {
-              autoMapping[header] = 'price_1pack';
-            } else if (packSize === '3') {
-              autoMapping[header] = 'price_3pack';
-            } else if (packSize === '5') {
-              autoMapping[header] = 'price_5pack';
-            } else if (packSize === '10') {
-              autoMapping[header] = 'price_10pack';
-            } else if (packSize === '20') {
-              autoMapping[header] = 'price_20pack';
-            } else if (packSize === '25') {
-              autoMapping[header] = 'price_25pack';
-            } else if (packSize === '30') {
-              autoMapping[header] = 'price_30pack';
-            } else if (packSize === '50') {
-              autoMapping[header] = 'price_50pack';
-            } else {
-              // For any other pack size, map to the closest standard size
-              const size = parseInt(packSize);
-              if (size <= 1) {
-                autoMapping[header] = 'price_1pack';
-              } else if (size <= 3) {
-                autoMapping[header] = 'price_3pack';
-              } else if (size <= 5) {
-                autoMapping[header] = 'price_5pack';
-              } else if (size <= 10) {
-                autoMapping[header] = 'price_10pack';
-              } else if (size <= 20) {
-                autoMapping[header] = 'price_20pack';
-              } else if (size <= 25) {
-                autoMapping[header] = 'price_25pack';
-              } else if (size <= 30) {
-                autoMapping[header] = 'price_30pack';
+            // Map to standard pack column names - support any pack size from 1-50
+            const size = parseInt(packSize);
+            if (size >= 1 && size <= 50) {
+              // Map to the exact standard size if it exists, otherwise to the closest
+              if (size === 1) {
+                autoMapping[`${header}-${index}`] = 'price_1pack';
+              } else if (size === 3) {
+                autoMapping[`${header}-${index}`] = 'price_3pack';
+              } else if (size === 5) {
+                autoMapping[`${header}-${index}`] = 'price_5pack';
+              } else if (size === 10) {
+                autoMapping[`${header}-${index}`] = 'price_10pack';
+              } else if (size === 20) {
+                autoMapping[`${header}-${index}`] = 'price_20pack';
+              } else if (size === 25) {
+                autoMapping[`${header}-${index}`] = 'price_25pack';
+              } else if (size === 30) {
+                autoMapping[`${header}-${index}`] = 'price_30pack';
+              } else if (size === 50) {
+                autoMapping[`${header}-${index}`] = 'price_50pack';
               } else {
-                autoMapping[header] = 'price_50pack';
+                // Map to closest standard size for any other pack size 1-50
+                if (size <= 1) {
+                  autoMapping[`${header}-${index}`] = 'price_1pack';
+                } else if (size <= 3) {
+                  autoMapping[`${header}-${index}`] = 'price_3pack';
+                } else if (size <= 5) {
+                  autoMapping[`${header}-${index}`] = 'price_5pack';
+                } else if (size <= 10) {
+                  autoMapping[`${header}-${index}`] = 'price_10pack';
+                } else if (size <= 20) {
+                  autoMapping[`${header}-${index}`] = 'price_20pack';
+                } else if (size <= 25) {
+                  autoMapping[`${header}-${index}`] = 'price_25pack';
+                } else if (size <= 30) {
+                  autoMapping[`${header}-${index}`] = 'price_30pack';
+                } else {
+                  autoMapping[`${header}-${index}`] = 'price_50pack';
+                }
               }
             }
           }
           // Also check for price_ format
           else if (lowerHeader.startsWith('price_') && lowerHeader.includes('pack')) {
-            autoMapping[header] = lowerHeader.replace('price_', 'price_');
+            autoMapping[`${header}-${index}`] = lowerHeader.replace('price_', 'price_');
           }
         }
       });
+      
+      console.log('Auto-mapping result:', autoMapping);
+      console.log('Headers processed:', headers);
       setColumnMapping(autoMapping);
+      
+      // Auto-process the CSV if all required fields are mapped
+      if (autoMapping[headers[0]] && autoMapping[headers[1]] && selectedVendor) {
+        console.log('Auto-processing CSV...');
+        setTimeout(() => {
+          processCsvImport();
+        }, 1000);
+      }
     };
     reader.readAsText(file);
   };
 
+
+  // Helper function to get the correct column index for a mapped field
+  const getColumnIndex = (fieldName: string) => {
+    for (const [key, value] of Object.entries(columnMapping)) {
+      if (value === fieldName) {
+        // Extract index from key format "header-index"
+        const index = key.split('-').pop();
+        const result = index ? parseInt(index) : -1;
+        console.log(`getColumnIndex(${fieldName}) = ${result} (key: ${key}, value: ${value})`);
+        return result;
+      }
+    }
+    console.log(`getColumnIndex(${fieldName}) = -1 (not found in mapping)`);
+    console.log('Available mappings:', columnMapping);
+    return -1;
+  };
 
   const processCsvImport = async () => {
     if (!selectedVendor || !csvData.length) {
       toast.error('Please select a vendor and ensure CSV data is loaded');
       return;
     }
+    
+    console.log('Processing CSV import for vendor:', selectedVendor);
+    console.log('Column mapping:', columnMapping);
+    console.log('CSV data sample:', csvData.slice(0, 2));
+    console.log('Name column index:', getColumnIndex('name'));
+    console.log('Brand column index:', getColumnIndex('brand'));
+    console.log('URL column index:', getColumnIndex('url'));
 
     setIsProcessingCsv(true);
     setCsvProgress(0);
@@ -773,44 +827,113 @@ export default function AdminDashboard() {
         setCsvProgress(Math.round((i / csvData.length) * 100));
 
         try {
+          // Debug: Log the row data and extracted values
+          const nameIndex = getColumnIndex('name');
+          const brandIndex = getColumnIndex('brand');
+          const urlIndex = getColumnIndex('url');
+          
+          // Get the actual header names for the mapped fields
+          const nameHeader = Object.keys(columnMapping).find(key => columnMapping[key] === 'name')?.split('-').slice(0, -1).join('-');
+          const brandHeader = Object.keys(columnMapping).find(key => columnMapping[key] === 'brand')?.split('-').slice(0, -1).join('-');
+          const urlHeader = Object.keys(columnMapping).find(key => columnMapping[key] === 'url')?.split('-').slice(0, -1).join('-');
+          
+          console.log(`Row ${i + 1}:`, {
+            nameIndex,
+            brandIndex,
+            urlIndex,
+            nameHeader,
+            brandHeader,
+            urlHeader,
+            nameValue: nameHeader ? row[nameHeader] : 'NO HEADER FOUND',
+            brandValue: brandHeader ? row[brandHeader] : 'NO HEADER FOUND',
+            urlValue: urlHeader ? row[urlHeader] : 'NO HEADER FOUND',
+            fullRow: row,
+            rowKeys: Object.keys(row),
+            columnMapping: columnMapping
+          });
+          
+          // Check if name is actually missing
+          if (!nameHeader || !row[nameHeader] || row[nameHeader].trim() === '') {
+            console.error(`Row ${i + 1} has empty name:`, {
+              nameHeader,
+              nameValue: nameHeader ? row[nameHeader] : 'NO HEADER FOUND',
+              row: row,
+              availableKeys: Object.keys(row)
+            });
+          }
+          
+          // Debug the actual productData creation
+          const extractedName = nameHeader ? (row[nameHeader] || '') : '';
+          console.log(`Row ${i + 1} productData.name will be:`, {
+            extractedName,
+            isEmpty: extractedName === '',
+            isUndefined: extractedName === undefined,
+            isNull: extractedName === null
+          });
+          
           // Map CSV columns to vendor product data with flexible pack handling
           const productData: any = {
-            vendor_id: selectedVendor,
-            name: row[columnMapping.name] || '',
-            brand: row[columnMapping.brand] || '',
-            url: row[columnMapping.url] || ''
+            // Use different field names based on region
+            ...(selectedRegion === 'UK' ? {
+              vendor_id: selectedVendor,
+              name: nameHeader ? (row[nameHeader] || '') : '',
+              brand: '', // Brand not required
+              url: urlHeader ? (row[urlHeader] || '') : ''
+            } : {
+              us_vendor_id: selectedVendor,
+              name: nameHeader ? (row[nameHeader] || '') : '',
+              brand: '', // Brand not required
+              url: urlHeader ? (row[urlHeader] || '') : ''
+            })
           };
 
-          // Add all pack prices dynamically
+          // Add pack prices dynamically - only for packs that exist in the CSV
           const standardPacks = ['price_1pack', 'price_3pack', 'price_5pack', 'price_10pack', 'price_20pack', 'price_25pack', 'price_30pack', 'price_50pack'];
           standardPacks.forEach(pack => {
-            productData[pack] = row[columnMapping[pack]] || '';
+            const packHeader = Object.keys(columnMapping).find(key => columnMapping[key] === pack)?.split('-').slice(0, -1).join('-');
+            // Only add the pack if it exists in the CSV mapping
+            if (packHeader) {
+              const priceValue = row[packHeader] || '';
+              // Convert price string to number (remove $ and parse)
+              const numericPrice = priceValue ? parseFloat(priceValue.replace(/[$,]/g, '')) : null;
+              productData[pack] = (numericPrice === null || isNaN(numericPrice)) ? null : numericPrice;
+            }
+            // If pack doesn't exist in CSV, don't add it to productData (will be NULL in DB)
           });
 
           // Handle custom pack sizes - map to closest standard size
-          Object.entries(columnMapping).forEach(([header, field]) => {
+          Object.entries(columnMapping).forEach(([key, field]) => {
             if (field === 'custom_pack') {
+              // Extract header name from key format "header-index"
+              const headerParts = key.split('-');
+              const header = headerParts.slice(0, -1).join('-');
+              
               // Extract pack size from header (with plural support)
               const packMatch = header.toLowerCase().match(/(\d+)\s*(pack|packs|can|cans|unit|units|pcs?|pieces?)/);
               if (packMatch) {
                 const packSize = parseInt(packMatch[1]);
+                const priceValue = row[header] || '';
+                // Convert price string to number (remove $ and parse)
+                const numericPrice = priceValue ? parseFloat(priceValue.replace(/[$,]/g, '')) : null;
+                const finalPrice = (numericPrice === null || isNaN(numericPrice)) ? null : numericPrice;
+                
                 // Map to closest standard pack size
                 if (packSize <= 1) {
-                  productData.price_1pack = row[header] || '';
+                  productData.price_1pack = finalPrice;
                 } else if (packSize <= 3) {
-                  productData.price_3pack = row[header] || '';
+                  productData.price_3pack = finalPrice;
                 } else if (packSize <= 5) {
-                  productData.price_5pack = row[header] || '';
+                  productData.price_5pack = finalPrice;
                 } else if (packSize <= 10) {
-                  productData.price_10pack = row[header] || '';
+                  productData.price_10pack = finalPrice;
                 } else if (packSize <= 20) {
-                  productData.price_20pack = row[header] || '';
+                  productData.price_20pack = finalPrice;
                 } else if (packSize <= 25) {
-                  productData.price_25pack = row[header] || '';
+                  productData.price_25pack = finalPrice;
                 } else if (packSize <= 30) {
-                  productData.price_30pack = row[header] || '';
+                  productData.price_30pack = finalPrice;
                 } else {
-                  productData.price_50pack = row[header] || '';
+                  productData.price_50pack = finalPrice;
                 }
               }
             }
@@ -822,19 +945,32 @@ export default function AdminDashboard() {
             continue;
           }
 
-          // Insert product
+          // Insert product - use correct table based on region
+          const tableName = selectedRegion === 'UK' ? 'vendor_products' : 'us_vendor_products_new';
+          
+          // Debug: Log the data being inserted
+          console.log(`Inserting product data for row ${i + 1}:`, {
+            tableName,
+            productData,
+            selectedVendor,
+            vendorIdType: typeof selectedVendor
+          });
+          
           const { error } = await supabase()
-            .from('vendor_products')
+            .from(tableName)
             .insert([productData]);
 
-          if (error) throw error;
+          if (error) {
+            console.error(`Database insert error for row ${i + 1}:`, error);
+            throw error;
+          }
 
           results.success++;
           results.newProducts++;
 
         } catch (error) {
           results.errors++;
-          results.errors_list.push(`Row ${i + 1}: ${error}`);
+          results.errors_list.push(`Row ${i + 1}: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
 
@@ -866,6 +1002,13 @@ export default function AdminDashboard() {
       if (results.success > 0) {
         toast.success(`Successfully imported ${results.success} products`);
         fetchData(); // Refresh data
+        
+        // Also refresh vendor products for the selected vendor
+        await fetchVendorProducts(1, '', selectedVendor, vendorProductsPageSize);
+        
+        // Switch to vendor products tab and select the vendor
+        setActiveTab('vendor-products');
+        setSelectedVendorForProducts(selectedVendor);
       }
 
     } catch (error) {
@@ -981,7 +1124,7 @@ export default function AdminDashboard() {
 
           // Insert product
           const { error } = await supabase()
-            .from('products')
+            .from('wp_products')
             .insert([productData]);
 
           if (error) throw error;
@@ -990,7 +1133,7 @@ export default function AdminDashboard() {
 
         } catch (error) {
           results.errors++;
-          results.errors_list.push(`Row ${i + 1}: ${error}`);
+          results.errors_list.push(`Row ${i + 1}: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
 
@@ -1024,7 +1167,10 @@ export default function AdminDashboard() {
   // Product mapping functions (from vendor-profiles)
   const calculateSimilarity = (str1: string, str2: string): number => {
     // Normalize strings for comparison
-    const normalizeString = (str: string) => {
+    const normalizeString = (str: string | null | undefined) => {
+      if (!str || typeof str !== 'string') {
+        return '';
+      }
       return str
         .toLowerCase()
         .trim()
@@ -1195,7 +1341,7 @@ export default function AdminDashboard() {
     try {
       // Get all existing products from Supabase
       const { data: existingProducts, error } = await supabase()
-        .from('products')
+        .from('wp_products')
         .select('*');
 
       if (error) throw error;
@@ -1207,11 +1353,13 @@ export default function AdminDashboard() {
         const potentialMatches: ProductMatch[] = [];
         
         for (const existingProduct of existingProducts || []) {
-          const similarity = calculateSimilarity(productName, existingProduct.name);
+          const existingProductName = selectedRegion === 'UK' ? existingProduct.name : existingProduct.product_title;
+          if (!existingProductName) continue; // Skip products with no name
+          const similarity = calculateSimilarity(productName, existingProductName);
           if (similarity >= 0.75) { // 75% similarity threshold
             potentialMatches.push({
               id: existingProduct.id,
-              name: existingProduct.name,
+              name: existingProductName,
               brand: existingProduct.brand || 'Unknown',
               flavour: existingProduct.flavour,
               similarity: Math.round(similarity * 100)
@@ -1238,7 +1386,7 @@ export default function AdminDashboard() {
     try {
       // Get all existing products from Supabase
       const { data: existingProducts, error } = await supabase()
-        .from('products')
+        .from('wp_products')
         .select('*');
 
       if (error) throw error;
@@ -1251,11 +1399,13 @@ export default function AdminDashboard() {
         const potentialMatches = [];
         
         for (const existingProduct of existingProducts || []) {
-          const similarity = calculateSimilarity(productName, existingProduct.name);
+          const existingProductName = selectedRegion === 'UK' ? existingProduct.name : existingProduct.product_title;
+          if (!existingProductName) continue; // Skip products with no name
+          const similarity = calculateSimilarity(productName, existingProductName);
           if (similarity >= 0.75) { // 75% similarity threshold (increased for more accurate matches)
             potentialMatches.push({
               id: existingProduct.id,
-              name: existingProduct.name,
+              name: existingProductName,
               brand: existingProduct.brand || 'Unknown',
               flavour: existingProduct.flavour,
               similarity: Math.round(similarity * 100)
@@ -1293,15 +1443,18 @@ export default function AdminDashboard() {
 
   const saveMappings = async () => {
     try {
+      const mappingTableName = selectedRegion === 'UK' ? 'vendor_product_mapping' : 'us_vendor_product_mapping';
+      const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
+      
       const mappingsToSave = Object.entries(productMappings).map(([vendorProduct, productId]) => ({
         vendor_product: vendorProduct,
         product_id: productId,
-        vendor_id: selectedVendor,
+        [vendorIdField]: selectedVendor,
         created_at: new Date().toISOString()
       }));
 
       const { error } = await supabase()
-        .from('vendor_product_mapping')
+        .from(mappingTableName)
         .insert(mappingsToSave);
 
       if (error) throw error;
@@ -1322,35 +1475,44 @@ export default function AdminDashboard() {
     try {
       console.log('Counting exact matches for vendor:', vendorId);
       
-      if (!supabaseAdmin) {
-        console.error('Supabase admin client not available');
-        return 0;
-      }
-      
-      const { data: vendorProducts, error: vendorError } = await supabaseAdmin()
-        .from('vendor_products')
+      // Use correct table based on region
+      const vendorTableName = selectedRegion === 'UK' ? 'vendor_products' : 'us_vendor_products_new';
+      const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
+      const { data: vendorProducts, error: vendorError } = await supabase()
+        .from(vendorTableName)
         .select('name')
-        .eq('vendor_id', vendorId);
+        .eq(vendorIdField, vendorId);
 
       if (vendorError) {
         console.error('Error fetching vendor products for count:', vendorError);
         throw vendorError;
       }
 
-      const { data: existingProducts, error: productsError } = await supabaseAdmin()
-        .from('products')
-        .select('name');
+      // Use correct products table based on region
+      const productsTableName = selectedRegion === 'UK' ? 'wp_products' : 'us_products';
+      const productNameField = selectedRegion === 'UK' ? 'name' : 'product_title';
+      console.log('Fetching products from table:', productsTableName, 'for region:', selectedRegion);
+      
+      const { data: existingProducts, error: productsError } = await supabase()
+        .from(productsTableName)
+        .select(productNameField);
 
       if (productsError) {
         console.error('Error fetching existing products for count:', productsError);
+        console.error('Table name:', productsTableName);
+        console.error('Region:', selectedRegion);
         throw productsError;
       }
+      
+      console.log('Successfully fetched products:', existingProducts?.length || 0);
 
       // Get existing mappings for this vendor
-      const { data: existingMappings, error: mappingsError } = await supabaseAdmin()
-        .from('vendor_product_mapping')
+      const mappingTableName = selectedRegion === 'UK' ? 'vendor_product_mapping' : 'us_vendor_product_mapping';
+      const mappingVendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
+      const { data: existingMappings, error: mappingsError } = await supabase()
+        .from(mappingTableName)
         .select('vendor_product')
-        .eq('vendor_id', vendorId);
+        .eq(mappingVendorIdField, vendorId);
 
       if (mappingsError) {
         console.error('Error fetching existing mappings for count:', mappingsError);
@@ -1381,7 +1543,9 @@ export default function AdminDashboard() {
         let bestSimilarity = 0;
         
         for (const existingProduct of existingProducts || []) {
-          const similarity = calculateSimilarity(vendorName, existingProduct.name);
+          const existingProductName = selectedRegion === 'UK' ? existingProduct.name : existingProduct.product_title;
+          if (!existingProductName) continue; // Skip products with no name
+          const similarity = calculateSimilarity(vendorName, existingProductName);
           if (similarity > bestSimilarity) {
             bestSimilarity = similarity;
           }
@@ -1406,16 +1570,12 @@ export default function AdminDashboard() {
     try {
       console.log('Starting bulk autolink for vendor:', vendorId);
       
-      if (!supabaseAdmin) {
-        console.error('Supabase admin client not available');
-        toast.error('Admin client not available');
-        return;
-      }
-      
-      const { data: vendorProducts, error: vendorError } = await supabaseAdmin()
-        .from('vendor_products')
+      const vendorTableName = selectedRegion === 'UK' ? 'vendor_products' : 'us_vendor_products_new';
+      const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
+      const { data: vendorProducts, error: vendorError } = await supabase()
+        .from(vendorTableName)
         .select('*')
-        .eq('vendor_id', typeof vendorId === 'string' ? vendorId : String(vendorId));
+        .eq(vendorIdField, typeof vendorId === 'string' ? vendorId : String(vendorId));
 
       if (vendorError) {
         console.error('Error fetching vendor products:', vendorError);
@@ -1424,8 +1584,9 @@ export default function AdminDashboard() {
 
       console.log('Found vendor products:', vendorProducts?.length || 0);
 
-      const { data: existingProducts, error: productsError } = await supabaseAdmin()
-        .from('products')
+      const productsTableName = selectedRegion === 'UK' ? 'wp_products' : 'us_products';
+      const { data: existingProducts, error: productsError } = await supabase()
+        .from(productsTableName)
         .select('*');
 
       if (productsError) {
@@ -1446,7 +1607,9 @@ export default function AdminDashboard() {
         let bestSimilarity = 0;
         
         for (const existingProduct of existingProducts || []) {
-          const similarity = calculateSimilarity(vendorName, existingProduct.name);
+          const existingProductName = selectedRegion === 'UK' ? existingProduct.name : existingProduct.product_title;
+          if (!existingProductName) continue; // Skip products with no name
+          const similarity = calculateSimilarity(vendorName, existingProductName);
           if (similarity > bestSimilarity) {
             bestSimilarity = similarity;
             bestMatch = existingProduct;
@@ -1468,9 +1631,28 @@ export default function AdminDashboard() {
       console.log('Mappings to save:', mappingsToSave);
 
       if (mappingsToSave.length > 0) {
-        const { error: mappingError } = await supabaseAdmin()
-          .from('vendor_product_mapping')
-          .insert(mappingsToSave);
+        const mappingTableName = selectedRegion === 'UK' ? 'vendor_product_mapping' : 'us_vendor_product_mapping';
+        const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
+        
+        // Update mappings to use correct field name
+        const formattedMappings = mappingsToSave.map(mapping => {
+          const formatted = {
+            vendor_product: mapping.vendor_product,
+            product_id: mapping.product_id,
+            [vendorIdField]: mapping.vendor_id
+          };
+          return formatted;
+        });
+        
+        console.log('Inserting mappings:', {
+          tableName: mappingTableName,
+          vendorIdField: vendorIdField,
+          mappings: formattedMappings.slice(0, 3) // Show first 3 for debugging
+        });
+        
+        const { error: mappingError } = await supabase()
+          .from(mappingTableName)
+          .insert(formattedMappings);
 
         if (mappingError) {
           console.error('Error inserting mappings:', mappingError);
@@ -1542,6 +1724,8 @@ export default function AdminDashboard() {
 
   // Filter and sort vendors based on selected region
   const currentVendors = selectedRegion === 'UK' ? vendors : usVendors;
+  console.log('Current region:', selectedRegion);
+  console.log('Current vendors:', currentVendors.length, currentVendors);
   const currentProductCount = selectedRegion === 'UK' ? mainProductsTotalCount : (usProducts.length > 0 ? mainProductsTotalCount : 0);
   const filteredVendors = currentVendors
     .filter(vendor => {
@@ -1558,8 +1742,12 @@ export default function AdminDashboard() {
     })
     .filter(vendor => {
       // Status filter
-      if (vendorFilter === 'active') return vendor.is_active;
-      if (vendorFilter === 'inactive') return !vendor.is_active;
+      if (vendorFilter === 'active') {
+        return selectedRegion === 'US' ? (vendor as USVendor).status === 'active' : (vendor as Vendor).is_active;
+      }
+      if (vendorFilter === 'inactive') {
+        return selectedRegion === 'US' ? (vendor as USVendor).status !== 'active' : !(vendor as Vendor).is_active;
+      }
       return true;
     })
     .sort((a, b) => {
@@ -1643,15 +1831,13 @@ export default function AdminDashboard() {
     try {
       console.log('Loading product mappings for vendor ID:', vendorId);
       
-      if (!supabaseAdmin) {
-        console.error('Supabase admin client not available');
-        return;
-      }
-      
-      const { data, error } = await supabaseAdmin()
-        .from('vendor_product_mapping')
+      // Use correct mapping table based on region
+      const mappingTableName = selectedRegion === 'UK' ? 'vendor_product_mapping' : 'us_vendor_product_mapping';
+      const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
+      const { data, error } = await supabase()
+        .from(mappingTableName)
         .select('*')
-        .eq('vendor_id', vendorId);
+        .eq(vendorIdField, vendorId);
 
       if (error) throw error;
       
@@ -1670,8 +1856,9 @@ export default function AdminDashboard() {
 
       // Also load main products if not already loaded (needed for mapping status)
       if (mainProducts.length === 0) {
-        const { data: productsData, error: productsError } = await supabaseAdmin()
-          .from('products')
+        const productsTableName = selectedRegion === 'UK' ? 'wp_products' : 'us_products';
+        const { data: productsData, error: productsError } = await supabase()
+          .from(productsTableName)
           .select('*');
 
         if (!productsError && productsData) {
@@ -1730,7 +1917,8 @@ export default function AdminDashboard() {
         body: JSON.stringify({
           vendor_product: vendorProductName,
           product_id: productId,
-          vendor_id: selectedVendorForProducts
+          vendor_id: selectedVendorForProducts,
+          region: selectedRegion
         })
       });
 
@@ -1864,10 +2052,12 @@ export default function AdminDashboard() {
         return;
       }
 
+      const vendorTableName = selectedRegion === 'UK' ? 'vendor_products' : 'us_vendor_products_new';
+      const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
       const { data, error } = await supabase()
-        .from('vendor_products')
+        .from(vendorTableName)
         .select('*')
-        .eq('vendor_id', parseInt(vendorId))
+        .eq(vendorIdField, vendorId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -1878,7 +2068,8 @@ export default function AdminDashboard() {
   };
 
   // Filter vendor products based on search, brand, and status filters
-  const filteredVendorProducts = (productStatusFilter !== 'all' ? allVendorProducts : vendorProducts).filter(product => {
+  const currentVendorProducts = selectedRegion === 'UK' ? vendorProducts : usVendorProducts;
+  const filteredVendorProducts = (productStatusFilter !== 'all' ? allVendorProducts : currentVendorProducts).filter(product => {
     // Debug logging for status filter
     if (productStatusFilter === 'mapped') {
       console.log('Filtering for mapped products. Total mappings loaded:', productMappings.length);
@@ -2208,8 +2399,8 @@ export default function AdminDashboard() {
                               <div className="space-y-2">
                                 <div className="flex items-center space-x-2">
                                   <h3 className="font-semibold">{vendor.name}</h3>
-                                  <Badge variant={vendor.is_active ? "default" : "secondary"}>
-                                    {vendor.is_active ? "Active" : "Inactive"}
+                                  <Badge variant={selectedRegion === 'US' ? ((vendor as USVendor).status === 'active' ? "default" : "secondary") : ((vendor as Vendor).is_active ? "default" : "secondary")}>
+                                    {selectedRegion === 'US' ? ((vendor as USVendor).status === 'active' ? "Active" : "Inactive") : ((vendor as Vendor).is_active ? "Active" : "Inactive")}
                                   </Badge>
                                 </div>
                                 <div className="space-y-1">
@@ -2651,9 +2842,8 @@ export default function AdminDashboard() {
                                 className="w-full p-2 border border-border rounded-md bg-background mt-1"
                               >
                                 <option value="all">-- All Brands --</option>
-                                {Array.from(new Set((selectedRegion === 'UK' ? vendorProducts : usVendorProducts).map(p => {
-                                  if (isUKVendorProduct(p)) return p.brand;
-                                  return (p as any).us_products?.brand;
+                                {Array.from(new Set(currentVendorProducts.map(p => {
+                                  return p.brand;
                                 }))).map((brand) => (
                                   <option key={brand} value={brand}>
                                     {brand}
@@ -2756,9 +2946,10 @@ export default function AdminDashboard() {
                               </tr>
                             </thead>
                             <tbody>
-                              {(selectedRegion === 'UK' ? filteredVendorProducts : usVendorProducts).map((product) => {
-                                const vendor = currentVendors.find(v => v.id === (isUKVendorProduct(product) ? product.vendor_id : (product as any).us_vendor_id));
-                                const productName = isUKVendorProduct(product) ? product.name : (product as any).us_products?.product_title || '';
+                              {filteredVendorProducts.map((product) => {
+                                const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
+                                const vendor = currentVendors.find(v => v.id === (product as any)[vendorIdField]);
+                                const productName = product.name;
                                 const mappingStatus = getMappingStatus(productName);
                                 const matches = productMatches[productName] || [];
                                 const selectedProductId = selectedMappings[productName];
@@ -2769,7 +2960,7 @@ export default function AdminDashboard() {
                                       <div className="font-medium">{productName}</div>
                                       <div className="text-sm text-muted-foreground">{vendor?.name}</div>
                                     </td>
-                                    <td className="p-4">{isUKVendorProduct(product) ? product.brand : (product as any).us_products?.brand}</td>
+                                    <td className="p-4">{product.brand}</td>
                                     <td className="p-4">
                                       {mappingStatus.status === 'mapped' ? (
                                         <div>
@@ -2895,9 +3086,9 @@ export default function AdminDashboard() {
                                       )}
                                     </td>
                                     <td className="p-4">
-                                      {(isUKVendorProduct(product) ? product.url : product.url) ? (
+                                      {(product as VendorProduct).url ? (
                                         <Button size="sm" variant="outline" asChild>
-                                          <a href={isUKVendorProduct(product) ? product.url : product.url} target="_blank" rel="noopener noreferrer">
+                                          <a href={(product as VendorProduct).url} target="_blank" rel="noopener noreferrer">
                                             <ExternalLink className="h-3 w-3 mr-1" />
                                             View
                                           </a>
@@ -3291,7 +3482,10 @@ export default function AdminDashboard() {
                               <select
                                 id="vendor-select"
                                 value={selectedVendor}
-                                onChange={(e) => setSelectedVendor(e.target.value)}
+                                onChange={(e) => {
+                                  console.log('Vendor selection changed to:', e.target.value);
+                                  setSelectedVendor(e.target.value);
+                                }}
                                 className="w-full p-2 border border-border rounded-md bg-background"
                               >
                                 <option value="">Select a vendor...</option>
@@ -3307,67 +3501,50 @@ export default function AdminDashboard() {
                       </Card>
                     )}
 
-                    {/* Column Mapping */}
+                    {/* Auto-Mapping Status */}
                     {csvFile && csvHeaders.length > 0 && (
                       <Card>
                         <CardContent className="p-6">
                           <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Map CSV Columns</h3>
+                            <h3 className="text-lg font-semibold">CSV Auto-Mapping</h3>
                             <p className="text-sm text-muted-foreground">
-                              Map your CSV columns to the product fields. Required fields are marked with *
+                              Columns are automatically mapped. No manual mapping required.
                             </p>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {csvHeaders.map((header) => (
-                                <div key={header} className="space-y-2">
-                                  <Label htmlFor={`mapping-${header}`}>{header}</Label>
-                                  <select
-                                    id={`mapping-${header}`}
-                                    value={columnMapping[header] || ''}
-                                    onChange={(e) => setColumnMapping(prev => ({
-                                      ...prev,
-                                      [header]: e.target.value
-                                    }))}
-                                    className="w-full p-2 border border-border rounded-md bg-background"
-                                  >
-                                    <option value="">Select field...</option>
-                                    <option value="name">Product Name *</option>
-                                    <option value="brand">Brand *</option>
-                                    <option value="url">URL *</option>
-                                    <optgroup label="Pack Prices">
-                                      <option value="price_1pack">1 Pack Price</option>
-                                      <option value="price_3pack">3 Pack Price</option>
-                                      <option value="price_5pack">5 Pack Price</option>
-                                      <option value="price_10pack">10 Pack Price</option>
-                                      <option value="price_20pack">20 Pack Price</option>
-                                      <option value="price_25pack">25 Pack Price</option>
-                                      <option value="price_30pack">30 Pack Price</option>
-                                      <option value="price_50pack">50 Pack Price</option>
-                                    </optgroup>
-                                    <optgroup label="Custom Pack Sizes">
-                                      <option value="custom_pack">Custom Pack Size</option>
-                                    </optgroup>
-                                  </select>
+                            <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0">
+                                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                  </svg>
                                 </div>
-                              ))}
+                                <div className="ml-3">
+                                  <p className="text-sm font-medium text-green-800">
+                                    CSV columns have been automatically mapped
+                                  </p>
+                                  <p className="text-sm text-green-700">
+                                    {Object.keys(columnMapping).length} columns mapped successfully
+                                  </p>
+                                </div>
+                              </div>
                             </div>
 
-                            {/* Product Mapping Actions */}
+                            {/* Actions */}
                             <div className="flex gap-4 pt-4 border-t">
                               <Button
-                                onClick={() => findProductMatchesForMapping(csvData, columnMapping)}
-                                disabled={isProcessingMapping || !selectedVendor}
+                                onClick={() => processCsvImport()}
+                                disabled={!selectedVendor || csvData.length === 0}
                                 className="flex-1"
                               >
                                 {isProcessingMapping ? (
                                   <>
                                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                    Finding Matches...
+                                    Uploading CSV...
                                   </>
                                 ) : (
                                   <>
-                                    <Search className="h-4 w-4 mr-2" />
-                                    Find Product Matches
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Upload CSV
                                   </>
                                 )}
                               </Button>
@@ -3384,97 +3561,6 @@ export default function AdminDashboard() {
                       </Card>
                     )}
 
-                    {/* Product Mapping Interface */}
-                    {showMappingInterface && mappingResults.length > 0 && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <Search className="h-5 w-5" />
-                            Product Mapping Results
-                          </CardTitle>
-                          <CardDescription>
-                            Review and confirm matches between vendor products and existing products
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {mappingResults.map((result, index) => (
-                            <div key={index} className="border rounded-lg p-4 space-y-3">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-semibold text-lg">{result.vendor_product}</h4>
-                                <Badge variant={productMappings[result.vendor_product] ? "default" : "secondary"}>
-                                  {productMappings[result.vendor_product] ? "Mapped" : "Not Mapped"}
-                                </Badge>
-                              </div>
-                              
-                              {result.potential_matches.length > 0 ? (
-                                <div className="space-y-2">
-                                  <p className="text-sm text-muted-foreground">Potential matches:</p>
-                                  <div className="grid gap-2">
-                                    {result.potential_matches.map((match: any, matchIndex: number) => (
-                                      <div
-                                        key={matchIndex}
-                                        className={`flex items-center justify-between p-3 border rounded-lg ${
-                                          productMappings[result.vendor_product] === match.id
-                                            ? 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800'
-                                            : 'hover:bg-muted/50'
-                                        }`}
-                                      >
-                                        <div className="flex-1">
-                                          <p className="font-medium">{match.name}</p>
-                                          <div className="flex items-center gap-2 mt-1">
-                                            <Badge 
-                                              variant={
-                                                match.similarity >= 80 ? "default" :
-                                                match.similarity >= 60 ? "secondary" : "outline"
-                                              }
-                                              className="text-xs"
-                                            >
-                                              {match.similarity}% match
-                                            </Badge>
-                                          </div>
-                                        </div>
-                                        <Button
-                                          size="sm"
-                                          variant={productMappings[result.vendor_product] === match.id ? "default" : "outline"}
-                                          onClick={() => confirmMapping(result.vendor_product, match.id, match.name)}
-                                          disabled={productMappings[result.vendor_product] === match.id}
-                                        >
-                                          {productMappings[result.vendor_product] === match.id ? "✓ Confirmed" : "Confirm Match"}
-                                        </Button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              ) : (
-                                <p className="text-muted-foreground">No potential matches found</p>
-                              )}
-                            </div>
-                          ))}
-                          
-                          <div className="flex gap-4 pt-4 border-t">
-                            <Button
-                              onClick={saveMappings}
-                              disabled={Object.keys(productMappings).length === 0}
-                              className="flex-1"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Save {Object.keys(productMappings).length} Mappings
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setShowMappingInterface(false);
-                                setMappingResults([]);
-                                setProductMappings([]);
-                              }}
-                            >
-                              <X className="h-4 w-4 mr-2" />
-                              Cancel
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
 
                     {/* CSV Preview */}
                     {showCsvPreview && csvPreview.length > 0 && (
@@ -3490,12 +3576,12 @@ export default function AdminDashboard() {
                               <table className="w-full border-collapse border border-border">
                                 <thead>
                                   <tr className="bg-muted/50">
-                                    {csvHeaders.map((header) => (
-                                      <th key={header} className="border border-border p-2 text-left text-sm font-medium">
+                                    {csvHeaders.map((header, index) => (
+                                      <th key={`${header}-${index}`} className="border border-border p-2 text-left text-sm font-medium">
                                         {header}
-                                        {columnMapping[header] && (
+                                        {columnMapping[`${header}-${index}`] && (
                                           <Badge variant="secondary" className="ml-2 text-xs">
-                                            → {columnMapping[header]}
+                                            → {columnMapping[`${header}-${index}`]}
                                           </Badge>
                                         )}
                                       </th>
@@ -3521,7 +3607,7 @@ export default function AdminDashboard() {
                     )}
 
                     {/* Import Actions */}
-                    {csvFile && selectedVendor && columnMapping.name && (
+                    {csvFile && selectedVendor && Object.values(columnMapping).includes('name') && (
                       <Card>
                         <CardContent className="p-6">
                           <div className="space-y-4">
@@ -3546,7 +3632,7 @@ export default function AdminDashboard() {
                               <div className="flex items-center space-x-4">
                                 <Button 
                                   onClick={processCsvImport}
-                                  disabled={!columnMapping.name}
+                                  disabled={!Object.values(columnMapping).includes('name')}
                                   className="flex-1"
                                 >
                                   <Upload className="h-4 w-4 mr-2" />

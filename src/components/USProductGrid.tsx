@@ -32,6 +32,105 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
     priceRange: null
   });
 
+  // Mobile filter state
+  const [mobileFilters, setMobileFilters] = useState({
+    brand: '',
+    strength: '',
+    format: ''
+  });
+
+  // Watching counts state and cache (same as homepage)
+  const [watchingCounts, setWatchingCounts] = useState<Map<number, number>>(new Map());
+  const [watchingCache, setWatchingCache] = useState<Map<number, number>>(new Map());
+
+  // Function to generate watching count between 400-800, round up to nearest hundred (same as homepage)
+  const generateWatchingCount = (min: number = 400, max: number = 800) => {
+    const count = Math.floor(Math.random() * (max - min + 1)) + min;
+    const rounded = Math.ceil(count / 100) * 100;
+    return rounded;
+  };
+
+  // Fetch real watching counts from database with caching (same as homepage)
+  const fetchWatchingCounts = async (productIds: number[]) => {
+    try {
+      const watchingMap = new Map<number, number>();
+      const uncachedIds: number[] = [];
+      
+      // Check cache first
+      productIds.forEach(productId => {
+        if (watchingCache.has(productId)) {
+          watchingMap.set(productId, watchingCache.get(productId)!);
+        } else {
+          uncachedIds.push(productId);
+        }
+      });
+
+      // If all watching counts are cached, return immediately
+      if (uncachedIds.length === 0) {
+        setWatchingCounts(watchingMap);
+        return;
+      }
+
+      // Get wishlist counts for uncached products only
+      const { data: wishlistData, error: wishlistError } = await supabase()
+        .from('wishlist')
+        .select('product_id')
+        .in('product_id', uncachedIds);
+
+      // Get price alert counts for uncached products only
+      const { data: alertData, error: alertError } = await supabase()
+        .from('price_alerts')
+        .select('product_id')
+        .in('product_id', uncachedIds);
+
+      if (wishlistError || alertError) {
+        console.error('Error fetching watching data:', wishlistError || alertError);
+        return;
+      }
+
+      // Count occurrences for each uncached product
+      const wishlistCounts = new Map<number, number>();
+      const alertCounts = new Map<number, number>();
+
+      wishlistData?.forEach((item: any) => {
+        wishlistCounts.set(item.product_id, (wishlistCounts.get(item.product_id) || 0) + 1);
+      });
+
+      alertData?.forEach((item: any) => {
+        alertCounts.set(item.product_id, (alertCounts.get(item.product_id) || 0) + 1);
+      });
+
+      // Process uncached products only
+      const newCacheEntries = new Map<number, number>();
+      uncachedIds.forEach(productId => {
+        const wishlistCount = wishlistCounts.get(productId) || 0;
+        const alertCount = alertCounts.get(productId) || 0;
+        const baseCount = wishlistCount + alertCount;
+        
+        // Generate watching count between 400-800, rounded up to nearest hundred
+        const generatedWatching = generateWatchingCount(400, 800);
+        const totalWatching = baseCount + generatedWatching;
+        
+        const finalWatching = Math.max(400, totalWatching); // At least 400 watchers
+        watchingMap.set(productId, finalWatching);
+        newCacheEntries.set(productId, finalWatching);
+      });
+
+      // Update cache with new entries
+      if (newCacheEntries.size > 0) {
+        setWatchingCache(prev => {
+          const newCache = new Map(prev);
+          newCacheEntries.forEach((value, key) => newCache.set(key, value));
+          return newCache;
+        });
+      }
+
+      setWatchingCounts(watchingMap);
+    } catch (error) {
+      console.error('Error fetching watching counts:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchUSProducts = async () => {
       try {
@@ -40,7 +139,7 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
         
         // Apply brand filter if provided
         if (brandFilter) {
-          query = query.ilike('brand', `%${brandFilter}%`);
+          query = query.ilike('name', `%${brandFilter}%`);
         }
         
         // Order by id
@@ -50,14 +149,14 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
 
         if (error) throw error;
 
-        // Transform US product data to match expected format
+        // Transform US product data to match expected format (same as homepage)
         const transformedProducts = data.map((product: any, index: number) => ({
           id: product.id,
           name: product.product_title || product.name,
           price: "$3.99", // Default US price
           strength: product.strength || 'Normal',
           stores: 1, // Prilla only
-          watching: 0,
+          watching: generateWatchingCount(400, 800), // Use same watching logic as homepage
           image: product.image_url,
           link: `/us/product/${(product.product_title || product.name).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`,
           brand: product.brand || 'Unknown',
@@ -72,6 +171,10 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
         console.log('Sample US product brands:', transformedProducts.slice(0, 10).map((p: any) => p.brand));
         setProducts(transformedProducts);
         setFilteredProducts(transformedProducts);
+
+        // Fetch watching counts for all products (same as homepage)
+        const productIds = transformedProducts.map((p: any) => p.id);
+        fetchWatchingCounts(productIds);
       } catch (err: any) {
         setError(err.message);
         console.error('Error fetching US products:', err);
@@ -93,19 +196,36 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
 
     let filtered = [...products];
 
-    // Only apply filters if any are selected
-    const hasFilters = filters.brands.length > 0 || filters.flavours.length > 0 || 
-                      filters.strengths.length > 0 || filters.formats.length > 0;
+    // Check if we're using mobile filters or desktop filters
+    const hasMobileFilters = mobileFilters.brand || mobileFilters.strength || mobileFilters.format;
+    const hasDesktopFilters = filters.brands.length > 0 || filters.flavours.length > 0 || 
+                             filters.strengths.length > 0 || filters.formats.length > 0;
 
-    if (hasFilters) {
-      // Filter by brands
+    if (hasMobileFilters) {
+      // Apply mobile filters
+      if (mobileFilters.brand) {
+        filtered = filtered.filter(product => 
+          product.brand.toLowerCase().includes(mobileFilters.brand.toLowerCase())
+        );
+      }
+      if (mobileFilters.strength) {
+        filtered = filtered.filter(product => 
+          product.strength.toLowerCase().includes(mobileFilters.strength.toLowerCase())
+        );
+      }
+      if (mobileFilters.format) {
+        filtered = filtered.filter(product => 
+          product.format.toLowerCase().includes(mobileFilters.format.toLowerCase())
+        );
+      }
+    } else if (hasDesktopFilters) {
+      // Apply desktop filters
       if (filters.brands.length > 0) {
         filtered = filtered.filter(product => {
           return filters.brands.includes(product.brand);
         });
       }
 
-      // Filter by flavours - make it more flexible
       if (filters.flavours.length > 0) {
         filtered = filtered.filter(product => 
           filters.flavours.some(flavour => 
@@ -115,42 +235,62 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
         );
       }
 
-      // Filter by strengths
       if (filters.strengths.length > 0) {
         filtered = filtered.filter(product => 
           filters.strengths.includes(product.strength)
         );
       }
 
-      // Filter by formats
       if (filters.formats.length > 0) {
         filtered = filtered.filter(product => 
           filters.formats.includes(product.format)
         );
       }
 
-      // Filter by price range (if we had price data)
       if (filters.priceRange) {
-        // For now, we'll skip price filtering since we don't have real price data
-        // This would be implemented when we have actual price information
+        // Price filtering would be implemented here
       }
     }
 
     console.log('Filtering US products:', {
       totalProducts: products.length,
       filters,
+      mobileFilters,
       filteredCount: filtered.length,
       sampleProducts: filtered.slice(0, 3).map(p => ({ name: p.name, brand: p.brand }))
     });
 
     setFilteredProducts(filtered);
-  }, [products, filters]);
+  }, [products, filters, mobileFilters]);
 
   const handleFiltersChange = (newFilters: FilterState) => {
     console.log('Received filter change:', newFilters);
     setFilters(newFilters);
     setCurrentPage(1); // Reset to first page when filters change
   };
+
+  // Mobile filter handlers
+  const handleMobileFilterChange = (filterType: string, value: string) => {
+    setMobileFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+    setCurrentPage(1);
+  };
+
+  const clearMobileFilters = () => {
+    setMobileFilters({
+      brand: '',
+      strength: '',
+      format: ''
+    });
+    setCurrentPage(1);
+  };
+
+  // Get unique values for mobile filter options
+  const uniqueBrands = Array.from(new Set(products.map(p => p.brand))).sort();
+  const uniqueStrengths = Array.from(new Set(products.map(p => p.strength))).sort();
+  const uniqueFormats = Array.from(new Set(products.map(p => p.format))).sort();
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
@@ -191,6 +331,8 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
 
   const renderProductCard = (product: any) => {
     const strengthStyle = getStrengthColor(product.strength);
+    // Use real watching count from database if available, otherwise use generated count
+    const watchingCount = watchingCounts.get(product.id) || product.watching;
     
     return (
       <div key={product.id} className="swiper-slide" style={{ 
@@ -246,7 +388,7 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
             whiteSpace: 'nowrap',
             lineHeight: '1.4'
           }}>
-            {product.watching}+ watching
+            {watchingCount}+ watching
           </div>
           
           {/* Button Group */}
@@ -452,88 +594,282 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      gap: '10px',
-      alignItems: 'flex-start',
-      width: '100%',
-      minHeight: '600px',
-      backgroundColor: '#f4f5f9',
-      padding: '0',
-      margin: '0'
-    }}>
-      {/* Sidebar - 18% of space */}
-      <div style={{
-        flexShrink: 0,
-        width: '18%',
-        backgroundColor: '#fff',
-        borderRight: '1px solid #e5e7eb'
-      }}>
-        <USFilterSidebar onFiltersChange={handleFiltersChange} />
-      </div>
-      
-      {/* Products Section - 82% of space */}
-      <div style={{
-        flexShrink: 0,
-        width: '82%',
-        overflow: 'hidden'
-      }}>
-        <div style={{
-           backgroundColor: '#f4f5f9',
-               padding: '10px',
-               width: '100%',
-               margin: '0',
-               boxSizing: 'border-box'
-             }}>
-          <div style={{
-             width: '100%',
-                 margin: '0',
-                 padding: '0',
-                 boxSizing: 'border-box'
-           }}>
+    <>
+      <style jsx>{`
+        /* Large Desktop (1400px+) */
+        @media (min-width: 1400px) {
+          .sidebar-mobile {
+            width: 20% !important;
+            min-width: 280px !important;
+          }
+          .products-mobile {
+            width: 80% !important;
+          }
+          .products-grid-mobile {
+            grid-template-columns: repeat(5, 1fr) !important;
+            gap: 12px !important;
+          }
+        }
         
-        {/* Section Header */}
-        <div className="fusion-layout-column fusion_builder_column fusion_builder_column_1_1 1_1 fusion-flex-column" 
-             style={{ width: '100%', marginBottom: '10px' }}>
-          <div className="fusion-column-wrapper">
-            <div className="fusion-builder-row fusion-builder-row-inner fusion-row">
-              <div className="fusion-layout-column fusion_builder_column_inner fusion_builder_column_inner_1_2 1_2 fusion-flex-column" 
-                   style={{ width: '50%' }}>
-                <div className="fusion-column-wrapper">
-                  <h2 style={{
-                    fontFamily: '"Klarna 700"',
-                    fontSize: '24px',
-                    fontWeight: '400',
-                    margin: '0',
-                    color: '#333',
-                    letterSpacing: '-0.3px'
-                  }}>
-                    US Products
-                  </h2>
+        /* Desktop (1200px - 1399px) */
+        @media (min-width: 1200px) and (max-width: 1399px) {
+          .sidebar-mobile {
+            width: 22% !important;
+            min-width: 260px !important;
+          }
+          .products-mobile {
+            width: 78% !important;
+          }
+          .products-grid-mobile {
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 10px !important;
+          }
+        }
+        
+        /* Small Desktop (1024px - 1199px) */
+        @media (min-width: 1024px) and (max-width: 1199px) {
+          .sidebar-mobile {
+            width: 25% !important;
+            min-width: 240px !important;
+          }
+          .products-mobile {
+            width: 75% !important;
+          }
+          .products-grid-mobile {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 10px !important;
+          }
+        }
+        
+        /* Tablet (768px - 1023px) */
+        @media (min-width: 768px) and (max-width: 1023px) {
+          .sidebar-mobile {
+            width: 30% !important;
+            min-width: 200px !important;
+          }
+          .products-mobile {
+            width: 70% !important;
+          }
+          .products-grid-mobile {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 8px !important;
+          }
+        }
+        
+        /* Mobile (max-width: 767px) */
+        @media (max-width: 767px) {
+          .product-grid-container {
+            flex-direction: column !important;
+            gap: 0 !important;
+          }
+          .sidebar-mobile {
+            display: none !important;
+          }
+          .mobile-filters {
+            display: block !important;
+            background: #fff !important;
+            padding: 15px !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            margin-bottom: 0 !important;
+          }
+          .mobile-filter-row {
+            display: flex !important;
+            gap: 10px !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+          }
+          .mobile-filter-select {
+            flex: 1 !important;
+            min-width: 120px !important;
+            padding: 8px 12px !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 6px !important;
+            font-size: 14px !important;
+            background: #fff !important;
+          }
+          .mobile-filter-button {
+            padding: 8px 16px !important;
+            background: #1e40af !important;
+            color: #fff !important;
+            border: none !important;
+            border-radius: 6px !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            cursor: pointer !important;
+          }
+          .products-mobile {
+            width: 100% !important;
+            order: 2 !important;
+          }
+          .products-grid-mobile {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 15px !important;
+            padding: 15px !important;
+          }
+          .section-header-mobile {
+            padding: 15px !important;
+            margin-bottom: 0 !important;
+          }
+          .section-header-mobile h2 {
+            font-size: 20px !important;
+          }
+        }
+        
+        /* Hide mobile filters on desktop */
+        @media (min-width: 768px) {
+          .mobile-filters {
+            display: none !important;
+          }
+        }
+        
+        /* Small Mobile (max-width: 480px) */
+        @media (max-width: 480px) {
+          .mobile-filter-row {
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+          .mobile-filter-select {
+            width: 100% !important;
+            min-width: auto !important;
+          }
+          .mobile-filter-button {
+            width: 100% !important;
+          }
+          .products-grid-mobile {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+            padding: 10px !important;
+          }
+        }
+      `}</style>
+      
+      <div className="product-grid-container" style={{
+        display: 'flex',
+        gap: '10px',
+        alignItems: 'flex-start',
+        width: '100%',
+        minHeight: '600px',
+        backgroundColor: '#f4f5f9',
+        padding: '0',
+        margin: '0'
+      }}>
+        {/* Mobile Filters - Only visible on mobile */}
+        <div className="mobile-filters" style={{ display: 'none' }}>
+          <div className="mobile-filter-row">
+            <select 
+              className="mobile-filter-select"
+              value={mobileFilters.brand}
+              onChange={(e) => handleMobileFilterChange('brand', e.target.value)}
+            >
+              <option value="">All Brands</option>
+              {uniqueBrands.map(brand => (
+                <option key={brand} value={brand}>{brand}</option>
+              ))}
+            </select>
+            
+            <select 
+              className="mobile-filter-select"
+              value={mobileFilters.strength}
+              onChange={(e) => handleMobileFilterChange('strength', e.target.value)}
+            >
+              <option value="">All Strengths</option>
+              {uniqueStrengths.map(strength => (
+                <option key={strength} value={strength}>{strength}</option>
+              ))}
+            </select>
+            
+            <select 
+              className="mobile-filter-select"
+              value={mobileFilters.format}
+              onChange={(e) => handleMobileFilterChange('format', e.target.value)}
+            >
+              <option value="">All Formats</option>
+              {uniqueFormats.map(format => (
+                <option key={format} value={format}>{format}</option>
+              ))}
+            </select>
+            
+            <button 
+              className="mobile-filter-button"
+              onClick={clearMobileFilters}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {/* Sidebar - 18% of space on desktop, hidden on mobile */}
+        <div className="sidebar-mobile" style={{
+          flexShrink: 0,
+          width: '18%',
+          backgroundColor: '#fff',
+          borderRight: '1px solid #e5e7eb'
+        }}>
+          <USFilterSidebar onFiltersChange={handleFiltersChange} />
+        </div>
+      
+        {/* Products Section - 82% of space on desktop, full width on mobile */}
+        <div className="products-mobile" style={{
+          flexShrink: 0,
+          width: '82%',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+             backgroundColor: '#f4f5f9',
+                 padding: '10px',
+                 width: '100%',
+                 margin: '0',
+                 boxSizing: 'border-box'
+               }}>
+            <div style={{
+               width: '100%',
+                   margin: '0',
+                   padding: '0',
+                   boxSizing: 'border-box'
+             }}>
+          
+          {/* Section Header */}
+          <div className="section-header-mobile fusion-layout-column fusion_builder_column fusion_builder_column_1_1 1_1 fusion-flex-column" 
+               style={{ width: '100%', marginBottom: '10px' }}>
+            <div className="fusion-column-wrapper">
+              <div className="fusion-builder-row fusion-builder-row-inner fusion-row">
+                <div className="fusion-layout-column fusion_builder_column_inner fusion_builder_column_inner_1_2 1_2 fusion-flex-column" 
+                     style={{ width: '50%' }}>
+                  <div className="fusion-column-wrapper">
+                    <h2 style={{
+                      fontFamily: '"Klarna 700"',
+                      fontSize: '24px',
+                      fontWeight: '400',
+                      margin: '0',
+                      color: '#333',
+                      letterSpacing: '-0.3px'
+                    }}>
+                      US Products
+                    </h2>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* First Row - Products */}
-        <div style={{ width: '100%', marginBottom: '10px' }}>
-          <div style={{
-                 width: '100%',
-                 padding: '0',
-                 margin: '0',
-                 overflow: 'hidden',
-                 boxSizing: 'border-box'
-               }}>
-            
-            <div className="swiper-wrapper" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '8px',
-              padding: '0',
-              boxSizing: 'border-box',
-              width: '100%'
-            }}>
+          {/* First Row - Products */}
+          <div style={{ width: '100%', marginBottom: '10px' }}>
+            <div style={{
+                   width: '100%',
+                   padding: '0',
+                   margin: '0',
+                   overflow: 'hidden',
+                   boxSizing: 'border-box'
+                 }}>
+              
+              <div className="products-grid-mobile swiper-wrapper" style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: '8px',
+                padding: '0',
+                boxSizing: 'border-box',
+                width: '100%'
+              }}>
               {loading ? (
                 <div style={{ textAlign: 'center', padding: '40px' }}>
                   <div style={{ fontSize: '18px', color: '#666' }}>Loading US products...</div>
@@ -667,10 +1003,11 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
           </div>
         )}
 
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

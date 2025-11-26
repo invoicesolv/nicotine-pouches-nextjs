@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 interface Product {
@@ -22,9 +22,10 @@ interface PriceAlertModalProps {
   product: Product | null;
   userId: string;
   onAlertCreated?: () => void;
+  region?: string;
 }
 
-const PriceAlertModal = ({ isOpen, onClose, product, userId, onAlertCreated }: PriceAlertModalProps) => {
+const PriceAlertModal = ({ isOpen, onClose, product, userId, onAlertCreated, region = 'UK' }: PriceAlertModalProps) => {
   const [alertType, setAlertType] = useState<'price_drop' | 'target_price'>('price_drop');
   const [minPriceReduction, setMinPriceReduction] = useState(1);
   const [targetPrice, setTargetPrice] = useState('');
@@ -32,35 +33,75 @@ const PriceAlertModal = ({ isOpen, onClose, product, userId, onAlertCreated }: P
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [vendorPrices, setVendorPrices] = useState<any[]>([]);
+  const [fetchingPrices, setFetchingPrices] = useState(false);
 
   const fetchVendorPrices = async () => {
+    if (fetchingPrices) return; // Prevent multiple simultaneous requests
+    
+    setFetchingPrices(true);
     try {
-      const response = await fetch(`/api/vendor-prices?productId=${product?.id}`);
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      const response = await fetch(`/api/vendor-prices?productId=${product?.id}&region=${region}`, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       if (data.success) {
         setVendorPrices(data.prices);
+      } else {
+        console.warn('API returned unsuccessful response:', data);
+        // Set empty array if API fails
+        setVendorPrices([]);
       }
-    } catch (error) {
-      console.error('Error fetching vendor prices:', error);
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.warn('Vendor prices request timed out');
+      } else {
+        console.error('Error fetching vendor prices:', error);
+      }
+      // Set empty array on error so modal can still work
+      setVendorPrices([]);
+    } finally {
+      setFetchingPrices(false);
     }
   };
 
   // Fetch real vendor prices when modal opens
   useEffect(() => {
-    if (isOpen && product) {
-      fetchVendorPrices();
+    if (isOpen && product && product.id) {
+      // Add a small delay to ensure modal is fully mounted
+      const timer = setTimeout(() => {
+        fetchVendorPrices();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    } else if (!isOpen) {
+      // Reset state when modal closes
+      setVendorPrices([]);
+      setFetchingPrices(false);
     }
-  }, [isOpen, product]);
+  }, [isOpen, product?.id]);
+
+  // Get the lowest price from vendor data, or use a default
+  const productPrice = React.useMemo(() => {
+    if (vendorPrices.length > 0) {
+      const lowestPrice = Math.min(...vendorPrices.map(v => parseFloat(v.pack_price)));
+      return `£${lowestPrice.toFixed(2)}`;
+    }
+    // Fallback to a default price if no vendor data
+    return '£3.99';
+  }, [vendorPrices]);
 
   if (!isOpen || !product) return null;
-
-  // Generate random price (since we don't have price data in the product)
-  const generatePrice = () => {
-    const prices = ['£2.99', '£3.49', '£3.99', '£4.49', '£4.99', '£5.49'];
-    return prices[Math.floor(Math.random() * prices.length)];
-  };
-
-  const productPrice = generatePrice();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +109,24 @@ const PriceAlertModal = ({ isOpen, onClose, product, userId, onAlertCreated }: P
     setError(null);
 
     try {
+      // First check if a price alert already exists for this user, product, and alert type
+      const { data: existingAlert, error: checkError } = await supabase()
+        .from('price_alerts')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('product_id', product.id)
+        .eq('alert_type', alertType)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+        throw checkError;
+      }
+
+      if (existingAlert) {
+        setError('You already have a price alert set for this product with this alert type. Please update your existing alert instead.');
+        return;
+      }
+
       const alertData = {
         user_id: userId,
         product_id: product.id,
@@ -83,43 +142,55 @@ const PriceAlertModal = ({ isOpen, onClose, product, userId, onAlertCreated }: P
         .insert(alertData);
 
       if (error) {
-        setError(error.message);
+        if (error.code === '23505') { // Unique constraint violation
+          setError('You already have a price alert set for this product with this alert type. Please update your existing alert instead.');
+        } else {
+          setError(error.message);
+        }
         return;
       }
 
       onAlertCreated?.();
       onClose();
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
-      console.error('Error creating price alert:', err);
+    } catch (err: any) {
+      if (err.code === '23505') { // Unique constraint violation
+        setError('You already have a price alert set for this product with this alert type. Please update your existing alert instead.');
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+        console.error('Error creating price alert:', err);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 10000
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        padding: '24px',
-        maxWidth: '500px',
-        width: '90%',
-        maxHeight: '90vh',
-        overflow: 'auto',
-        position: 'relative'
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10000,
+        padding: '20px',
+        boxSizing: 'border-box'
       }}>
+      <div 
+        style={{
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          padding: '24px',
+          maxWidth: '500px',
+          width: '100%',
+          maxHeight: '80vh',
+          overflow: 'auto',
+          position: 'relative'
+        }}>
         {/* Header */}
         <div style={{
           display: 'flex',
@@ -200,7 +271,7 @@ const PriceAlertModal = ({ isOpen, onClose, product, userId, onAlertCreated }: P
               color: '#059669',
               margin: 0
             }}>
-              {productPrice}
+              {fetchingPrices ? 'Loading...' : productPrice}
             </p>
             <p style={{
               fontSize: '14px',

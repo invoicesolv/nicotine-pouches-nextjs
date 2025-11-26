@@ -35,6 +35,105 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
     priceRange: null
   });
 
+  // Mobile filter state
+  const [mobileFilters, setMobileFilters] = useState({
+    brand: '',
+    strength: '',
+    format: ''
+  });
+
+  // Watching counts state and cache (same as homepage)
+  const [watchingCounts, setWatchingCounts] = useState<Map<number, number>>(new Map());
+  const [watchingCache, setWatchingCache] = useState<Map<number, number>>(new Map());
+
+  // Function to generate watching count between 400-800, round up to nearest hundred (same as homepage)
+  const generateWatchingCount = (min: number = 400, max: number = 800) => {
+    const count = Math.floor(Math.random() * (max - min + 1)) + min;
+    const rounded = Math.ceil(count / 100) * 100;
+    return rounded;
+  };
+
+  // Fetch real watching counts from database with caching (same as homepage)
+  const fetchWatchingCounts = async (productIds: number[]) => {
+    try {
+      const watchingMap = new Map<number, number>();
+      const uncachedIds: number[] = [];
+      
+      // Check cache first
+      productIds.forEach(productId => {
+        if (watchingCache.has(productId)) {
+          watchingMap.set(productId, watchingCache.get(productId)!);
+        } else {
+          uncachedIds.push(productId);
+        }
+      });
+
+      // If all watching counts are cached, return immediately
+      if (uncachedIds.length === 0) {
+        setWatchingCounts(watchingMap);
+        return;
+      }
+
+      // Get wishlist counts for uncached products only
+      const { data: wishlistData, error: wishlistError } = await supabase()
+        .from('wishlist')
+        .select('product_id')
+        .in('product_id', uncachedIds);
+
+      // Get price alert counts for uncached products only
+      const { data: alertData, error: alertError } = await supabase()
+        .from('price_alerts')
+        .select('product_id')
+        .in('product_id', uncachedIds);
+
+      if (wishlistError || alertError) {
+        console.error('Error fetching watching data:', wishlistError || alertError);
+        return;
+      }
+
+      // Count occurrences for each uncached product
+      const wishlistCounts = new Map<number, number>();
+      const alertCounts = new Map<number, number>();
+
+      wishlistData?.forEach((item: any) => {
+        wishlistCounts.set(item.product_id, (wishlistCounts.get(item.product_id) || 0) + 1);
+      });
+
+      alertData?.forEach((item: any) => {
+        alertCounts.set(item.product_id, (alertCounts.get(item.product_id) || 0) + 1);
+      });
+
+      // Process uncached products only
+      const newCacheEntries = new Map<number, number>();
+      uncachedIds.forEach(productId => {
+        const wishlistCount = wishlistCounts.get(productId) || 0;
+        const alertCount = alertCounts.get(productId) || 0;
+        const baseCount = wishlistCount + alertCount;
+        
+        // Generate watching count between 400-800, rounded up to nearest hundred
+        const generatedWatching = generateWatchingCount(400, 800);
+        const totalWatching = baseCount + generatedWatching;
+        
+        const finalWatching = Math.max(400, totalWatching); // At least 400 watchers
+        watchingMap.set(productId, finalWatching);
+        newCacheEntries.set(productId, finalWatching);
+      });
+
+      // Update cache with new entries
+      if (newCacheEntries.size > 0) {
+        setWatchingCache(prev => {
+          const newCache = new Map(prev);
+          newCacheEntries.forEach((value, key) => newCache.set(key, value));
+          return newCache;
+        });
+      }
+
+      setWatchingCounts(watchingMap);
+    } catch (error) {
+      console.error('Error fetching watching counts:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -67,7 +166,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
           if (mappings && mappings.length > 0) {
             const productIds = mappings.map((m: any) => m.product_id);
             const { data: productData, error: productError } = await supabase()
-              .from('products')
+              .from('wp_products')
               .select('*')
               .in('id', productIds);
 
@@ -78,11 +177,11 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
           }
         } else {
           // For brand filtering or no filter, get products directly
-          let query = supabase().from('products').select('*');
+          let query = supabase().from('wp_products').select('*');
           
-          // Apply brand filter if provided
+          // Apply brand filter if provided (extract brand from name)
           if (brandFilter) {
-            query = query.ilike('brand', `%${brandFilter}%`);
+            query = query.ilike('name', `${brandFilter}%`);
           }
           
           const { data: productData, error } = await query;
@@ -94,23 +193,49 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
           data = productData || [];
         }
 
-        // Transform data to match expected format
-        const transformedProducts = data.map((product: any, index: number) => ({
-          id: product.id,
-          name: product.name,
-          price: "£3.99", // Default price since we don't have price data yet
-          strength: product.strength_group,
-          stores: Math.floor(Math.random() * 5) + 1, // Random store count
-          watching: Math.floor(Math.random() * 30) + 10, // Random watching count
-          image: product.image_url || '/placeholder-product.jpg',
-          link: `/product/${product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`,
-          brand: product.brand,
-          flavour: product.flavour,
-          format: product.format
-        }));
+        // Fetch vendor product mappings to calculate real store counts
+        const { data: mappings, error: mappingsError } = await supabase()
+          .from('vendor_product_mapping')
+          .select('product_id');
+
+        if (mappingsError) {
+          console.error('Error fetching mappings:', mappingsError);
+        }
+
+        // Count stores per product
+        const storeCounts = new Map<number, number>();
+        mappings?.forEach((mapping: any) => {
+          const count = storeCounts.get(mapping.product_id) || 0;
+          storeCounts.set(mapping.product_id, count + 1);
+        });
+
+        // Transform data to match expected format (same as homepage)
+        const transformedProducts = data.map((product: any, index: number) => {
+          // Extract brand from product name (first word)
+          const brand = product.name.split(' ')[0];
+          const flavour = product.name.split(' ').slice(1).join(' ');
+          
+          return {
+            id: product.id,
+            name: product.name,
+            price: product.price ? `£${parseFloat(product.price).toFixed(2)}` : `£${(2.99 + Math.random() * 2).toFixed(2)}`,
+            strength: 'Normal', // Default strength since wp_products doesn't have this field
+            stores: storeCounts.get(product.id) || 0, // Real store count from mappings
+            watching: generateWatchingCount(400, 800), // Use same watching logic as homepage
+            image: product.image_url || '/placeholder-product.jpg',
+            link: `/product/${product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`,
+            brand: brand,
+            flavour: flavour,
+            format: 'Slim' // Default format since wp_products doesn't have this field
+          };
+        });
 
         setProducts(transformedProducts);
         setFilteredProducts(transformedProducts);
+
+        // Fetch watching counts for all products (same as homepage)
+        const productIds = transformedProducts.map((p: any) => p.id);
+        fetchWatchingCounts(productIds);
       } catch (err: any) {
         console.error('Error fetching products:', err);
         setError(err.message);
@@ -136,20 +261,37 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
 
     let filtered = [...products];
 
-    // Only apply filters if any are selected
-    const hasFilters = filters.brands.length > 0 || filters.flavours.length > 0 || 
-                      filters.strengths.length > 0 || filters.formats.length > 0 || 
-                      filters.vendors.length > 0;
+    // Check if we're using mobile filters or desktop filters
+    const hasMobileFilters = mobileFilters.brand || mobileFilters.strength || mobileFilters.format;
+    const hasDesktopFilters = filters.brands.length > 0 || filters.flavours.length > 0 || 
+                             filters.strengths.length > 0 || filters.formats.length > 0 || 
+                             filters.vendors.length > 0;
 
-    if (hasFilters) {
-      // Filter by brands
+    if (hasMobileFilters) {
+      // Apply mobile filters
+      if (mobileFilters.brand) {
+        filtered = filtered.filter(product => 
+          product.brand.toLowerCase().includes(mobileFilters.brand.toLowerCase())
+        );
+      }
+      if (mobileFilters.strength) {
+        filtered = filtered.filter(product => 
+          product.strength.toLowerCase().includes(mobileFilters.strength.toLowerCase())
+        );
+      }
+      if (mobileFilters.format) {
+        filtered = filtered.filter(product => 
+          product.format.toLowerCase().includes(mobileFilters.format.toLowerCase())
+        );
+      }
+    } else if (hasDesktopFilters) {
+      // Apply desktop filters
       if (filters.brands.length > 0) {
         filtered = filtered.filter(product => {
           return filters.brands.includes(product.brand);
         });
       }
 
-      // Filter by flavours - make it more flexible
       if (filters.flavours.length > 0) {
         filtered = filtered.filter(product => 
           filters.flavours.some(flavour => 
@@ -159,37 +301,29 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
         );
       }
 
-      // Filter by strengths
       if (filters.strengths.length > 0) {
         filtered = filtered.filter(product => 
           filters.strengths.includes(product.strength)
         );
       }
 
-      // Filter by formats
       if (filters.formats.length > 0) {
         filtered = filtered.filter(product => 
           filters.formats.includes(product.format)
         );
       }
 
-      // Filter by vendors
       if (filters.vendors.length > 0) {
-        // For now, we'll skip vendor filtering in the client-side filter
-        // This would be better implemented by pre-fetching vendor-product mappings
-        // or by doing the filtering on the server side
         console.log('Vendor filtering not implemented in client-side filtering yet');
       }
 
-      // Filter by price range (if we had price data)
       if (filters.priceRange) {
-        // For now, we'll skip price filtering since we don't have real price data
-        // This would be implemented when we have actual price information
+        // Price filtering would be implemented here
       }
     }
 
     setFilteredProducts(filtered);
-  }, [products, filters]);
+  }, [products, filters, mobileFilters]);
 
   const handleFiltersChange = (newFilters: FilterState) => {
     try {
@@ -212,6 +346,29 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
       console.error('Error in handleFiltersChange:', error);
     }
   };
+
+  // Mobile filter handlers
+  const handleMobileFilterChange = (filterType: string, value: string) => {
+    setMobileFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+    setCurrentPage(1);
+  };
+
+  const clearMobileFilters = () => {
+    setMobileFilters({
+      brand: '',
+      strength: '',
+      format: ''
+    });
+    setCurrentPage(1);
+  };
+
+  // Get unique values for mobile filter options
+  const uniqueBrands = Array.from(new Set(products.map(p => p.brand))).sort();
+  const uniqueStrengths = Array.from(new Set(products.map(p => p.strength))).sort();
+  const uniqueFormats = Array.from(new Set(products.map(p => p.format))).sort();
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
@@ -254,6 +411,8 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
 
   const renderProductCard = (product: any) => {
     const strengthStyle = getStrengthColor(product.strength);
+    // Use real watching count from database if available, otherwise use generated count
+    const watchingCount = watchingCounts.get(product.id) || product.watching;
     
     return (
       <div key={product.id} className="swiper-slide" style={{ 
@@ -309,7 +468,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
             whiteSpace: 'nowrap',
             lineHeight: '1.4'
           }}>
-            {product.watching}+ watching
+            {watchingCount}+ watching
           </div>
           
           {/* Button Group */}
@@ -340,7 +499,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
                         transition: 'all 0.2s ease',
                         margin: '0'
                       }}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="https://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
               </button>
@@ -366,7 +525,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
                         transition: 'all 0.2s ease',
                         margin: '0'
                       }}>
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg viewBox="0 0 24 24" xmlns="https://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                 </svg>
               </button>
@@ -515,32 +674,226 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      gap: '10px',
-      alignItems: 'flex-start',
-      width: '100%',
-      minHeight: '600px',
-      backgroundColor: '#f4f5f9',
-      padding: '0',
-      margin: '0'
-    }}>
-      {/* Sidebar - 18% of space */}
-      <div style={{
-        flexShrink: 0,
-        width: '18%',
-        backgroundColor: '#fff',
-        borderRight: '1px solid #e5e7eb'
-      }}>
-        <FilterSidebar onFiltersChange={handleFiltersChange} />
-      </div>
+    <>
+      <style jsx>{`
+        /* Large Desktop (1400px+) */
+        @media (min-width: 1400px) {
+          .sidebar-mobile {
+            width: 20% !important;
+            min-width: 280px !important;
+          }
+          .products-mobile {
+            width: 80% !important;
+          }
+          .products-grid-mobile {
+            grid-template-columns: repeat(5, 1fr) !important;
+            gap: 12px !important;
+          }
+        }
+        
+        /* Desktop (1200px - 1399px) */
+        @media (min-width: 1200px) and (max-width: 1399px) {
+          .sidebar-mobile {
+            width: 22% !important;
+            min-width: 260px !important;
+          }
+          .products-mobile {
+            width: 78% !important;
+          }
+          .products-grid-mobile {
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 10px !important;
+          }
+        }
+        
+        /* Small Desktop (1024px - 1199px) */
+        @media (min-width: 1024px) and (max-width: 1199px) {
+          .sidebar-mobile {
+            width: 25% !important;
+            min-width: 240px !important;
+          }
+          .products-mobile {
+            width: 75% !important;
+          }
+          .products-grid-mobile {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 10px !important;
+          }
+        }
+        
+        /* Tablet (768px - 1023px) */
+        @media (min-width: 768px) and (max-width: 1023px) {
+          .sidebar-mobile {
+            width: 30% !important;
+            min-width: 200px !important;
+          }
+          .products-mobile {
+            width: 70% !important;
+          }
+          .products-grid-mobile {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 8px !important;
+          }
+        }
+        
+        /* Mobile (max-width: 767px) */
+        @media (max-width: 767px) {
+          .product-grid-container {
+            flex-direction: column !important;
+            gap: 0 !important;
+          }
+          .sidebar-mobile {
+            display: none !important;
+          }
+          .mobile-filters {
+            display: block !important;
+            background: #fff !important;
+            padding: 15px !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            margin-bottom: 0 !important;
+          }
+          .mobile-filter-row {
+            display: flex !important;
+            gap: 10px !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+          }
+          .mobile-filter-select {
+            flex: 1 !important;
+            min-width: 120px !important;
+            padding: 8px 12px !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 6px !important;
+            font-size: 14px !important;
+            background: #fff !important;
+          }
+          .mobile-filter-button {
+            padding: 8px 16px !important;
+            background: #1e40af !important;
+            color: #fff !important;
+            border: none !important;
+            border-radius: 6px !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            cursor: pointer !important;
+          }
+          .products-mobile {
+            width: 100% !important;
+            order: 2 !important;
+          }
+          .products-grid-mobile {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 15px !important;
+            padding: 15px !important;
+          }
+          .section-header-mobile {
+            padding: 15px !important;
+            margin-bottom: 0 !important;
+          }
+          .section-header-mobile h2 {
+            font-size: 20px !important;
+          }
+        }
+        
+        /* Hide mobile filters on desktop */
+        @media (min-width: 768px) {
+          .mobile-filters {
+            display: none !important;
+          }
+        }
+        
+        /* Small Mobile (max-width: 480px) */
+        @media (max-width: 480px) {
+          .mobile-filter-row {
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+          .mobile-filter-select {
+            width: 100% !important;
+            min-width: auto !important;
+          }
+          .mobile-filter-button {
+            width: 100% !important;
+          }
+          .products-grid-mobile {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+            padding: 10px !important;
+          }
+        }
+      `}</style>
       
-      {/* Products Section - 82% of space */}
-      <div style={{
-        flexShrink: 0,
-        width: '82%',
-        overflow: 'hidden'
+      <div className="product-grid-container" style={{
+        display: 'flex',
+        gap: '10px',
+        alignItems: 'flex-start',
+        width: '100%',
+        minHeight: '600px',
+        backgroundColor: '#f4f5f9',
+        padding: '0',
+        margin: '0'
       }}>
+        {/* Mobile Filters - Only visible on mobile */}
+        <div className="mobile-filters" style={{ display: 'none' }}>
+          <div className="mobile-filter-row">
+            <select 
+              className="mobile-filter-select"
+              value={mobileFilters.brand}
+              onChange={(e) => handleMobileFilterChange('brand', e.target.value)}
+            >
+              <option value="">All Brands</option>
+              {uniqueBrands.map(brand => (
+                <option key={brand} value={brand}>{brand}</option>
+              ))}
+            </select>
+            
+            <select 
+              className="mobile-filter-select"
+              value={mobileFilters.strength}
+              onChange={(e) => handleMobileFilterChange('strength', e.target.value)}
+            >
+              <option value="">All Strengths</option>
+              {uniqueStrengths.map(strength => (
+                <option key={strength} value={strength}>{strength}</option>
+              ))}
+            </select>
+            
+            <select 
+              className="mobile-filter-select"
+              value={mobileFilters.format}
+              onChange={(e) => handleMobileFilterChange('format', e.target.value)}
+            >
+              <option value="">All Formats</option>
+              {uniqueFormats.map(format => (
+                <option key={format} value={format}>{format}</option>
+              ))}
+            </select>
+            
+            <button 
+              className="mobile-filter-button"
+              onClick={clearMobileFilters}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {/* Sidebar - 18% of space on desktop, hidden on mobile */}
+        <div className="sidebar-mobile" style={{
+          flexShrink: 0,
+          width: '18%',
+          backgroundColor: '#fff',
+          borderRight: '1px solid #e5e7eb'
+        }}>
+          <FilterSidebar onFiltersChange={handleFiltersChange} />
+        </div>
+        
+        {/* Products Section - 82% of space on desktop, full width on mobile */}
+        <div className="products-mobile" style={{
+          flexShrink: 0,
+          width: '82%',
+          overflow: 'hidden'
+        }}>
         <div style={{
            backgroundColor: '#f4f5f9',
                padding: '10px',
@@ -556,7 +909,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
            }}>
         
         {/* Section Header */}
-        <div className="fusion-layout-column fusion_builder_column fusion_builder_column_1_1 1_1 fusion-flex-column" 
+        <div className="section-header-mobile fusion-layout-column fusion_builder_column fusion_builder_column_1_1 1_1 fusion-flex-column" 
              style={{ width: '100%', marginBottom: '10px' }}>
           <div className="fusion-column-wrapper">
             <div className="fusion-builder-row fusion-builder-row-inner fusion-row">
@@ -589,7 +942,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
                  boxSizing: 'border-box'
                }}>
             
-            <div className="swiper-wrapper" style={{
+            <div className="products-grid-mobile swiper-wrapper" style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
               gap: '8px',
@@ -736,6 +1089,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

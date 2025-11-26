@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Determine which products table to use based on locale
-    const productsTable = locale === 'us' ? 'products_us' : 'products';
+    const productsTable = locale === 'us' ? 'products_us' : 'wp_products';
 
     // Build query with filters
     let query = supabase()
@@ -49,11 +49,9 @@ export async function GET(request: NextRequest) {
         vendors (
           id,
           name,
-          website,
-          status
+          website
         )
-      `)
-      .eq('vendors.status', 'active');
+      `);
 
     if (vendorError) throw vendorError;
 

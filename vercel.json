@@ -11,21 +11,5 @@
     }
   ],
   "trailingSlash": false,
-  "domains": [
-    "nicotine-pouches.org",
-    "www.nicotine-pouches.org"
-  ],
-  "redirects": [
-    {
-      "source": "/(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "www.nicotine-pouches.org"
-        }
-      ],
-      "destination": "https://nicotine-pouches.org/$1",
-      "permanent": true
-    }
-  ]
+  "redirects": []
 }

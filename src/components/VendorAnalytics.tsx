@@ -208,7 +208,7 @@ class VendorAnalytics {
     try {
       const analyticsData = {
         event_type: eventType,
-        event_data: JSON.stringify(eventData) // Exact same as WordPress stripslashes($_POST['event_data'])
+        event_data: eventData // Send as object, not string
       };
 
       const response = await fetch('/api/vendor-analytics', {

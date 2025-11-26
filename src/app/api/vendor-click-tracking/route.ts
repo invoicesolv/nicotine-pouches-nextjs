@@ -12,7 +12,7 @@ interface VendorClickData {
   price: number;
   currency: string;
   region: string;
-  click_timestamp: string;
+  timestamp: string;  // Changed from click_timestamp to match AI-CRM schema
   user_ip: string;
   user_agent: string;
   referrer: string;
@@ -20,6 +20,7 @@ interface VendorClickData {
   store_id: string;
   test_mode: boolean;
   user_id: string;
+  click_type: string;  // Added click_type field as required by AI-CRM
 }
 
 export async function POST(request: NextRequest) {
@@ -98,14 +99,15 @@ export async function POST(request: NextRequest) {
       price: parsedPrice,
       currency: currencySymbol,
       region: region,
-      click_timestamp: new Date().toISOString(), // Using ISO format like WordPress current_time('c')
+      timestamp: new Date().toISOString(), // Changed from click_timestamp to match AI-CRM schema
       user_ip: userIP,
       user_agent: userAgent,
       referrer: referrer,
       session_id: finalSessionId,
       store_id: 'wordpress-store', // Exact same as WordPress get_option('blogname', 'wordpress-store')
       test_mode: process.env.NODE_ENV === 'development', // Same as WordPress defined('WP_DEBUG') && WP_DEBUG
-      user_id: 'anonymous_' + Math.random().toString(36).substr(2, 9) // Same as WordPress 'anonymous_' . uniqid()
+      user_id: 'anonymous_' + Math.random().toString(36).substr(2, 9), // Same as WordPress 'anonymous_' . uniqid()
+      click_type: click_type // Added click_type field as required by AI-CRM
     };
 
     // Send to CRM API (exact same headers as WordPress plugin)
@@ -176,7 +178,7 @@ export async function POST(request: NextRequest) {
         workspace_id: VENDOR_ANALYTICS_CONFIG.CRM_WORKSPACE_ID,
         price: parsedPrice,
         currency: currencySymbol,
-        timestamp: clickData.click_timestamp,
+        timestamp: clickData.timestamp,
         response_code: crmResponse.status
       }
     });

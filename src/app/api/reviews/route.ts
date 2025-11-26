@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
     // Check if product exists
     const { data: product, error: productError } = await supabase()
-      .from('products')
+      .from('wp_products')
       .select('id')
       .eq('id', productId)
       .single();

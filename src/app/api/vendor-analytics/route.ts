@@ -5,29 +5,54 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    // Exact same validation as WordPress plugin
+    // Log incoming request for debugging
+    console.log('Vendor Analytics API - Incoming request:', JSON.stringify(body, null, 2));
+    
+    // More flexible validation - handle different event data formats
     const {
       event_type,
-      event_data_raw
+      event_data_raw,
+      event_data
     } = body;
 
     if (!event_type) {
+      console.error('Missing event type in request:', body);
       return NextResponse.json(
         { success: false, error: 'Missing event type' },
         { status: 400 }
       );
     }
 
-    // Parse event data (exact same as WordPress)
-    const event_data = typeof event_data_raw === 'string' 
-      ? JSON.parse(event_data_raw) 
-      : event_data_raw;
+    // Parse event data - handle multiple formats
+    let parsed_event_data;
+    
+    if (event_data_raw) {
+      // Try to parse event_data_raw
+      parsed_event_data = typeof event_data_raw === 'string' 
+        ? JSON.parse(event_data_raw) 
+        : event_data_raw;
+    } else if (event_data) {
+      // Use event_data directly if available
+      parsed_event_data = event_data;
+    } else {
+      // If neither exists, create a basic event data object
+      parsed_event_data = {};
+    }
+
+    // Ensure event_data is an object
+    if (!parsed_event_data || typeof parsed_event_data !== 'object') {
+      console.error('Invalid event data format:', { event_data_raw, event_data, parsed_event_data });
+      return NextResponse.json(
+        { success: false, error: 'Invalid event data format' },
+        { status: 400 }
+      );
+    }
 
     // Extract common data (exact same as WordPress)
-    const vendor_id = event_data.vendor_id ? parseInt(event_data.vendor_id) : null;
-    const vendor_name = event_data.vendor_name || '';
-    const product_id = event_data.product_id ? parseInt(event_data.product_id) : null;
-    const product_name = event_data.product_name || '';
+    const vendor_id = parsed_event_data.vendor_id ? parseInt(parsed_event_data.vendor_id) : null;
+    const vendor_name = parsed_event_data.vendor_name || '';
+    const product_id = parsed_event_data.product_id ? parseInt(parsed_event_data.product_id) : null;
+    const product_name = parsed_event_data.product_name || '';
 
     // Get additional context (exact same as WordPress)
     const user_ip = getUserIP(request);
@@ -43,7 +68,7 @@ export async function POST(request: NextRequest) {
         vendor_name: vendor_name,
         product_id: product_id,
         product_name: product_name,
-        event_data: JSON.stringify(event_data), // Exact same as WordPress json_encode($event_data)
+        event_data: JSON.stringify(parsed_event_data), // Exact same as WordPress json_encode($event_data)
         user_ip: user_ip,
         user_agent: user_agent,
         session_id: session_id,

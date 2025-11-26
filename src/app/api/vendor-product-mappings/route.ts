@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
-    const { vendor_product, product_id, vendor_id } = await request.json();
+    const { vendor_product, product_id, vendor_id, region = 'UK' } = await request.json();
 
     if (!vendor_product || !product_id || !vendor_id) {
       return NextResponse.json(
@@ -12,14 +12,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Use correct table and field names based on region
+    const tableName = region === 'UK' ? 'vendor_product_mapping' : 'us_vendor_product_mapping';
+    const vendorIdField = region === 'UK' ? 'vendor_id' : 'us_vendor_id';
+    
+    const insertData = region === 'UK' 
+      ? {
+          vendor_product,
+          product_id: parseInt(product_id),
+          vendor_id: parseInt(vendor_id)
+        }
+      : {
+          vendor_product,
+          product_id: parseInt(product_id),
+          us_vendor_id: vendor_id
+        };
+
     // Insert the mapping
     const { data, error } = await supabaseAdmin()
-      .from('vendor_product_mapping')
-      .insert({
-        vendor_product,
-        product_id: parseInt(product_id),
-        vendor_id: parseInt(vendor_id)
-      })
+      .from(tableName)
+      .insert(insertData)
       .select()
       .single();
 
@@ -46,22 +58,29 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const vendorId = searchParams.get('vendor_id');
     const productId = searchParams.get('product_id');
+    const region = searchParams.get('region') || 'UK';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search') || '';
 
+    // Use correct table and field names based on region
+    const tableName = region === 'UK' ? 'vendor_product_mapping' : 'us_vendor_product_mapping';
+    const vendorIdField = region === 'UK' ? 'vendor_id' : 'us_vendor_id';
+    const vendorTableName = region === 'UK' ? 'vendors' : 'us_vendors';
+    const productTableName = region === 'UK' ? 'products' : 'us_products';
+
     let query = supabaseAdmin()
-      .from('vendor_product_mapping')
+      .from(tableName)
       .select(`
         *,
-        vendors!vendor_product_mapping_vendor_id_fkey(name),
-        products!vendor_product_mapping_product_id_fkey(name, brand, flavour)
+        ${vendorTableName}!${tableName}_${vendorIdField}_fkey(name),
+        ${productTableName}!${tableName}_product_id_fkey(name, brand, flavour)
       `)
       .order('created_at', { ascending: false });
 
     // Apply filters
     if (vendorId && vendorId !== 'all') {
-      query = query.eq('vendor_id', parseInt(vendorId));
+      query = query.eq(vendorIdField, region === 'UK' ? parseInt(vendorId) : vendorId);
     }
 
     if (productId) {
@@ -106,6 +125,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    const region = searchParams.get('region') || 'UK';
 
     if (!id) {
       return NextResponse.json(
@@ -114,8 +134,11 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Use correct table based on region
+    const tableName = region === 'UK' ? 'vendor_product_mapping' : 'us_vendor_product_mapping';
+
     const { error } = await supabaseAdmin()
-      .from('vendor_product_mapping')
+      .from(tableName)
       .delete()
       .eq('id', id);
 

@@ -23,7 +23,37 @@ let _supabaseAdmin: any = null
 export const supabase = () => {
   if (!_supabase) {
     const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig()
-    _supabase = createClient(supabaseUrl, supabaseAnonKey)
+    _supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+        storage: {
+          getItem: (key: string) => {
+            if (typeof window !== 'undefined') {
+              return localStorage.getItem(key)
+            }
+            return null
+          },
+          setItem: (key: string, value: string) => {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(key, value)
+            }
+          },
+          removeItem: (key: string) => {
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem(key)
+            }
+          }
+        }
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'supabase-js-web'
+        }
+      }
+    })
   }
   return _supabase
 }

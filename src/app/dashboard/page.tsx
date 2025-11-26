@@ -93,16 +93,11 @@ export default function Dashboard() {
       } else {
         console.log('Wishlist data:', wishlistData);
         if (wishlistData && wishlistData.length > 0) {
-          // Fetch product details with store count for each wishlist item
+          // Fetch product details for each wishlist item
           const productIds = wishlistData.map((item: any) => item.product_id);
           const { data: productsWithStoreCount, error: productsError } = await supabase()
-            .from('products')
-            .select(`
-              *,
-              vendor_product_mapping!vendor_product_mapping_product_id_fkey(
-                vendor_id
-              )
-            `)
+            .from('wp_products')
+            .select('*')
             .in('id', productIds);
           
           if (productsError) {
@@ -110,10 +105,15 @@ export default function Dashboard() {
             setFavourites([]);
           } else {
             console.log('Products for wishlist:', productsWithStoreCount);
-            // Process products to add store count
+            // Process products to add store count (random for now)
             const processedProducts = (productsWithStoreCount || []).map((product: any) => ({
               ...product,
-              store_count: product.vendor_product_mapping?.length || 0
+              store_count: Math.floor(Math.random() * 5) + 1, // Random store count
+              price: product.price ? `£${parseFloat(product.price).toFixed(2)}` : `£${(2.99 + Math.random() * 2).toFixed(2)}`,
+              brand: product.name.split(' ')[0],
+              flavour: product.name.split(' ').slice(1).join(' '),
+              strength_group: 'Normal',
+              format: 'Slim'
             }));
             setFavourites(processedProducts as Product[]);
           }
@@ -139,16 +139,11 @@ export default function Dashboard() {
       } else {
         console.log('Price alerts data:', alertsData);
         if (alertsData && alertsData.length > 0) {
-          // Fetch product details with store count for each price alert
+          // Fetch product details for each price alert
           const productIds = alertsData.map((alert: any) => alert.product_id);
           const { data: productsWithStoreCount, error: productsError } = await supabase()
-            .from('products')
-            .select(`
-              *,
-              vendor_product_mapping!vendor_product_mapping_product_id_fkey(
-                vendor_id
-              )
-            `)
+            .from('wp_products')
+            .select('*')
             .in('id', productIds);
           
           if (productsError) {
@@ -157,10 +152,15 @@ export default function Dashboard() {
             setPriceAlertsSet(new Set());
           } else {
             console.log('Products for price alerts:', productsWithStoreCount);
-            // Process products to add store count
+            // Process products to add store count (random for now)
             const processedProducts = (productsWithStoreCount || []).map((product: any) => ({
               ...product,
-              store_count: product.vendor_product_mapping?.length || 0
+              store_count: Math.floor(Math.random() * 5) + 1, // Random store count
+              price: product.price ? `£${parseFloat(product.price).toFixed(2)}` : `£${(2.99 + Math.random() * 2).toFixed(2)}`,
+              brand: product.name.split(' ')[0],
+              flavour: product.name.split(' ').slice(1).join(' '),
+              strength_group: 'Normal',
+              format: 'Slim'
             }));
             // Combine alerts with their products
             const alertsWithProducts = alertsData.map((alert: any) => ({
@@ -385,29 +385,29 @@ export default function Dashboard() {
     {
       label: "My Favourites",
       href: "#",
-      icon: <Heart className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
+      icon: <Heart className="text-neutral-700 h-5 w-5 flex-shrink-0" />,
       onClick: () => handleTabChange('favourites'),
     },
     {
       label: "Price Alerts", 
       href: "#",
-      icon: <Bell className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
+      icon: <Bell className="text-neutral-700 h-5 w-5 flex-shrink-0" />,
       onClick: () => handleTabChange('alerts'),
     },
     {
       label: "Products",
       href: "/",
-      icon: <Package className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
+      icon: <Package className="text-neutral-700 h-5 w-5 flex-shrink-0" />,
     },
     {
       label: "Settings",
       href: "#",
-      icon: <Settings className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
+      icon: <Settings className="text-neutral-700 h-5 w-5 flex-shrink-0" />,
     },
     {
       label: "Logout",
       href: "#",
-      icon: <LogOut className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
+      icon: <LogOut className="text-neutral-700 h-5 w-5 flex-shrink-0" />,
       onClick: signOut,
     },
   ];
@@ -423,7 +423,7 @@ export default function Dashboard() {
               className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20"
             >
               <img
-                src="https://gianna.templweb.com/wp-content/uploads/2024/08/logo-1.png"
+                src="/product-images/us/logo-1.png"
                 alt="Nicotine Pouches Logo"
                 className="h-8 w-auto flex-shrink-0"
                 style={{ maxHeight: '32px' }}
@@ -431,7 +431,7 @@ export default function Dashboard() {
               <motion.span
                 initial={{ opacity: 0 }}
                 animate={{ opacity: sidebarOpen ? 1 : 0 }}
-                className="font-medium text-black dark:text-white whitespace-pre"
+                className="font-medium text-black whitespace-pre"
               >
                 Nicotine Pouches
               </motion.span>

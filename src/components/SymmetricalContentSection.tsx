@@ -1,18 +1,62 @@
-'use client';
-
 import Link from 'next/link';
-import TableOfContents from './TableOfContents';
+import TableOfContentsWrapper from './TableOfContentsWrapper';
 
 const SymmetricalContentSection = () => {
   return (
-    <div className="fusion-fullwidth fullwidth-box fusion-builder-row-11 fusion-flex-container has-pattern-background has-mask-background nonhundred-percent-fullwidth non-hundred-percent-height-scrolling" 
-         style={{
-           width: '100vw',
-           marginLeft: 'calc(50% - 50vw)',
-           marginRight: 'calc(50% - 50vw)',
-           padding: '60px 0',
-           backgroundColor: '#ffffff'
-         }}>
+    <>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @media (min-width: 768px) {
+            .content-layout {
+              display: flex !important;
+              flex-direction: row !important;
+              gap: 40px !important;
+            }
+            .main-content {
+              flex: 2 !important;
+            }
+            .toc-content {
+              flex: 1 !important;
+              max-width: 384px !important;
+            }
+          }
+          @media (max-width: 767px) {
+            .content-layout {
+              display: flex !important;
+              flex-direction: column !important;
+              gap: 20px !important;
+            }
+            .main-content {
+              width: 100% !important;
+              flex: 1 !important;
+            }
+            .toc-content {
+              width: 100% !important;
+              flex: 1 !important;
+            }
+            .mobile-title {
+              font-size: 1.5rem !important;
+              line-height: 1.3 !important;
+            }
+            .mobile-text {
+              font-size: 14px !important;
+              line-height: 1.5 !important;
+            }
+            .mobile-h3 {
+              font-size: 1.2rem !important;
+              line-height: 1.3 !important;
+            }
+          }
+        `
+      }} />
+      <div className="fusion-fullwidth fullwidth-box fusion-builder-row-11 fusion-flex-container has-pattern-background has-mask-background nonhundred-percent-fullwidth non-hundred-percent-height-scrolling" 
+           style={{
+             width: '100vw',
+             marginLeft: 'calc(50% - 50vw)',
+             marginRight: 'calc(50% - 50vw)',
+             padding: '60px 0',
+             backgroundColor: '#ffffff'
+           }}>
       <div className="fusion-builder-row fusion-row fusion-flex-align-items-flex-start fusion-flex-justify-content-center fusion-flex-content-wrap" 
            style={{
              maxWidth: '1400px',
@@ -20,28 +64,33 @@ const SymmetricalContentSection = () => {
              padding: '0 20px'
            }}>
         
-        {/* Main Heading Section - Left Aligned */}
+        {/* Main Heading Section - Centered Block with Left-Aligned Text */}
         <div className="fusion-layout-column fusion_builder_column fusion-builder-column-35 fusion_builder_column_2_3 2_3 fusion-flex-column" 
-             style={{ width: '66.666%', marginBottom: '40px' }}>
+             style={{ 
+               width: '100%', 
+               maxWidth: '800px', 
+               margin: '0 auto 40px auto',
+               padding: '0 20px'
+             }}>
           <div className="fusion-column-wrapper">
             <div className="fusion-text fusion-text-19" style={{ textAlign: 'left' }}>
-              <h2 style={{
+              <h2 className="mobile-title" style={{
                 fontSize: '2.5rem',
                 fontWeight: '700',
                 color: '#333',
                 marginBottom: '20px',
                 lineHeight: '1.2'
               }}>
-                Discover the Best Nicotine Pouches UK with Our Price Comparison Service
+                Discover the Best Products with Our Price Comparison Service
               </h2>
             </div>
-            <div className="fusion-text fusion-text-20" style={{ textAlign: 'left', fontSize: '18px' }}>
+            <div className="fusion-text fusion-text-20 mobile-text" style={{ textAlign: 'left', fontSize: '18px' }}>
               <p style={{
                 color: '#666',
                 lineHeight: '1.6',
                 margin: '0'
               }}>
-                Looking for the top deals on <strong>nicotine pouches UK</strong>? You've come to the right place! At Nicotine Pouches, we're dedicated to helping you find the best prices on <strong>nicotine pouches in the UK</strong>, ensuring you get premium products at unbeatable value. Whether you're new to nicotine pouches or a seasoned user, our price comparison platform simplifies your search for affordable, high-quality options across the market.
+                Looking for the top deals on <strong>nicotine pouches UK</strong>? You've come to the right place! At Nicotine Pouches, we're dedicated to helping you find the best prices on premium products, ensuring you get unbeatable value. Whether you're new to these products or a seasoned user, our price comparison platform simplifies your search for affordable, high-quality options across the market.
               </p>
             </div>
           </div>
@@ -57,19 +106,16 @@ const SymmetricalContentSection = () => {
              padding: '0 0 60px 0',
              backgroundColor: '#ffffff'
            }}>
-        <div className="fusion-builder-row fusion-row fusion-flex-align-items-stretch fusion-flex-justify-content-center fusion-flex-content-wrap" 
+        <div className="fusion-builder-row fusion-row fusion-flex-align-items-stretch fusion-flex-justify-content-center fusion-flex-content-wrap content-layout" 
              style={{
-               maxWidth: '1400px',
+               maxWidth: '1200px',
                margin: '0 auto',
-               padding: '0 20px',
-               display: 'flex',
-               gap: '40px'
+               padding: '0 20px'
              }}>
           
-          {/* Main Content - 2/3 width */}
-          <div className="fusion-layout-column fusion_builder_column fusion-builder-column-36 fusion_builder_column_2_3 2_3 fusion-flex-column" 
+          {/* Main Content - Full width on mobile, 2/3 on desktop */}
+          <div className="fusion-layout-column fusion_builder_column fusion-builder-column-36 fusion_builder_column_2_3 2_3 fusion-flex-column main-content" 
                style={{ 
-                 flex: '2',
                  minHeight: '400px',
                  display: 'flex',
                  flexDirection: 'column'
@@ -87,7 +133,7 @@ const SymmetricalContentSection = () => {
                 height: '100%',
                 marginBottom: '50px'
               }}>
-                <h3 id="section-0" style={{
+                <h3 id="section-0" className="mobile-h3" style={{
                   fontSize: '1.8rem',
                   fontWeight: '600',
                   color: '#333',
@@ -95,23 +141,23 @@ const SymmetricalContentSection = () => {
                   lineHeight: '1.3',
                   textAlign: 'left'
                 }}>
-                  Compare Prices on Nicotine Pouches UK Today
+                  Compare Nicotine Pouches UK Prices Today
                 </h3>
-                <p style={{
+                <p className="mobile-text" style={{
                   color: '#666',
                   lineHeight: '1.6',
                   marginBottom: '20px',
                   textAlign: 'left'
                 }}>
-                  <strong>Nicotine pouches UK</strong> have surged in popularity as a smoke-free, tobacco-free alternative for nicotine enthusiasts. Discreet, convenient, and available in a variety of flavors and strengths, nicotine pouches are perfect for those looking to enjoy nicotine without the hassle of smoking or vaping. From minty freshness to fruity bursts, the <strong>UK nicotine pouches</strong> market offers something for everyone.
+                  <strong>Nicotine pouches UK</strong> have surged in popularity as a smoke-free, tobacco-free alternative for enthusiasts. Discreet, convenient, and available in a variety of flavors and strengths, these products are perfect for those looking to enjoy nicotine without the hassle of smoking or vaping. From minty freshness to fruity bursts, the market offers something for everyone.
                 </p>
-                <p style={{
+                <p className="mobile-text" style={{
                   color: '#666',
                   lineHeight: '1.6',
                   margin: '0',
                   textAlign: 'left'
                 }}>
-                  With our service, you can compare prices on leading brands like VELO, Skruf, and LOOP, ensuring you never overpay for your favorite <strong>nicotine pouches in the UK</strong>. Our comprehensive database covers all major retailers, from established brands to emerging favorites, giving you the power to make informed purchasing decisions.
+                  With our service, you can compare prices on leading brands like VELO, Skruf, and LOOP, ensuring you never overpay for your favorite products. Our comprehensive database covers all major retailers, from established brands to emerging favorites, giving you the power to make informed purchasing decisions.
                 </p>
               </div>
 
@@ -122,7 +168,7 @@ const SymmetricalContentSection = () => {
                 height: '100%',
                 marginBottom: '50px'
               }}>
-                <h3 id="section-1" style={{
+                <h3 id="section-1" className="mobile-h3" style={{
                   fontSize: '1.8rem',
                   fontWeight: '600',
                   color: '#333',
@@ -130,15 +176,15 @@ const SymmetricalContentSection = () => {
                   lineHeight: '1.3',
                   textAlign: 'left'
                 }}>
-                  Explore a Wide Range of Nicotine Pouches in the UK
+                  Explore a Wide Range of Nicotine Pouches UK
                 </h3>
-                <p style={{
+                <p className="mobile-text" style={{
                   color: '#666',
                   lineHeight: '1.6',
                   marginBottom: '20px',
                   textAlign: 'left'
                 }}>
-                  The <strong>nicotine pouches UK</strong> scene is packed with variety. Love a refreshing mint flavor? Try VELO Crispy Peppermint. Craving something fruity? LOOP's offerings might be your go-to. Our price comparison service covers all the top categories, including:
+                  The UK market is packed with variety. Love a refreshing mint flavor? Try VELO Crispy Peppermint. Craving something fruity? LOOP's offerings might be your go-to. Our price comparison service covers all the top categories, including:
                 </p>
                 <ul style={{
                   color: '#666',
@@ -148,25 +194,25 @@ const SymmetricalContentSection = () => {
                   textAlign: 'left'
                 }}>
                   <li style={{ marginBottom: '10px' }}>
-                    <strong>Slim Nicotine Pouches UK</strong> – Perfect for discreet use.
+                    <strong>Slim Pouches</strong> – Perfect for discreet use.
                   </li>
                   <li style={{ marginBottom: '10px' }}>
-                    <strong>Strong Nicotine Pouches UK</strong> – For a powerful nicotine hit.
+                    <strong>Strong Pouches</strong> – For a powerful hit.
                   </li>
                   <li style={{ marginBottom: '10px' }}>
-                    <strong>Nicotine-Free Pouches UK</strong> – Ideal for cutting down without losing the habit.
+                    <strong>Free Options</strong> – Ideal for cutting down without losing the habit.
                   </li>
                   <li style={{ marginBottom: '10px' }}>
-                    <strong>Flavored Nicotine Pouches UK</strong> – From coffee to liquorice, explore unique tastes.
+                    <strong>Flavored Varieties</strong> – From coffee to liquorice, explore unique tastes.
                   </li>
                 </ul>
-                <p style={{
+                <p className="mobile-text" style={{
                   color: '#666',
                   lineHeight: '1.6',
                   margin: '0',
                   textAlign: 'left'
                 }}>
-                  No matter your preference, we help you find the best deals on <strong>nicotine pouches UK</strong> tailored to your needs.
+                  No matter your preference, we help you find the best deals tailored to your needs.
                 </p>
               </div>
 
@@ -177,7 +223,7 @@ const SymmetricalContentSection = () => {
                 height: '100%',
                 marginBottom: '50px'
               }}>
-                <h3 id="section-2" style={{
+                <h3 id="section-2" className="mobile-h3" style={{
                   fontSize: '1.8rem',
                   fontWeight: '600',
                   color: '#333',
@@ -187,13 +233,13 @@ const SymmetricalContentSection = () => {
                 }}>
                   Why Choose Nicotine Pouches UK?
                 </h3>
-                <p style={{
+                <p className="mobile-text" style={{
                   color: '#666',
                   lineHeight: '1.6',
                   margin: '0 0 20px 0',
                   textAlign: 'left'
                 }}>
-                  Why spend more when you can save with our expertly curated price comparisons? We scour the web to bring you the latest deals on nicotine pouches UK, from slim pouches to extra-strong varieties. Whether you prefer low-strength options or bold, high-nicotine kicks, our platform lists the best prices from trusted retailers across the UK. Save time and money by letting us do the heavy lifting—finding the cheapest nicotine pouches in the UK has never been easier!
+                  Why spend more when you can save with our expertly curated price comparisons? We scour the web to bring you the latest deals, from slim pouches to extra-strong varieties. Whether you prefer low-strength options or bold, high-strength kicks, our platform lists the best prices from trusted retailers across the UK. Save time and money by letting us do the heavy lifting—finding the cheapest options has never been easier!
                 </p>
                 
                 {/* 6 Reasons Section */}
@@ -241,7 +287,7 @@ const SymmetricalContentSection = () => {
                   }}>
                     <li style={{ marginBottom: '8px', display: 'flex', alignItems: 'flex-start' }}>
                       <span style={{ fontWeight: 'bold', marginRight: '8px', color: '#333' }}>1.</span>
-                      <span>Save up to 40% on large nicotine pouch orders</span>
+                      <span>Save up to 40% on large orders</span>
                     </li>
                     <li style={{ marginBottom: '8px', display: 'flex', alignItems: 'flex-start' }}>
                       <span style={{ fontWeight: 'bold', marginRight: '8px', color: '#333' }}>2.</span>
@@ -274,7 +320,7 @@ const SymmetricalContentSection = () => {
                 height: '100%',
                 marginBottom: '50px'
               }}>
-                <h3 id="section-3" style={{
+                <h3 id="section-3" className="mobile-h3" style={{
                   fontSize: '1.8rem',
                   fontWeight: '600',
                   color: '#333',
@@ -284,13 +330,13 @@ const SymmetricalContentSection = () => {
                 }}>
                   Nicotine Pouches UK: Fast Delivery, Great Prices
                 </h3>
-                <p style={{
+                <p className="mobile-text" style={{
                   color: '#666',
                   lineHeight: '1.6',
                   margin: '0',
                   textAlign: 'left'
                 }}>
-                  Ordering <strong>nicotine pouches UK</strong> through our platform means you'll enjoy fast, reliable shipping to your door. Many of the retailers we feature offer free delivery on orders above a certain amount, and we make sure you know exactly where to find those perks. From London to Glasgow, get your <strong>nicotine pouches in the UK</strong> delivered quickly and at the lowest possible cost.
+                  Ordering through our platform means you'll enjoy fast, reliable shipping to your door. Many of the retailers we feature offer free delivery on orders above a certain amount, and we make sure you know exactly where to find those perks. From London to Glasgow, get your products delivered quickly and at the lowest possible cost.
                 </p>
               </div>
 
@@ -300,7 +346,7 @@ const SymmetricalContentSection = () => {
                 flexDirection: 'column',
                 height: '100%'
               }}>
-                <h3 id="section-4" style={{
+                <h3 id="section-4" className="mobile-h3" style={{
                   fontSize: '1.8rem',
                   fontWeight: '600',
                   color: '#333',
@@ -310,13 +356,13 @@ const SymmetricalContentSection = () => {
                 }}>
                   Start Saving on Nicotine Pouches UK Now
                 </h3>
-                <p style={{
+                <p className="mobile-text" style={{
                   color: '#666',
                   lineHeight: '1.6',
                   margin: '0 0 30px 0',
                   textAlign: 'left'
                 }}>
-                  Ready to find the best <strong>nicotine pouches UK</strong> deals? Use our price comparison tool today and discover how much you can save. Whether you're after bestselling products like White Fox or new arrivals like Lynx Cool Mint, we bring you the cheapest options for <strong>nicotine pouches in the UK</strong> in one convenient place. Don't settle for less—shop smarter with Nicotine Pouches and make us your number-one stop for <strong>UK nicotine pouches</strong>.
+                  Ready to find the best deals? Use our price comparison tool today and discover how much you can save. Whether you're after bestselling products like White Fox or new arrivals like Lynx Cool Mint, we bring you the cheapest options in one convenient place. Don't settle for less—shop smarter with us and make us your number-one stop for premium products.
                 </p>
                 <div style={{ textAlign: 'left' }}>
                   <Link 
@@ -331,11 +377,10 @@ const SymmetricalContentSection = () => {
             </div>
           </div>
 
-          {/* Table of Contents - 1/3 width */}
-          <div className="fusion-layout-column fusion_builder_column fusion-builder-column-37 fusion_builder_column_1_3 1_3 fusion-flex-column" 
+          {/* Table of Contents - Full width on mobile, 1/3 on desktop */}
+          <div className="fusion-layout-column fusion_builder_column fusion-builder-column-37 fusion_builder_column_1_3 1_3 fusion-flex-column toc-content" 
                style={{ 
-                 flex: '1',
-                 minHeight: '400px',
+                 minHeight: 'auto',
                  display: 'flex',
                  flexDirection: 'column'
                }}>
@@ -344,13 +389,14 @@ const SymmetricalContentSection = () => {
               flexDirection: 'column',
               height: '100%'
             }}>
-              <TableOfContents />
+              <TableOfContentsWrapper />
             </div>
           </div>
 
         </div>
       </div>
     </div>
+    </>
   );
 };
 

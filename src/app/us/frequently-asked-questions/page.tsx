@@ -1,9 +1,73 @@
+'use client';
+
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export default function USFrequentlyAskedQuestions() {
   return (
-    <div id="boxed-wrapper">
+    <>
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .us-faq-container {
+            flex-direction: column !important;
+            gap: 30px !important;
+            padding: 0 15px !important;
+          }
+          .us-faq-sidebar {
+            width: 100% !important;
+            min-width: auto !important;
+            order: 2 !important;
+          }
+          .us-faq-content {
+            width: 100% !important;
+            order: 1 !important;
+          }
+          .us-faq-sidebar h3 {
+            font-size: 20px !important;
+            margin-bottom: 20px !important;
+          }
+          .us-faq-sidebar ul li {
+            margin-bottom: 10px !important;
+          }
+          .us-faq-sidebar ul li a {
+            font-size: 14px !important;
+            padding: 6px 0 !important;
+          }
+          .us-faq-content h1 {
+            font-size: 28px !important;
+            margin-bottom: 20px !important;
+          }
+          .us-faq-content h2 {
+            font-size: 22px !important;
+            margin: 30px 0 15px 0 !important;
+          }
+          .us-faq-content p {
+            font-size: 14px !important;
+            line-height: 1.6 !important;
+            margin-bottom: 15px !important;
+          }
+          .us-faq-content ul {
+            margin-bottom: 20px !important;
+          }
+          .us-faq-content ul li {
+            font-size: 14px !important;
+            margin-bottom: 8px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .us-faq-container {
+            padding: 0 10px !important;
+          }
+          .us-faq-content h1 {
+            font-size: 24px !important;
+          }
+          .us-faq-content h2 {
+            font-size: 20px !important;
+          }
+        }
+      `}</style>
+      
+      <div id="boxed-wrapper">
       <div id="wrapper" className="fusion-wrapper">
         {/* Header */}
         <Header />
@@ -17,7 +81,7 @@ export default function USFrequentlyAskedQuestions() {
                marginLeft: 'calc(50% - 50vw)',
                marginRight: 'calc(50% - 50vw)'
              }}>
-          <div className="fusion-builder-row fusion-row fusion-flex-align-items-flex-start fusion-flex-content-wrap" 
+          <div className="us-faq-container fusion-builder-row fusion-row fusion-flex-align-items-flex-start fusion-flex-content-wrap" 
                style={{
                  width: '100%',
                  maxWidth: '1200px',
@@ -28,7 +92,7 @@ export default function USFrequentlyAskedQuestions() {
                }}>
             
             {/* Sidebar */}
-            <div className="fusion-layout-column fusion_builder_column fusion_builder_column_1_4 1_4 fusion-flex-column" 
+            <div className="us-faq-sidebar fusion-layout-column fusion_builder_column fusion_builder_column_1_4 1_4 fusion-flex-column" 
                  style={{ width: '25%', minWidth: '250px' }}>
               <div className="fusion-column-wrapper">
                 <div className="fusion-title title fusion-title-1 fusion-sep-none fusion-title-text fusion-title-size-three" 
@@ -81,7 +145,7 @@ export default function USFrequentlyAskedQuestions() {
             </div>
 
             {/* Main Content */}
-            <div className="fusion-layout-column fusion_builder_column fusion_builder_column_3_4 3_4 fusion-flex-column" 
+            <div className="us-faq-content fusion-layout-column fusion_builder_column fusion_builder_column_3_4 3_4 fusion-flex-column" 
                  style={{ width: '75%' }}>
               <div className="fusion-column-wrapper">
                 <div className="fusion-title title fusion-title-2 fusion-sep-none fusion-title-text fusion-title-size-two" 
@@ -148,88 +212,11 @@ export default function USFrequentlyAskedQuestions() {
           </div>
         </div>
 
-        {/* Newsletter Section */}
-        <div className="fusion-fullwidth fullwidth-box fusion-builder-row-2 fusion-flex-container has-pattern-background has-mask-background hundred-percent-fullwidth non-hundred-percent-height-scrolling" 
-             style={{
-               backgroundColor: '#1a1a1a',
-               padding: '60px 0',
-               width: '100vw',
-               marginLeft: 'calc(50% - 50vw)',
-               marginRight: 'calc(50% - 50vw)'
-             }}>
-          <div className="fusion-builder-row fusion-row fusion-flex-align-items-flex-start fusion-flex-justify-content-center fusion-flex-content-wrap" 
-               style={{
-                 width: '100%',
-                 maxWidth: '1200px',
-                 margin: '0 auto',
-                 padding: '0 20px',
-                 textAlign: 'center'
-               }}>
-            <div className="fusion-layout-column fusion_builder_column fusion-builder-column-1 fusion-flex-column" 
-                 style={{ width: '100%' }}>
-              <div className="fusion-column-wrapper">
-                <h2 style={{ 
-                  fontSize: '32px', 
-                  fontWeight: 'bold', 
-                  margin: '0 0 16px 0',
-                  color: 'white'
-                }}>
-                  Subscribe to our newsletter
-                </h2>
-                <p style={{ 
-                  fontSize: '16px', 
-                  color: '#ccc', 
-                  margin: '0 0 32px 0',
-                  maxWidth: '600px',
-                  marginLeft: 'auto',
-                  marginRight: 'auto'
-                }}>
-                  Easily keep up with the latest with Nicotine Pouches. We handpick the best in product news, trends and store deals.
-                </p>
-                
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  alignItems: 'center',
-                  maxWidth: '400px',
-                  margin: '0 auto'
-                }}>
-                  <input 
-                    type="email" 
-                    placeholder="Your email*" 
-                    style={{
-                      flex: 1,
-                      padding: '12px 16px',
-                      border: 'none',
-                      borderRadius: '8px 0 0 8px',
-                      fontSize: '16px',
-                      outline: 'none'
-                    }}
-                  />
-                  <button 
-                    type="submit" 
-                    style={{
-                      padding: '12px 24px',
-                      backgroundColor: '#666',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0 8px 8px 0',
-                      fontSize: '16px',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Submit
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Footer */}
         <Footer />
       </div>
     </div>
+    </>
   );
 }

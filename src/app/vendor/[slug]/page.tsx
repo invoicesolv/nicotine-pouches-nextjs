@@ -50,7 +50,7 @@ async function getVendorData(slug: string) {
     if (mappings && mappings.length > 0) {
       const productIds = mappings.map((m: any) => m.product_id);
       const { data: productData, error: productError } = await supabase()
-        .from('products')
+        .from('wp_products')
         .select('*')
         .in('id', productIds);
 
@@ -129,7 +129,7 @@ export default async function VendorPage({ params }: VendorPageProps) {
             }}>
               <Link href="/" style={{ color: '#666', textDecoration: 'none' }}>Home</Link>
               <span style={{ margin: '0 8px' }}>»</span>
-              <Link href="/vendors" style={{ color: '#666', textDecoration: 'none' }}>Vendors</Link>
+              <Link href="/vendors" style={{ color: '#666', textDecoration: 'none' }} rel="nofollow">Vendors</Link>
               <span style={{ margin: '0 8px' }}>»</span>
               <span>{vendorData.vendorName}</span>
             </div>
@@ -235,6 +235,7 @@ export default async function VendorPage({ params }: VendorPageProps) {
 
                 <a
                   href={`/vendor/${slug}#products`}
+                  rel="nofollow"
                   style={{
                     backgroundColor: '#333',
                     color: 'white',

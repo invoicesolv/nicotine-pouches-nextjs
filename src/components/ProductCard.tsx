@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { getLocalImagePath } from '@/utils/imageUtils';
 
 interface Product {
   id: number;
@@ -331,7 +332,7 @@ const ProductCard = ({
             background: '#fefefe'
           }}>
             <img 
-              src={product.image_url || '/placeholder-product.jpg'} 
+              src={getLocalImagePath(product.image_url, product.id, product.name)} 
               alt={product.name}
               style={{
                 position: 'absolute',

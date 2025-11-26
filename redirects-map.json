@@ -1,0 +1,141 @@
+{
+  "description": "Explicit URL mappings for discontinued products and pages",
+  "version": "1.0.0",
+  "redirects": {
+    "us_products": {
+      "description": "US discontinued products redirect to comparison page",
+      "redirects": {
+        "/us/product/on-coffee-2mg": "/us/compare",
+        "/us/product/sesh-mint-6mg": "/us/compare",
+        "/us/product/on-mint-8mg": "/us/compare",
+        "/us/product/nic-s-mint-3mg": "/us/compare",
+        "/us/product/nic-s-wintergreen-9mg": "/us/compare",
+        "/us/product/sesh-clear-8mg": "/us/compare",
+        "/us/product/on-citrus-8mg": "/us/compare",
+        "/us/product/nic-s-wintergreen-6mg": "/us/compare",
+        "/us/product/sesh-mango-8mg": "/us/compare",
+        "/us/product/nic-s-cinnamon-6mg": "/us/compare",
+        "/us/product/on-citrus-4mg": "/us/compare",
+        "/us/product/on-original-8mg": "/us/compare",
+        "/us/product/nic-s-cinnamon-3mg": "/us/compare",
+        "/us/product/sesh-mint-8mg": "/us/compare",
+        "/us/product/nic-s-mint-6mg": "/us/compare",
+        "/us/product/on-wintergreen-8mg": "/us/compare",
+        "/us/product/on-coffee-4mg": "/us/compare",
+        "/us/product/sesh-clear-6mg": "/us/compare",
+        "/us/product/sesh-wintergreen-4mg": "/us/compare",
+        "/us/product/sesh-cappuccino-4mg": "/us/compare",
+        "/us/product/nic-s-berry-6mg": "/us/compare",
+        "/us/product/on-original-4mg": "/us/compare",
+        "/us/product/on-wintergreen-2mg": "/us/compare",
+        "/us/product/on-mint-4mg": "/us/compare",
+        "/us/product/nic-s-wintergreen-3mg": "/us/compare",
+        "/us/product/sesh-wintergreen-8mg": "/us/compare",
+        "/us/product/nic-s-flavor-free-6mg": "/us/compare",
+        "/us/product/on-mint-2mg": "/us/compare",
+        "/us/product/sesh-mango-4mg": "/us/compare",
+        "/us/product/sesh-cappuccino-6mg": "/us/compare",
+        "/us/product/nic-s-flavor-free-3mg": "/us/compare",
+        "/us/product/nic-s-berry-3mg": "/us/compare",
+        "/us/product/on-wintergreen-4mg": "/us/compare",
+        "/us/product/sesh-mango-6mg": "/us/compare",
+        "/us/product/sesh-mint-4mg": "/us/compare",
+        "/us/product/sesh-clear-4mg": "/us/compare",
+        "/us/product/nic-s-berry-9mg": "/us/compare",
+        "/us/product/nic-s-mint-9mg": "/us/compare",
+        "/us/product/on-cinnamon-4mg": "/us/compare",
+        "/us/product/nic-s-orange-3mg": "/us/compare",
+        "/us/product/sesh-cappuccino-8mg": "/us/compare",
+        "/us/product/nic-s-flavor-free-9mg": "/us/compare",
+        "/us/product/nic-s-orange-6mg": "/us/compare",
+        "/us/product/on-cinnamon-8mg": "/us/compare",
+        "/us/product/on-cinnamon-2mg": "/us/compare",
+        "/us/product/on-original-2mg": "/us/compare",
+        "/us/product/on-citrus-2mg": "/us/compare",
+        "/us/product/nic-s-cinnamon-9mg": "/us/compare",
+        "/us/product/on-coffee-8mg": "/us/compare"
+      }
+    },
+    "uk_products": {
+      "description": "UK discontinued products redirect to comparison page",
+      "redirects": {
+        "/product/chainpop-apple-amp-cinnamon": "/compare",
+        "/product/on-raspberry-lemon": "/compare",
+        "/product/vampyou-savage-mango": "/compare",
+        "/product/77-cola-amp-cherry": "/compare",
+        "/product/77-apple-amp-mint": "/compare",
+        "/product/vampyou-cool-berry": "/compare",
+        "/product/chainpop-pomegranate-amp-melon": "/compare",
+        "/product/on-coffee": "/compare",
+        "/product/on-watermelon-mint": "/compare",
+        "/product/on-spearmint": "/compare",
+        "/product/on-grapefruit-spritz": "/compare",
+        "/product/77-liquorice-amp-citrus": "/compare",
+        "/product/chainpop-lychee-amp-coconut": "/compare",
+        "/product/chainpop-raspberry-amp-lemon": "/compare",
+        "/product/chainpop-violet-amp-cactus": "/compare",
+        "/product/on-lemon-berry": "/compare",
+        "/product/on-island-twist": "/compare",
+        "/product/77-cola-amp-vanilla": "/compare",
+        "/product/niccos-x-mint": "/compare",
+        "/product/on-citrus": "/compare",
+        "/product/chainpop-peach-amp-honey": "/compare",
+        "/product/vampyou-frutti-blast": "/compare",
+        "/product/vampyou-frostbite": "/compare",
+        "/product/77-raspberry-amp-vanilla": "/compare",
+        "/product/on-smooth-mint": "/compare",
+        "/product/ice-frost-20": "/compare",
+        "/product/77-melon-amp-mint": "/compare",
+        "/product/on-spicy-lime": "/compare",
+        "/product/vampyou-blueberry-ice": "/compare",
+        "/product/vampyou-berry-kiwi-rush": "/compare"
+      }
+    },
+    "brand_pages": {
+      "description": "Discontinued brand pages redirect to similar brands",
+      "redirects": {
+        "/brand/vampyou": "/brand/on",
+        "/us/brand/sesh+": "/us/brand/on"
+      }
+    },
+    "blog_routes": {
+      "description": "Discontinued blog routes redirect to appropriate pages",
+      "redirects": {
+        "/us/blog": "/us"
+      }
+    },
+    "special_products": {
+      "description": "Special discontinued products with specific redirects",
+      "redirects": {
+        "/us/product/velo-x-mclaren-formula-1-team-limited-edition-tin-velo-plus-citrus-chill-6mg": "/us/compare",
+        "/us/product/velo-x-mclaren-formula-1-team-limited-edition-tin-velo-plus-wintergreen-6mg": "/us/compare",
+        "/us/product/velo-x-mclaren-formula-1-team-limited-edition-tin-velo-plus-mint-6mg": "/us/compare"
+      }
+    }
+  },
+  "patterns": {
+    "description": "Pattern-based redirects for dynamic URL matching",
+    "rules": [
+      {
+        "pattern": "^/us/product/(on|nic-s|sesh)-[^/]+$",
+        "destination": "/us/compare",
+        "description": "US discontinued product variants"
+      },
+      {
+        "pattern": "^/product/(chainpop|vampyou|77|hit|niccos|pablo|kurwa)-[^/]+$",
+        "destination": "/compare",
+        "description": "UK discontinued product variants"
+      },
+      {
+        "pattern": "^/brand/(vampyou|sesh\\+)$",
+        "destination": "/brand/on",
+        "description": "Discontinued brand pages"
+      },
+      {
+        "pattern": "^/us/brand/(vampyou|sesh\\+)$",
+        "destination": "/us/brand/on",
+        "description": "US discontinued brand pages"
+      }
+    ]
+  }
+}

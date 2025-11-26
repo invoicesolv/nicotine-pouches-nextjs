@@ -131,6 +131,7 @@ export default async function VendorsPage() {
                 <div className="space-y-2">
                   <a
                     href={`/vendor/${vendor.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    rel="nofollow"
                     className="block w-full bg-gray-900 text-white py-1.5 px-3 rounded-xl hover:bg-gray-800 transition-colors text-xs font-medium"
                   >
                     View Products

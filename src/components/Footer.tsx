@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import SignupForm from './SignupForm';
+import styles from './Footer.module.css';
+import ClientSignupForm from './ClientSignupForm';
 
 const Footer = () => {
   return (
-    <footer style={{ backgroundColor: '#1a1a1a', color: 'white', width: '100%' }}>
+    <>
+      <footer style={{ backgroundColor: '#1a1a1a', color: 'white', width: '100%' }}>
       {/* Newsletter Section */}
-      <div style={{ 
+      <div className={styles.footerNewsletter} style={{ 
         padding: '60px 0', 
         textAlign: 'center',
         borderBottom: '1px solid #333'
@@ -32,7 +34,7 @@ const Footer = () => {
           </p>
           
           {/* Newsletter Form */}
-          <SignupForm 
+          <ClientSignupForm 
             source="footer"
             placeholder="Your email*"
             buttonText="Submit"
@@ -45,7 +47,7 @@ const Footer = () => {
         padding: '60px 0',
         borderBottom: '1px solid #333'
       }}>
-        <div style={{ 
+        <div className={styles.footerMainContent} style={{ 
           maxWidth: '1200px', 
           margin: '0 auto', 
           padding: '0 20px',
@@ -55,19 +57,18 @@ const Footer = () => {
         }}>
           
           {/* Company Info */}
-          <div style={{ flex: '1', minWidth: '300px' }}>
+          <div className={styles.footerCompanyInfo} style={{ flex: '1', minWidth: '300px' }}>
             <div style={{ 
               marginBottom: '20px' 
             }}>
               <Image
-                src="https://gianna.templweb.com/wp-content/uploads/2024/08/logo-1.png"
+                src="/product-images/us/logowhite.png"
                 alt="Nicotine Pouches Logo"
                 width={200}
                 height={54}
                 style={{ 
                   height: 'auto',
-                  maxHeight: '50px',
-                  filter: 'brightness(0) invert(1)' // Makes the logo white
+                  maxHeight: '50px'
                 }}
               />
             </div>
@@ -82,10 +83,10 @@ const Footer = () => {
           </div>
 
           {/* Navigation Links */}
-          <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
+          <div className={styles.footerNavigation} style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
             
             {/* Column 1 */}
-            <div>
+            <div className={styles.footerColumn}>
               <h3 style={{ 
                 color: 'white', 
                 fontSize: '16px', 
@@ -111,15 +112,20 @@ const Footer = () => {
                   </Link>
                 </li>
                 <li style={{ marginBottom: '8px' }}>
-                  <Link href="/careers" style={{ color: '#ccc', textDecoration: 'none', fontSize: '14px' }}>
+                  <Link href="/work-with-us" style={{ color: '#ccc', textDecoration: 'none', fontSize: '14px' }}>
                     Work with us
+                  </Link>
+                </li>
+                <li style={{ marginBottom: '8px' }}>
+                  <Link href="/here-we-are" style={{ color: '#ccc', textDecoration: 'none', fontSize: '14px' }}>
+                    Here We Are
                   </Link>
                 </li>
               </ul>
             </div>
 
             {/* Column 2 */}
-            <div>
+            <div className={styles.footerColumn}>
               <h3 style={{ 
                 color: 'white', 
                 fontSize: '16px', 
@@ -168,7 +174,7 @@ const Footer = () => {
             </div>
 
             {/* Column 3 */}
-            <div>
+            <div className={styles.footerColumn}>
               <h3 style={{ 
                 color: 'white', 
                 fontSize: '16px', 
@@ -220,7 +226,7 @@ const Footer = () => {
       </div>
 
       {/* Bottom Footer */}
-      <div style={{ 
+        <div className={styles.footerBottom} style={{
         padding: '20px 0',
         display: 'flex',
         justifyContent: 'space-between',
@@ -233,7 +239,7 @@ const Footer = () => {
         <div style={{ color: '#ccc', fontSize: '14px' }}>
           Copyright 2025 Nicotine Pouches
         </div>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <div className={styles.footerSocial} style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           <a 
             href="https://x.com/nicotinepouchuk" 
             target="_blank" 
@@ -273,6 +279,7 @@ const Footer = () => {
         </div>
       </div>
     </footer>
+    </>
   );
 };
 

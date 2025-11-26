@@ -70,11 +70,25 @@ const getBlogPost = (slug: string): BlogPost | null => {
 // Get products by brand name
 const getProductsByBrand = async (brandName: string) => {
   try {
-    const { data: products, error } = await supabase()
-      .from('products')
+    // For Nordic Spirit, be more specific to avoid getting other brands
+    let query = supabase()
+      .from('wp_products')
       .select('*')
-      .ilike('brand', `%${brandName}%`)
+      .not('name', 'ilike', '%bundle%')
+      .not('name', 'ilike', '%variety%')
+      .not('name', 'ilike', '%mix%')
+      .not('image_url', 'is', null)
       .limit(2);
+    
+    if (brandName.toLowerCase().includes('nordic')) {
+      // For Nordic Spirit, only get products that start with "Nordic Spirit"
+      query = query.ilike('name', 'Nordic Spirit%');
+    } else {
+      // For other brands, use the original logic
+      query = query.ilike('name', `%${brandName}%`);
+    }
+    
+    const { data: products, error } = await query;
     
     if (error) {
       console.error('Error fetching products by brand:', error);
@@ -146,19 +160,25 @@ const mapBrandToDatabase = (brand: string): string => {
 const createProductCard = (product: any) => {
   console.log('createProductCard called with:', product.name);
   
-  // Handle both local and external image URLs
-  let imageUrl = product.image_url || '/placeholder-product.svg';
+  // Generate image URL based on product name and brand
+  let imageUrl = '/placeholder-product.svg';
   
-  // If it's an external URL, use it directly; if it's local, ensure it starts with /
-  if (imageUrl.startsWith('http')) {
-    // External URL - use as is
-    imageUrl = imageUrl;
-  } else if (imageUrl.startsWith('/')) {
-    // Local URL - use as is
-    imageUrl = imageUrl;
-  } else {
-    // Relative URL - make it absolute
-    imageUrl = '/' + imageUrl;
+  // Try to find appropriate image based on product name
+  if (product.name.toLowerCase().includes('nordic')) {
+    // Use Nordic Spirit generic image
+    imageUrl = '/blog-images/post_44546_nordic_spirit_nicotine_pouches_strength.jpg';
+  } else if (product.name.toLowerCase().includes('zyn')) {
+    // Use ZYN generic image
+    imageUrl = '/us-product-images/zyn_wintergreen_6mg_t_360.png';
+  } else if (product.name.toLowerCase().includes('velo')) {
+    // Use VELO generic image
+    imageUrl = '/us-product-images/velo_arctic_grapefruit_t_360.png';
+  } else if (product.name.toLowerCase().includes('on')) {
+    // Use ON generic image
+    imageUrl = '/us-product-images/on_berry_t_360.png';
+  } else if (product.name.toLowerCase().includes('loop')) {
+    // Use LOOP generic image
+    imageUrl = '/us-product-images/loop_hot_mango_t_360.png';
   }
   
   const productSlug = product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -207,7 +227,7 @@ const createProductCard = (product: any) => {
           margin: 0 0 12px 0;
           font-family: 'Klarna Text', sans-serif;
         ">
-          ${product.brand} • ${product.strength_group || 'Normal'} • ${product.format || 'Slim'}
+          ${product.brand || product.name.split(' ')[0]} • Normal • Slim
         </p>
         <div style="
           display: flex;
@@ -222,7 +242,7 @@ const createProductCard = (product: any) => {
           ">
             £3.99
           </span>
-          <a href="/compare" style="
+          <a href="/product/${productSlug}" style="
             background: #2563eb;
             color: white;
             padding: 8px 16px;
@@ -232,7 +252,7 @@ const createProductCard = (product: any) => {
             font-weight: 500;
             font-family: 'Klarna Text', sans-serif;
           ">
-            Compare Prices
+            View Product
           </a>
         </div>
       </div>
@@ -272,7 +292,12 @@ const cleanHtmlContent = (html: string): string => {
     .replace(/<tr[^>]*>/g, '<tr>')
     .replace(/<td[^>]*>/g, '<td>')
     .replace(/<th[^>]*>/g, '<th>')
-    .replace(/<a[^>]*>/g, '<a>')
+    // Preserve anchor tags with their href attribute
+    .replace(/<a[^>]*>/g, (match) => {
+      const hrefMatch = match.match(/href="([^"]*)"/);
+      const href = hrefMatch ? hrefMatch[1] : '#';
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer">`;
+    })
     // Preserve img tags with their src and data-src attributes
     .replace(/<img[^>]*>/g, (match) => {
       const srcMatch = match.match(/data-src="([^"]*)"/);
@@ -284,7 +309,7 @@ const cleanHtmlContent = (html: string): string => {
       let localSrc = src;
       if (src.includes('nicotine-pouches.org/wp-content/uploads/')) {
         const filename = src.split('/').pop()?.split('?')[0] || '';
-        localSrc = `/blog-images/compressed/${filename}`;
+        localSrc = `/blog-images/${filename}`;
         console.log('Converting content image:', src, '->', localSrc);
       }
       
@@ -354,8 +379,8 @@ export default async function GuidePost({ params }: { params: Promise<{ slug: st
     (post.seo_meta?.og_image ? 
       post.seo_meta.og_image.replace(/https:\/\/nicotine-pouches\.org\/wp-content\/uploads\/[^"'\s]+/, (match) => {
         const filename = match.split('/').pop()?.split('?')[0] || '';
-        console.log('Converting featured image:', match, '->', `/blog-images/compressed/${filename}`);
-        return `/blog-images/compressed/${filename}`;
+        console.log('Converting featured image:', match, '->', `/blog-images/${filename}`);
+        return `/blog-images/${filename}`;
       }) : 
       null);
 
@@ -363,8 +388,8 @@ export default async function GuidePost({ params }: { params: Promise<{ slug: st
   
   // Check if the image file actually exists, if not, use a fallback
   const finalDisplayImage = displayImage && displayImage.includes('pexels-photo-30403220') 
-    ? '/blog-images/compressed/pexels-photo-16601238.jpeg' // Use an existing image as fallback
-    : displayImage || '/blog-images/compressed/pexels-photo-16601238.jpeg'; // Default fallback image
+    ? '/blog-images/pexels-photo-16601238.jpeg' // Use an existing image as fallback
+    : displayImage || '/blog-images/pexels-photo-16601238.jpeg'; // Default fallback image
 
   return (
     <div style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>

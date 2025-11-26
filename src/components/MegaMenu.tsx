@@ -8,10 +8,13 @@ import { useLanguage } from '@/contexts/LanguageContext';
 interface Category {
   id: string;
   name: string;
-  icon: string;
+  brandImage: string;
   subcategories: {
     name: string;
-    items: string[];
+    items: {
+      title: string;
+      image_url: string;
+    }[];
     count: number;
   }[];
 }
@@ -22,26 +25,47 @@ const categories: Category[] = [
   {
     id: 'velo',
     name: 'Velo',
-    icon: '🚀',
+    brandImage: 'https://twowombats.com/cdn/shop/files/Velo_Freezing_Peppermint_Slim_SL_4_6_Nicotine_Pouches-NPO-VEL_FRPE_SL_0109.webp?v=1745599918&width=675',
     subcategories: [
       {
         name: 'Velo Freeze',
-        items: ['Velo Freeze Mint', 'Velo Freeze Black', 'Velo Freeze White', 'Velo Freeze Blue', 'Velo Freeze Green'],
+        items: [
+          { title: 'Velo Freeze Mint', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Freezing_Peppermint_Slim_SL_4_6_Nicotine_Pouches-NPO-VEL_FRPE_SL_0109.webp?v=1745599918&width=675' },
+          { title: 'Velo Freeze Black', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Freezing_Peppermint_Slim_SL_4_6_Nicotine_Pouches-NPO-VEL_FRPE_SL_0109.webp?v=1745599918&width=675' },
+          { title: 'Velo Freeze White', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Freezing_Peppermint_Slim_SL_4_6_Nicotine_Pouches-NPO-VEL_FRPE_SL_0109.webp?v=1745599918&width=675' },
+          { title: 'Velo Freeze Blue', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Freezing_Peppermint_Slim_SL_4_6_Nicotine_Pouches-NPO-VEL_FRPE_SL_0109.webp?v=1745599918&width=675' },
+          { title: 'Velo Freeze Green', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Freezing_Peppermint_Slim_SL_4_6_Nicotine_Pouches-NPO-VEL_FRPE_SL_0109.webp?v=1745599918&width=675' }
+        ],
         count: 12
       },
       {
         name: 'Velo Ice',
-        items: ['Velo Ice Mint', 'Velo Ice Black', 'Velo Ice White', 'Velo Ice Blue'],
+        items: [
+          { title: 'Velo Ice Mint', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Icy_Berries_Slim_SL_3_6_Nicotine_Pouches-NPO-VEL_ICBE_SL_0080.webp?v=1747815552&width=675' },
+          { title: 'Velo Ice Black', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Icy_Berries_Slim_SL_3_6_Nicotine_Pouches-NPO-VEL_ICBE_SL_0080.webp?v=1747815552&width=675' },
+          { title: 'Velo Ice White', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Icy_Berries_Slim_SL_3_6_Nicotine_Pouches-NPO-VEL_ICBE_SL_0080.webp?v=1747815552&width=675' },
+          { title: 'Velo Ice Blue', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Icy_Berries_Slim_SL_3_6_Nicotine_Pouches-NPO-VEL_ICBE_SL_0080.webp?v=1747815552&width=675' }
+        ],
         count: 8
       },
       {
         name: 'Velo Urban',
-        items: ['Velo Urban Mint', 'Velo Urban Black', 'Velo Urban White', 'Velo Urban Blue'],
+        items: [
+          { title: 'Velo Urban Mint', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Arctic_Grapefruit_Slim_SL_3_6_Nicotine_Pouches-NPO-VEL_ARGR_SL_0100.webp?v=1745599915&width=675' },
+          { title: 'Velo Urban Black', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Arctic_Grapefruit_Slim_SL_3_6_Nicotine_Pouches-NPO-VEL_ARGR_SL_0100.webp?v=1745599915&width=675' },
+          { title: 'Velo Urban White', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Arctic_Grapefruit_Slim_SL_3_6_Nicotine_Pouches-NPO-VEL_ARGR_SL_0100.webp?v=1745599915&width=675' },
+          { title: 'Velo Urban Blue', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Arctic_Grapefruit_Slim_SL_3_6_Nicotine_Pouches-NPO-VEL_ARGR_SL_0100.webp?v=1745599915&width=675' }
+        ],
         count: 6
       },
       {
         name: 'Velo Max',
-        items: ['Velo Max Mint', 'Velo Max Black', 'Velo Max White', 'Velo Max Blue'],
+        items: [
+          { title: 'Velo Max Mint', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Cinnamon_Flame_Slim_SL_3_6_Nicotine_Pouches-NPO-VEL_CIFL_SL_0100.webp?v=1745599915&width=675' },
+          { title: 'Velo Max Black', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Cinnamon_Flame_Slim_SL_3_6_Nicotine_Pouches-NPO-VEL_CIFL_SL_0100.webp?v=1745599915&width=675' },
+          { title: 'Velo Max White', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Cinnamon_Flame_Slim_SL_3_6_Nicotine_Pouches-NPO-VEL_CIFL_SL_0100.webp?v=1745599915&width=675' },
+          { title: 'Velo Max Blue', image_url: 'https://twowombats.com/cdn/shop/files/Velo_Cinnamon_Flame_Slim_SL_3_6_Nicotine_Pouches-NPO-VEL_CIFL_SL_0100.webp?v=1745599915&width=675' }
+        ],
         count: 4
       }
     ]
@@ -49,26 +73,46 @@ const categories: Category[] = [
   {
     id: 'zyn',
     name: 'ZYN',
-    icon: '⚡',
+    brandImage: 'https://twowombats.com/cdn/shop/files/ZYN_Cool_Mint_Slim_SW_3_4_Nicotine_Pouches-NPO-ZYN_COMI_SW_0110_0d74fcd4-5eb3-4aff-baec-e80d4096146b.webp?v=1744292353&width=675',
     subcategories: [
       {
         name: 'ZYN Cool Mint',
-        items: ['ZYN Cool Mint Slim', 'ZYN Cool Mint Mini', 'ZYN Cool Mint White', 'ZYN Cool Mint Black'],
+        items: [
+          { title: 'ZYN Cool Mint Slim', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Cool_Mint_Slim_SW_3_4_Nicotine_Pouches-NPO-ZYN_COMI_SW_0110_0d74fcd4-5eb3-4aff-baec-e80d4096146b.webp?v=1744292353&width=675' },
+          { title: 'ZYN Cool Mint Mini', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Cool_Mint_Slim_SW_3_4_Nicotine_Pouches-NPO-ZYN_COMI_SW_0110_0d74fcd4-5eb3-4aff-baec-e80d4096146b.webp?v=1744292353&width=675' },
+          { title: 'ZYN Cool Mint White', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Cool_Mint_Slim_SW_3_4_Nicotine_Pouches-NPO-ZYN_COMI_SW_0110_0d74fcd4-5eb3-4aff-baec-e80d4096146b.webp?v=1744292353&width=675' },
+          { title: 'ZYN Cool Mint Black', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Cool_Mint_Slim_SW_3_4_Nicotine_Pouches-NPO-ZYN_COMI_SW_0110_0d74fcd4-5eb3-4aff-baec-e80d4096146b.webp?v=1744292353&width=675' }
+        ],
         count: 15
       },
       {
         name: 'ZYN Spearmint',
-        items: ['ZYN Spearmint Slim', 'ZYN Spearmint Mini', 'ZYN Spearmint White', 'ZYN Spearmint Black'],
+        items: [
+          { title: 'ZYN Spearmint Slim', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Cool_Frost_Slim_SW_3_4_Nicotine_Pouches-NPO-ZYN_COFR_SW_0090_867e559d-03dd-430b-b7e8-0c27f13da626.webp?v=1744205156&width=675' },
+          { title: 'ZYN Spearmint Mini', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Cool_Frost_Slim_SW_3_4_Nicotine_Pouches-NPO-ZYN_COFR_SW_0090_867e559d-03dd-430b-b7e8-0c27f13da626.webp?v=1744205156&width=675' },
+          { title: 'ZYN Spearmint White', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Cool_Frost_Slim_SW_3_4_Nicotine_Pouches-NPO-ZYN_COFR_SW_0090_867e559d-03dd-430b-b7e8-0c27f13da626.webp?v=1744205156&width=675' },
+          { title: 'ZYN Spearmint Black', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Cool_Frost_Slim_SW_3_4_Nicotine_Pouches-NPO-ZYN_COFR_SW_0090_867e559d-03dd-430b-b7e8-0c27f13da626.webp?v=1744205156&width=675' }
+        ],
         count: 12
       },
       {
         name: 'ZYN Citrus',
-        items: ['ZYN Citrus Slim', 'ZYN Citrus Mini', 'ZYN Citrus White', 'ZYN Citrus Black'],
+        items: [
+          { title: 'ZYN Citrus Slim', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Citrus_Mini_MD_2_4_Nicotine_Pouches-NPO-ZYN_CITR_MD_0030_986a0ef6-f8d0-4471-9de7-02ef665d4e43.webp?v=1744205158&width=675' },
+          { title: 'ZYN Citrus Mini', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Citrus_Mini_MD_2_4_Nicotine_Pouches-NPO-ZYN_CITR_MD_0030_986a0ef6-f8d0-4471-9de7-02ef665d4e43.webp?v=1744205158&width=675' },
+          { title: 'ZYN Citrus White', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Citrus_Mini_MD_2_4_Nicotine_Pouches-NPO-ZYN_CITR_MD_0030_986a0ef6-f8d0-4471-9de7-02ef665d4e43.webp?v=1744205158&width=675' },
+          { title: 'ZYN Citrus Black', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Citrus_Mini_MD_2_4_Nicotine_Pouches-NPO-ZYN_CITR_MD_0030_986a0ef6-f8d0-4471-9de7-02ef665d4e43.webp?v=1744205158&width=675' }
+        ],
         count: 8
       },
       {
         name: 'ZYN Wintergreen',
-        items: ['ZYN Wintergreen Slim', 'ZYN Wintergreen Mini', 'ZYN Wintergreen White', 'ZYN Wintergreen Black'],
+        items: [
+          { title: 'ZYN Wintergreen Slim', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Black_Licorice_Mini_MD_2_4_Nicotine_Pouches-NPO-ZYN_BLLI_MD_0030.webp?v=1747048135&width=675' },
+          { title: 'ZYN Wintergreen Mini', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Black_Licorice_Mini_MD_2_4_Nicotine_Pouches-NPO-ZYN_BLLI_MD_0030.webp?v=1747048135&width=675' },
+          { title: 'ZYN Wintergreen White', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Black_Licorice_Mini_MD_2_4_Nicotine_Pouches-NPO-ZYN_BLLI_MD_0030.webp?v=1747048135&width=675' },
+          { title: 'ZYN Wintergreen Black', image_url: 'https://twowombats.com/cdn/shop/files/ZYN_Black_Licorice_Mini_MD_2_4_Nicotine_Pouches-NPO-ZYN_BLLI_MD_0030.webp?v=1747048135&width=675' }
+        ],
         count: 10
       }
     ]
@@ -76,60 +120,73 @@ const categories: Category[] = [
   {
     id: 'helwit',
     name: 'Helwit',
-    icon: '🔥',
+    brandImage: 'https://twowombats.com/cdn/shop/files/Helwit_Mint_Slim_SL_2_4_Nicotine_Pouches-NPO-HEL_MINT_SL_0035_e9930e98-4195-4268-b8b9-39f2a17b062b.webp?v=1746537307&width=675',
     subcategories: [
       {
         name: 'Helwit Original',
-        items: ['Helwit Original Mint', 'Helwit Original Black', 'Helwit Original White', 'Helwit Original Blue'],
+        items: [
+          { title: 'Helwit Original Mint', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Mint_Slim_SL_2_4_Nicotine_Pouches-NPO-HEL_MINT_SL_0035_e9930e98-4195-4268-b8b9-39f2a17b062b.webp?v=1746537307&width=675' },
+          { title: 'Helwit Original Black', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Mint_Slim_SL_2_4_Nicotine_Pouches-NPO-HEL_MINT_SL_0035_e9930e98-4195-4268-b8b9-39f2a17b062b.webp?v=1746537307&width=675' },
+          { title: 'Helwit Original White', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Mint_Slim_SL_2_4_Nicotine_Pouches-NPO-HEL_MINT_SL_0035_e9930e98-4195-4268-b8b9-39f2a17b062b.webp?v=1746537307&width=675' },
+          { title: 'Helwit Original Blue', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Mint_Slim_SL_2_4_Nicotine_Pouches-NPO-HEL_MINT_SL_0035_e9930e98-4195-4268-b8b9-39f2a17b062b.webp?v=1746537307&width=675' }
+        ],
         count: 8
       },
       {
         name: 'Helwit Strong',
-        items: ['Helwit Strong Mint', 'Helwit Strong Black', 'Helwit Strong White', 'Helwit Strong Blue'],
+        items: [
+          { title: 'Helwit Strong Mint', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Menthol_Slim_SL_4_4_Nicotine_Pouches-NPO-HEL_MENT_SL_0060_836824a2-f49d-4805-a875-3ac96dfbfeae.webp?v=1746537307&width=675' },
+          { title: 'Helwit Strong Black', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Menthol_Slim_SL_4_4_Nicotine_Pouches-NPO-HEL_MENT_SL_0060_836824a2-f49d-4805-a875-3ac96dfbfeae.webp?v=1746537307&width=675' },
+          { title: 'Helwit Strong White', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Menthol_Slim_SL_4_4_Nicotine_Pouches-NPO-HEL_MENT_SL_0060_836824a2-f49d-4805-a875-3ac96dfbfeae.webp?v=1746537307&width=675' },
+          { title: 'Helwit Strong Blue', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Menthol_Slim_SL_4_4_Nicotine_Pouches-NPO-HEL_MENT_SL_0060_836824a2-f49d-4805-a875-3ac96dfbfeae.webp?v=1746537307&width=675' }
+        ],
         count: 6
       },
       {
         name: 'Helwit Fresh',
-        items: ['Helwit Fresh Mint', 'Helwit Fresh Black', 'Helwit Fresh White', 'Helwit Fresh Blue'],
+        items: [
+          { title: 'Helwit Fresh Mint', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Blueberry_Slim_SL_3_4_Nicotine_Pouches-NPO-HEL_BLUE_SL_0045_051a70d6-8206-4950-adc5-c7e4ce606b58.webp?v=1746537308&width=675' },
+          { title: 'Helwit Fresh Black', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Blueberry_Slim_SL_3_4_Nicotine_Pouches-NPO-HEL_BLUE_SL_0045_051a70d6-8206-4950-adc5-c7e4ce606b58.webp?v=1746537308&width=675' },
+          { title: 'Helwit Fresh White', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Blueberry_Slim_SL_3_4_Nicotine_Pouches-NPO-HEL_BLUE_SL_0045_051a70d6-8206-4950-adc5-c7e4ce606b58.webp?v=1746537308&width=675' },
+          { title: 'Helwit Fresh Blue', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Blueberry_Slim_SL_3_4_Nicotine_Pouches-NPO-HEL_BLUE_SL_0045_051a70d6-8206-4950-adc5-c7e4ce606b58.webp?v=1746537308&width=675' }
+        ],
         count: 5
-      }
-    ]
-  },
-  {
-    id: 'general',
-    name: 'General',
-    icon: '💨',
-    subcategories: [
-      {
-        name: 'General White',
-        items: ['General White Portion', 'General White Mini', 'General White Slim', 'General White Strong'],
-        count: 20
       },
       {
-        name: 'General Original',
-        items: ['General Original Portion', 'General Original Mini', 'General Original Slim', 'General Original Strong'],
-        count: 18
-      },
-      {
-        name: 'General G.4',
-        items: ['General G.4 Mint', 'General G.4 Black', 'General G.4 White', 'General G.4 Blue'],
-        count: 12
+        name: 'Helwit Fruit',
+        items: [
+          { title: 'Helwit Fruit Cherry', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Cherry_Slim_SL_3_4_Nicotine_Pouches-NPO-HEL_CHER_SL_0045_0e698704-ffb6-49c2-8aef-359d6ddb2c61.webp?v=1746537307&width=675' },
+          { title: 'Helwit Fruit Apple', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Cherry_Slim_SL_3_4_Nicotine_Pouches-NPO-HEL_CHER_SL_0045_0e698704-ffb6-49c2-8aef-359d6ddb2c61.webp?v=1746537307&width=675' },
+          { title: 'Helwit Fruit Grape', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Cherry_Slim_SL_3_4_Nicotine_Pouches-NPO-HEL_CHER_SL_0045_0e698704-ffb6-49c2-8aef-359d6ddb2c61.webp?v=1746537307&width=675' },
+          { title: 'Helwit Fruit Orange', image_url: 'https://twowombats.com/cdn/shop/files/Helwit_Cherry_Slim_SL_3_4_Nicotine_Pouches-NPO-HEL_CHER_SL_0045_0e698704-ffb6-49c2-8aef-359d6ddb2c61.webp?v=1746537307&width=675' }
+        ],
+        count: 4
       }
     ]
   },
   {
     id: 'apres',
     name: 'Apres',
-    icon: '❄️',
+    brandImage: 'https://twowombats.com/cdn/shop/files/Apres_Mint_Slim_SL_2_4_Nicotine_Pouches-NPO-APR_MINT_SL_0044.webp?v=1744301520&width=675',
     subcategories: [
       {
         name: 'Apres Ice',
-        items: ['Apres Ice Mint', 'Apres Ice Black', 'Apres Ice White', 'Apres Ice Blue'],
+        items: [
+          { title: 'Apres Ice Mint', image_url: 'https://twowombats.com/cdn/shop/files/Apres_Mint_Slim_SL_2_4_Nicotine_Pouches-NPO-APR_MINT_SL_0044.webp?v=1744301520&width=675' },
+          { title: 'Apres Ice Black', image_url: 'https://twowombats.com/cdn/shop/files/Apres_Mint_Slim_SL_2_4_Nicotine_Pouches-NPO-APR_MINT_SL_0044.webp?v=1744301520&width=675' },
+          { title: 'Apres Ice White', image_url: 'https://twowombats.com/cdn/shop/files/Apres_Mint_Slim_SL_2_4_Nicotine_Pouches-NPO-APR_MINT_SL_0044.webp?v=1744301520&width=675' },
+          { title: 'Apres Ice Blue', image_url: 'https://twowombats.com/cdn/shop/files/Apres_Mint_Slim_SL_2_4_Nicotine_Pouches-NPO-APR_MINT_SL_0044.webp?v=1744301520&width=675' }
+        ],
         count: 8
       },
       {
         name: 'Apres Fresh',
-        items: ['Apres Fresh Mint', 'Apres Fresh Black', 'Apres Fresh White', 'Apres Fresh Blue'],
+        items: [
+          { title: 'Apres Fresh Mint', image_url: 'https://twowombats.com/cdn/shop/files/Apres_Cactus_Lime_Slim_SL_45749_Nicotine_Pouches-NPO-APR_CALI_SL_0044.webp?v=1744301524&width=675' },
+          { title: 'Apres Fresh Black', image_url: 'https://twowombats.com/cdn/shop/files/Apres_Cactus_Lime_Slim_SL_45749_Nicotine_Pouches-NPO-APR_CALI_SL_0044.webp?v=1744301524&width=675' },
+          { title: 'Apres Fresh White', image_url: 'https://twowombats.com/cdn/shop/files/Apres_Cactus_Lime_Slim_SL_45749_Nicotine_Pouches-NPO-APR_CALI_SL_0044.webp?v=1744301524&width=675' },
+          { title: 'Apres Fresh Blue', image_url: 'https://twowombats.com/cdn/shop/files/Apres_Cactus_Lime_Slim_SL_45749_Nicotine_Pouches-NPO-APR_CALI_SL_0044.webp?v=1744301524&width=675' }
+        ],
         count: 6
       }
     ]
@@ -137,26 +194,42 @@ const categories: Category[] = [
   {
     id: 'on',
     name: 'On!',
-    icon: '⚡',
+    brandImage: 'https://twowombats.com/cdn/shop/files/On__Mint_Mini_MI_Nicotine_Pouches-NPO-ONX_MINT_MI_0030_a9fa938c-e983-429a-84c0-58bdbc6cfbf5.webp?v=1750334514&width=675',
     subcategories: [
       {
         name: 'On! Original',
-        items: ['On! Original Mint', 'On! Original Strong', 'On! Original White'],
+        items: [
+          { title: 'On! Original Mint', image_url: 'https://twowombats.com/cdn/shop/files/On__Mint_Mini_MI_Nicotine_Pouches-NPO-ONX_MINT_MI_0030_a9fa938c-e983-429a-84c0-58bdbc6cfbf5.webp?v=1750334514&width=675' },
+          { title: 'On! Original Strong', image_url: 'https://twowombats.com/cdn/shop/files/On__Mint_Mini_MI_Nicotine_Pouches-NPO-ONX_MINT_MI_0030_a9fa938c-e983-429a-84c0-58bdbc6cfbf5.webp?v=1750334514&width=675' },
+          { title: 'On! Original White', image_url: 'https://twowombats.com/cdn/shop/files/On__Mint_Mini_MI_Nicotine_Pouches-NPO-ONX_MINT_MI_0030_a9fa938c-e983-429a-84c0-58bdbc6cfbf5.webp?v=1750334514&width=675' }
+        ],
         count: 4
       },
       {
         name: 'On! Fresh',
-        items: ['On! Fresh Berry', 'On! Fresh Apple', 'On! Fresh Citrus'],
+        items: [
+          { title: 'On! Fresh Berry', image_url: 'https://twowombats.com/cdn/shop/files/On__Berry_Mini_MI_Nicotine_Pouches-NPO-ONX_BERR_MI_0030_0091d699-aece-4f04-8e67-15a0ddc80c28.webp?v=1750334018&width=675' },
+          { title: 'On! Fresh Apple', image_url: 'https://twowombats.com/cdn/shop/files/On__Berry_Mini_MI_Nicotine_Pouches-NPO-ONX_BERR_MI_0030_0091d699-aece-4f04-8e67-15a0ddc80c28.webp?v=1750334018&width=675' },
+          { title: 'On! Fresh Citrus', image_url: 'https://twowombats.com/cdn/shop/files/On__Berry_Mini_MI_Nicotine_Pouches-NPO-ONX_BERR_MI_0030_0091d699-aece-4f04-8e67-15a0ddc80c28.webp?v=1750334018&width=675' }
+        ],
         count: 3
       },
       {
         name: 'On! Cool',
-        items: ['On! Cool Mint', 'On! Cool Menthol', 'On! Cool Wintergreen'],
+        items: [
+          { title: 'On! Cool Mint', image_url: 'https://twowombats.com/cdn/shop/files/On__Smooth_Mint_Slim_SL_Nicotine_Pouches-NPO-ONX_SMMI_SL_0060.webp?v=1750334506&width=675' },
+          { title: 'On! Cool Menthol', image_url: 'https://twowombats.com/cdn/shop/files/On__Smooth_Mint_Slim_SL_Nicotine_Pouches-NPO-ONX_SMMI_SL_0060.webp?v=1750334506&width=675' },
+          { title: 'On! Cool Wintergreen', image_url: 'https://twowombats.com/cdn/shop/files/On__Smooth_Mint_Slim_SL_Nicotine_Pouches-NPO-ONX_SMMI_SL_0060.webp?v=1750334506&width=675' }
+        ],
         count: 3
       },
       {
         name: 'On! Fruit',
-        items: ['On! Fruit Cherry', 'On! Fruit Orange', 'On! Fruit Grape'],
+        items: [
+          { title: 'On! Fruit Cherry', image_url: 'https://twowombats.com/cdn/shop/files/On__Citrus_Slim_SL_Nicotine_Pouches-NPO-ONX_CITR_SL_0060_ab5a74bc-3d05-4e55-b3fa-5bcaa18463d8.webp?v=1750334016&width=675' },
+          { title: 'On! Fruit Orange', image_url: 'https://twowombats.com/cdn/shop/files/On__Citrus_Slim_SL_Nicotine_Pouches-NPO-ONX_CITR_SL_0060_ab5a74bc-3d05-4e55-b3fa-5bcaa18463d8.webp?v=1750334016&width=675' },
+          { title: 'On! Fruit Grape', image_url: 'https://twowombats.com/cdn/shop/files/On__Citrus_Slim_SL_Nicotine_Pouches-NPO-ONX_CITR_SL_0060_ab5a74bc-3d05-4e55-b3fa-5bcaa18463d8.webp?v=1750334016&width=675' }
+        ],
         count: 2
       }
     ]
@@ -164,26 +237,42 @@ const categories: Category[] = [
   {
     id: 'lyft',
     name: 'Lyft',
-    icon: '💨',
+    brandImage: 'https://twowombats.com/cdn/shop/files/Lyft_Pure_Mint_Mini_Regular_2_4_Nicotine_Pouches-5715345001050.webp?v=1710483169&width=675',
     subcategories: [
       {
         name: 'Lyft Original',
-        items: ['Lyft Original Mint', 'Lyft Original Strong', 'Lyft Original White'],
+        items: [
+          { title: 'Lyft Original Mint', image_url: 'https://twowombats.com/cdn/shop/files/Lyft_Pure_Mint_Mini_Regular_2_4_Nicotine_Pouches-5715345001050.webp?v=1710483169&width=675' },
+          { title: 'Lyft Original Strong', image_url: 'https://twowombats.com/cdn/shop/files/Lyft_Pure_Mint_Mini_Regular_2_4_Nicotine_Pouches-5715345001050.webp?v=1710483169&width=675' },
+          { title: 'Lyft Original White', image_url: 'https://twowombats.com/cdn/shop/files/Lyft_Pure_Mint_Mini_Regular_2_4_Nicotine_Pouches-5715345001050.webp?v=1710483169&width=675' }
+        ],
         count: 5
       },
       {
         name: 'Lyft Fresh',
-        items: ['Lyft Fresh Berry', 'Lyft Fresh Apple', 'Lyft Fresh Citrus'],
+        items: [
+          { title: 'Lyft Fresh Berry', image_url: 'https://twowombats.com/cdn/shop/files/Lyft_Black_Currant_Slim_Strong_3_5_Nicotine_Pouches-5715345001159.webp?v=1710482892&width=675' },
+          { title: 'Lyft Fresh Apple', image_url: 'https://twowombats.com/cdn/shop/files/Lyft_Black_Currant_Slim_Strong_3_5_Nicotine_Pouches-5715345001159.webp?v=1710482892&width=675' },
+          { title: 'Lyft Fresh Citrus', image_url: 'https://twowombats.com/cdn/shop/files/Lyft_Black_Currant_Slim_Strong_3_5_Nicotine_Pouches-5715345001159.webp?v=1710482892&width=675' }
+        ],
         count: 4
       },
       {
         name: 'Lyft Cool',
-        items: ['Lyft Cool Mint', 'Lyft Cool Menthol', 'Lyft Cool Wintergreen'],
+        items: [
+          { title: 'Lyft Cool Mint', image_url: 'https://twowombats.com/cdn/shop/files/Lyft_Cool_Air_Slim_Regular_2_5_Nicotine_Pouches-7350126718246.webp?v=1710482897&width=675' },
+          { title: 'Lyft Cool Menthol', image_url: 'https://twowombats.com/cdn/shop/files/Lyft_Cool_Air_Slim_Regular_2_5_Nicotine_Pouches-7350126718246.webp?v=1710482897&width=675' },
+          { title: 'Lyft Cool Wintergreen', image_url: 'https://twowombats.com/cdn/shop/files/Lyft_Cool_Air_Slim_Regular_2_5_Nicotine_Pouches-7350126718246.webp?v=1710482897&width=675' }
+        ],
         count: 4
       },
       {
         name: 'Lyft Fruit',
-        items: ['Lyft Fruit Cherry', 'Lyft Fruit Orange', 'Lyft Fruit Grape'],
+        items: [
+          { title: 'Lyft Fruit Cherry', image_url: 'https://twowombats.com/cdn/shop/files/Lyft_Citrus_Mint_Mini_Regular_2_4_Nicotine_Pouches-5715345000565.webp?v=1710483165&width=675' },
+          { title: 'Lyft Fruit Orange', image_url: 'https://twowombats.com/cdn/shop/files/Lyft_Citrus_Mint_Mini_Regular_2_4_Nicotine_Pouches-5715345000565.webp?v=1710483165&width=675' },
+          { title: 'Lyft Fruit Grape', image_url: 'https://twowombats.com/cdn/shop/files/Lyft_Citrus_Mint_Mini_Regular_2_4_Nicotine_Pouches-5715345000565.webp?v=1710483165&width=675' }
+        ],
         count: 3
       }
     ]
@@ -191,26 +280,42 @@ const categories: Category[] = [
   {
     id: 'loop',
     name: 'Loop',
-    icon: '🔄',
+    brandImage: 'https://twowombats.com/cdn/shop/files/Loop_Creamy_Cappuccino_Slim_SL_3_5_Nicotine_Pouches-NPO-LOO_CRCA_SL_0094_1a4241fa-e4cc-4947-85d2-cd8e716136be.webp?v=1746202939&width=675',
     subcategories: [
       {
         name: 'Loop Original',
-        items: ['Loop Original Mint', 'Loop Original Strong', 'Loop Original White'],
+        items: [
+          { title: 'Loop Original Mint', image_url: 'https://twowombats.com/cdn/shop/files/Loop_Creamy_Cappuccino_Slim_SL_3_5_Nicotine_Pouches-NPO-LOO_CRCA_SL_0094_1a4241fa-e4cc-4947-85d2-cd8e716136be.webp?v=1746202939&width=675' },
+          { title: 'Loop Original Strong', image_url: 'https://twowombats.com/cdn/shop/files/Loop_Creamy_Cappuccino_Slim_SL_3_5_Nicotine_Pouches-NPO-LOO_CRCA_SL_0094_1a4241fa-e4cc-4947-85d2-cd8e716136be.webp?v=1746202939&width=675' },
+          { title: 'Loop Original White', image_url: 'https://twowombats.com/cdn/shop/files/Loop_Creamy_Cappuccino_Slim_SL_3_5_Nicotine_Pouches-NPO-LOO_CRCA_SL_0094_1a4241fa-e4cc-4947-85d2-cd8e716136be.webp?v=1746202939&width=675' }
+        ],
         count: 4
       },
       {
         name: 'Loop Fresh',
-        items: ['Loop Fresh Berry', 'Loop Fresh Apple', 'Loop Fresh Citrus'],
+        items: [
+          { title: 'Loop Fresh Berry', image_url: 'https://twowombats.com/cdn/shop/files/Loop_Cassis_Bliss_Slim_SL_Nicotine_Pouches-NPO-LOO_CABL_SL_0094.webp?v=1746202939&width=675' },
+          { title: 'Loop Fresh Apple', image_url: 'https://twowombats.com/cdn/shop/files/Loop_Cassis_Bliss_Slim_SL_Nicotine_Pouches-NPO-LOO_CABL_SL_0094.webp?v=1746202939&width=675' },
+          { title: 'Loop Fresh Citrus', image_url: 'https://twowombats.com/cdn/shop/files/Loop_Cassis_Bliss_Slim_SL_Nicotine_Pouches-NPO-LOO_CABL_SL_0094.webp?v=1746202939&width=675' }
+        ],
         count: 3
       },
       {
         name: 'Loop Cool',
-        items: ['Loop Cool Mint', 'Loop Cool Menthol', 'Loop Cool Wintergreen'],
+        items: [
+          { title: 'Loop Cool Mint', image_url: 'https://twowombats.com/cdn/shop/files/Loop_Habanero_Mint_Slim_SL_Nicotine_Pouches-NPO-LOO_HAMI_SL_0125.webp?v=1746202942&width=675' },
+          { title: 'Loop Cool Menthol', image_url: 'https://twowombats.com/cdn/shop/files/Loop_Habanero_Mint_Slim_SL_Nicotine_Pouches-NPO-LOO_HAMI_SL_0125.webp?v=1746202942&width=675' },
+          { title: 'Loop Cool Wintergreen', image_url: 'https://twowombats.com/cdn/shop/files/Loop_Habanero_Mint_Slim_SL_Nicotine_Pouches-NPO-LOO_HAMI_SL_0125.webp?v=1746202942&width=675' }
+        ],
         count: 3
       },
       {
         name: 'Loop Fruit',
-        items: ['Loop Fruit Cherry', 'Loop Fruit Orange', 'Loop Fruit Grape'],
+        items: [
+          { title: 'Loop Fruit Cherry', image_url: 'https://twowombats.com/cdn/shop/files/Loop_Hot_Mango_Slim_SL_Nicotine_Pouches-NPO-LOO_HOMA_SL_0094.webp?v=1746202941&width=675' },
+          { title: 'Loop Fruit Orange', image_url: 'https://twowombats.com/cdn/shop/files/Loop_Hot_Mango_Slim_SL_Nicotine_Pouches-NPO-LOO_HOMA_SL_0094.webp?v=1746202941&width=675' },
+          { title: 'Loop Fruit Grape', image_url: 'https://twowombats.com/cdn/shop/files/Loop_Hot_Mango_Slim_SL_Nicotine_Pouches-NPO-LOO_HOMA_SL_0094.webp?v=1746202941&width=675' }
+        ],
         count: 2
       }
     ]
@@ -218,26 +323,42 @@ const categories: Category[] = [
   {
     id: 'ace',
     name: 'Ace',
-    icon: '🃏',
+    brandImage: 'https://twowombats.com/cdn/shop/files/Ace_Cool_Mint_Slim_SL_2_5_Nicotine_Pouches-NPO-ACE_COMI_SL_0036.webp?v=1750329604&width=675',
     subcategories: [
       {
         name: 'Ace Original',
-        items: ['Ace Original Mint', 'Ace Original Strong', 'Ace Original White'],
+        items: [
+          { title: 'Ace Original Mint', image_url: 'https://twowombats.com/cdn/shop/files/Ace_Cool_Mint_Slim_SL_2_5_Nicotine_Pouches-NPO-ACE_COMI_SL_0036.webp?v=1750329604&width=675' },
+          { title: 'Ace Original Strong', image_url: 'https://twowombats.com/cdn/shop/files/Ace_Cool_Mint_Slim_SL_2_5_Nicotine_Pouches-NPO-ACE_COMI_SL_0036.webp?v=1750329604&width=675' },
+          { title: 'Ace Original White', image_url: 'https://twowombats.com/cdn/shop/files/Ace_Cool_Mint_Slim_SL_2_5_Nicotine_Pouches-NPO-ACE_COMI_SL_0036.webp?v=1750329604&width=675' }
+        ],
         count: 3
       },
       {
         name: 'Ace Fresh',
-        items: ['Ace Fresh Berry', 'Ace Fresh Apple', 'Ace Fresh Citrus'],
+        items: [
+          { title: 'Ace Fresh Berry', image_url: 'https://twowombats.com/cdn/shop/files/Ace_Berry_Breeze_Slim_SL_2_5_Nicotine_Pouches-NPO-ACE_BEBR_SL_0036.webp?v=1750329147&width=675' },
+          { title: 'Ace Fresh Apple', image_url: 'https://twowombats.com/cdn/shop/files/Ace_Berry_Breeze_Slim_SL_2_5_Nicotine_Pouches-NPO-ACE_BEBR_SL_0036.webp?v=1750329147&width=675' },
+          { title: 'Ace Fresh Citrus', image_url: 'https://twowombats.com/cdn/shop/files/Ace_Berry_Breeze_Slim_SL_2_5_Nicotine_Pouches-NPO-ACE_BEBR_SL_0036.webp?v=1750329147&width=675' }
+        ],
         count: 2
       },
       {
         name: 'Ace Cool',
-        items: ['Ace Cool Mint', 'Ace Cool Menthol', 'Ace Cool Wintergreen'],
+        items: [
+          { title: 'Ace Cool Mint', image_url: 'https://twowombats.com/cdn/shop/files/Ace_Extreme_Cool_Slim_SL_4_5_Nicotine_Pouches-NPO-ACE_EXCO_SL_0096.webp?v=1750329146&width=675' },
+          { title: 'Ace Cool Menthol', image_url: 'https://twowombats.com/cdn/shop/files/Ace_Extreme_Cool_Slim_SL_4_5_Nicotine_Pouches-NPO-ACE_EXCO_SL_0096.webp?v=1750329146&width=675' },
+          { title: 'Ace Cool Wintergreen', image_url: 'https://twowombats.com/cdn/shop/files/Ace_Extreme_Cool_Slim_SL_4_5_Nicotine_Pouches-NPO-ACE_EXCO_SL_0096.webp?v=1750329146&width=675' }
+        ],
         count: 2
       },
       {
         name: 'Ace Fruit',
-        items: ['Ace Fruit Cherry', 'Ace Fruit Orange', 'Ace Fruit Grape'],
+        items: [
+          { title: 'Ace Fruit Cherry', image_url: 'https://twowombats.com/cdn/shop/files/Ace_Green_Lemon_Slim_SL_4_5_Nicotine_Pouches-NPO-ACE_GRLE_SL_0096.webp?v=1750329146&width=675' },
+          { title: 'Ace Fruit Orange', image_url: 'https://twowombats.com/cdn/shop/files/Ace_Green_Lemon_Slim_SL_4_5_Nicotine_Pouches-NPO-ACE_GRLE_SL_0096.webp?v=1750329146&width=675' },
+          { title: 'Ace Fruit Grape', image_url: 'https://twowombats.com/cdn/shop/files/Ace_Green_Lemon_Slim_SL_4_5_Nicotine_Pouches-NPO-ACE_GRLE_SL_0096.webp?v=1750329146&width=675' }
+        ],
         count: 1
       }
     ]
@@ -245,16 +366,25 @@ const categories: Category[] = [
   {
     id: 'elf',
     name: 'ELF',
-    icon: '🧝',
+    brandImage: 'https://twowombats.com/cdn/shop/files/ELF_Blueberry_Raspberry_Slim_SL_4_6_Nicotine_Pouches-NPO-ELF_BLRA_SL_0120.webp?v=1752685797&width=675',
     subcategories: [
       {
         name: 'ELF Bar',
-        items: ['ELF Bar Cool Mint', 'ELF Bar Blueberry Raspberry', 'ELF Bar Cool Storm', 'ELF Bar Watermelon'],
+        items: [
+          { title: 'ELF Bar Cool Mint', image_url: 'https://twowombats.com/cdn/shop/files/ELF_Blueberry_Raspberry_Slim_SL_4_6_Nicotine_Pouches-NPO-ELF_BLRA_SL_0120.webp?v=1752685797&width=675' },
+          { title: 'ELF Bar Blueberry Raspberry', image_url: 'https://twowombats.com/cdn/shop/files/ELF_Blueberry_Raspberry_Slim_SL_4_6_Nicotine_Pouches-NPO-ELF_BLRA_SL_0120.webp?v=1752685797&width=675' },
+          { title: 'ELF Bar Cool Storm', image_url: 'https://twowombats.com/cdn/shop/files/ELF_Cool_Storm_Slim_SL_4_6_Nicotine_Pouches-NPO-ELF_COST_SL_0120.webp?v=1752685798&width=675' },
+          { title: 'ELF Bar Watermelon', image_url: 'https://twowombats.com/cdn/shop/files/ELF_Blueberry_Raspberry_Slim_SL_4_6_Nicotine_Pouches-NPO-ELF_BLRA_SL_0120.webp?v=1752685797&width=675' }
+        ],
         count: 15
       },
       {
         name: 'ELF Bar TE',
-        items: ['ELF Bar TE Cool Mint', 'ELF Bar TE Blueberry Raspberry', 'ELF Bar TE Cool Storm'],
+        items: [
+          { title: 'ELF Bar TE Cool Mint', image_url: 'https://twowombats.com/cdn/shop/files/ELF_Cool_Storm_Slim_SL_4_6_Nicotine_Pouches-NPO-ELF_COST_SL_0120.webp?v=1752685798&width=675' },
+          { title: 'ELF Bar TE Blueberry Raspberry', image_url: 'https://twowombats.com/cdn/shop/files/ELF_Cool_Storm_Slim_SL_4_6_Nicotine_Pouches-NPO-ELF_COST_SL_0120.webp?v=1752685798&width=675' },
+          { title: 'ELF Bar TE Cool Storm', image_url: 'https://twowombats.com/cdn/shop/files/ELF_Cool_Storm_Slim_SL_4_6_Nicotine_Pouches-NPO-ELF_COST_SL_0120.webp?v=1752685798&width=675' }
+        ],
         count: 12
       }
     ]
@@ -262,16 +392,26 @@ const categories: Category[] = [
   {
     id: 'clew',
     name: 'Clew',
-    icon: '🌊',
+    brandImage: 'https://twowombats.com/cdn/shop/files/Clew_Cool_Mint_Slim_SL_4_4_Nicotine_Pouches-NPO-CLE_COMI_SL_0050.webp?v=1741879965&width=675',
     subcategories: [
       {
         name: 'Clew Mint',
-        items: ['Clew Cool Mint', 'Clew Spearmint', 'Clew Wintergreen', 'Clew Menthol'],
+        items: [
+          { title: 'Clew Cool Mint', image_url: 'https://twowombats.com/cdn/shop/files/Clew_Cool_Mint_Slim_SL_4_4_Nicotine_Pouches-NPO-CLE_COMI_SL_0050.webp?v=1741879965&width=675' },
+          { title: 'Clew Spearmint', image_url: 'https://twowombats.com/cdn/shop/files/Clew_Cool_Mint_Slim_SL_4_4_Nicotine_Pouches-NPO-CLE_COMI_SL_0050.webp?v=1741879965&width=675' },
+          { title: 'Clew Wintergreen', image_url: 'https://twowombats.com/cdn/shop/files/Clew_Cool_Mint_Slim_SL_4_4_Nicotine_Pouches-NPO-CLE_COMI_SL_0050.webp?v=1741879965&width=675' },
+          { title: 'Clew Menthol', image_url: 'https://twowombats.com/cdn/shop/files/Clew_Cool_Mint_Slim_SL_4_4_Nicotine_Pouches-NPO-CLE_COMI_SL_0050.webp?v=1741879965&width=675' }
+        ],
         count: 8
       },
       {
         name: 'Clew Fruit',
-        items: ['Clew Blueberry', 'Clew Watermelon', 'Clew Apple', 'Clew Cherry'],
+        items: [
+          { title: 'Clew Blueberry', image_url: 'https://twowombats.com/cdn/shop/files/Clew_Blueberry_Slim_SL_4_4_Nicotine_Pouches-NPO-CLE_BLUE_SL_0050.webp?v=1741879965&width=675' },
+          { title: 'Clew Watermelon', image_url: 'https://twowombats.com/cdn/shop/files/Clew_Watermelon_Slim_SL_6_6_Nicotine_Pouches-NPO-CLE_WATE_SL_0050.webp?v=1741879965&width=675' },
+          { title: 'Clew Apple', image_url: 'https://twowombats.com/cdn/shop/files/Clew_Blueberry_Slim_SL_4_4_Nicotine_Pouches-NPO-CLE_BLUE_SL_0050.webp?v=1741879965&width=675' },
+          { title: 'Clew Cherry', image_url: 'https://twowombats.com/cdn/shop/files/Clew_Blueberry_Slim_SL_4_4_Nicotine_Pouches-NPO-CLE_BLUE_SL_0050.webp?v=1741879965&width=675' }
+        ],
         count: 6
       }
     ]
@@ -279,11 +419,16 @@ const categories: Category[] = [
   {
     id: 'baow',
     name: 'BAOW',
-    icon: '🍃',
+    brandImage: 'https://twowombats.com/cdn/shop/files/BAOW_Ice_Mint_Slim_SL_Nicotine_Pouches-NPO-BAO_ICMI_SL_0120.webp?v=1745944580&width=675',
     subcategories: [
       {
         name: 'BAOW Original',
-        items: ['BAOW Ice Mint', 'BAOW Gin & Tonic', 'BAOW Black', 'BAOW White'],
+        items: [
+          { title: 'BAOW Ice Mint', image_url: 'https://twowombats.com/cdn/shop/files/BAOW_Ice_Mint_Slim_SL_Nicotine_Pouches-NPO-BAO_ICMI_SL_0120.webp?v=1745944580&width=675' },
+          { title: 'BAOW Gin & Tonic', image_url: 'https://twowombats.com/cdn/shop/files/BAOW_Ice_Mint_Slim_SL_Nicotine_Pouches-NPO-BAO_ICMI_SL_0120.webp?v=1745944580&width=675' },
+          { title: 'BAOW Black', image_url: 'https://twowombats.com/cdn/shop/files/BAOW_Ice_Mint_Slim_SL_Nicotine_Pouches-NPO-BAO_ICMI_SL_0120.webp?v=1745944580&width=675' },
+          { title: 'BAOW White', image_url: 'https://twowombats.com/cdn/shop/files/BAOW_Ice_Mint_Slim_SL_Nicotine_Pouches-NPO-BAO_ICMI_SL_0120.webp?v=1745944580&width=675' }
+        ],
         count: 8
       }
     ]
@@ -291,11 +436,16 @@ const categories: Category[] = [
   {
     id: 'avant',
     name: 'Avant',
-    icon: '🌟',
+    brandImage: 'https://twowombats.com/cdn/shop/files/Avant_Raspberry_Liqorice_Slim_SL_2_4_Nicotine_Pouches-NPO-AVA_RALI_SL_0078.webp?v=1741879962&width=675',
     subcategories: [
       {
         name: 'Avant Original',
-        items: ['Avant Raspberry Liqorice', 'Avant Mint', 'Avant Black', 'Avant White'],
+        items: [
+          { title: 'Avant Raspberry Liqorice', image_url: 'https://twowombats.com/cdn/shop/files/Avant_Raspberry_Liqorice_Slim_SL_2_4_Nicotine_Pouches-NPO-AVA_RALI_SL_0078.webp?v=1741879962&width=675' },
+          { title: 'Avant Mint', image_url: 'https://twowombats.com/cdn/shop/files/Avant_Cool_Mint_Slim_SL_4_4_Nicotine_Pouches-NPO-AVA_COMI_SL_0130.webp?v=1741879962&width=675' },
+          { title: 'Avant Black', image_url: 'https://twowombats.com/cdn/shop/files/Avant_Raspberry_Liqorice_Slim_SL_2_4_Nicotine_Pouches-NPO-AVA_RALI_SL_0078.webp?v=1741879962&width=675' },
+          { title: 'Avant White', image_url: 'https://twowombats.com/cdn/shop/files/Avant_Raspberry_Liqorice_Slim_SL_2_4_Nicotine_Pouches-NPO-AVA_RALI_SL_0078.webp?v=1741879962&width=675' }
+        ],
         count: 6
       }
     ]
@@ -329,10 +479,9 @@ export default function MegaMenu() {
     const fetchProductData = async () => {
       try {
         const { data: products, error } = await supabase()
-          .from('products')
-          .select('name, image_url, brand')
+          .from('wp_products')
+          .select('name, image_url')
           .not('image_url', 'is', null)
-          .in('brand', ['Velo', 'ZYN', 'On!', 'Helwit', 'General', 'Apres', 'Lyft', 'Loop', 'Ace', 'ELF', 'Clew', 'BAOW', 'Avant'])
           .limit(200);
 
         if (error) {
@@ -341,26 +490,23 @@ export default function MegaMenu() {
         }
 
         if (products) {
-          console.log('Fetched products for mega menu:', products.length);
-          console.log('Sample products:', products.slice(0, 3));
-          
           const imageMap: { [key: string]: string } = {};
           const productMap: { [key: string]: any } = {};
           
           products.forEach((product: any) => {
+            // Extract brand from product name (first word)
+            const brand = product.name.split(' ')[0].toLowerCase();
+            
             // Create a key for each brand and product name
-            const key = `${product.brand}-${product.name}`;
+            const key = `${brand}-${product.name}`;
             imageMap[key] = product.image_url;
             productMap[key] = product;
             
             // Also create a mapping for brand only (for fallback)
-            if (!imageMap[product.brand]) {
-              imageMap[product.brand] = product.image_url;
+            if (!imageMap[brand]) {
+              imageMap[brand] = product.image_url;
             }
           });
-          
-          console.log('Created productMap with', Object.keys(productMap).length, 'products');
-          console.log('Sample brands:', Array.from(new Set(products.map((p: any) => p.brand))).slice(0, 5));
           
           setProductImages(imageMap);
           setProductData(productMap);
@@ -475,11 +621,11 @@ export default function MegaMenu() {
     }
     
     console.log('Searching for brand:', brandName);
-    console.log('Available brands in productData:', Array.from(new Set(Object.values(productData).map(p => p.brand))));
+    console.log('Available brands in productData:', Array.from(new Set(Object.values(productData).map(p => p.name.split(' ')[0].toLowerCase()))));
     
     const products = Object.values(productData).filter(product => {
-      // Simple case-insensitive brand matching
-      const dbBrand = product.brand.toLowerCase().trim();
+      // Extract brand from product name (first word)
+      const dbBrand = product.name.split(' ')[0].toLowerCase().trim();
       const searchBrand = brandName.toLowerCase().trim();
       
       // Direct match
@@ -491,8 +637,8 @@ export default function MegaMenu() {
     return products;
   };
 
-  const handleCategoryHover = (categoryId: string) => {
-    setActiveCategory(categoryId);
+  const handleCategoryClick = (categoryId: string) => {
+    setActiveCategory(activeCategory === categoryId ? null : categoryId);
   };
 
   const handleCategoryLeave = () => {
@@ -505,8 +651,8 @@ export default function MegaMenu() {
     <div className="relative">
       {/* All Categories Button */}
       <button
+        className="mega-menu-button"
         onClick={() => setIsOpen(!isOpen)}
-        onMouseEnter={() => setIsOpen(true)}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -544,7 +690,7 @@ export default function MegaMenu() {
       {/* Mega Menu Dropdown */}
       {isOpen && (
         <div
-          className="fixed bg-white shadow-lg"
+          className="mega-menu-dropdown fixed bg-white shadow-lg"
           onMouseLeave={() => setIsOpen(false)}
           style={{ 
             top: '80px',
@@ -560,36 +706,114 @@ export default function MegaMenu() {
             <div className="flex justify-end mb-4">
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                className="mega-menu-close text-gray-400 hover:text-gray-600 text-2xl font-bold"
               >
                 ✕
               </button>
             </div>
             
-            <div className="flex gap-8">
+            <div className="mega-menu-container flex gap-8">
               {/* Left Sidebar - Categories */}
-              <div className="w-64 flex-shrink-0">
+              <div className="mega-menu-sidebar w-64 flex-shrink-0">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Categories</h3>
-                <nav className="space-y-1">
+                <nav className="mega-menu-categories space-y-1">
                   {categories.map((category) => (
-                    <button
+                    <div
                       key={category.id}
-                      onMouseEnter={() => handleCategoryHover(category.id)}
-                      className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-3 transition-colors ${
-                        activeCategory === category.id
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
+                      onClick={() => handleCategoryClick(category.id)}
+                      style={{
+                        cursor: 'pointer',
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        transition: 'all 0.2s ease',
+                        backgroundColor: activeCategory === category.id ? '#f8fafc' : 'transparent',
+                        borderColor: activeCategory === category.id ? '#e2e8f0' : 'transparent',
+                        borderWidth: '1px',
+                        borderStyle: 'solid',
+                        transform: activeCategory === category.id ? 'translateX(4px)' : 'translateX(0)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px',
+                        textAlign: 'left',
+                        width: '100%',
+                        position: 'relative',
+                        textDecoration: 'none',
+                        color: 'inherit'
+                      }}
                     >
-                      <span className="text-lg">{category.icon}</span>
-                      <span className="font-medium">{category.name}</span>
-                    </button>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        position: 'relative',
+                        flexShrink: 0
+                      }}>
+                        {category.brandImage && category.brandImage.trim() !== '' ? (
+                          <img
+                            src={category.brandImage}
+                            alt={category.name}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover'
+                            }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#f3f4f6',
+                            color: '#6b7280',
+                            fontSize: '12px',
+                            fontWeight: '600'
+                          }}>
+                            {category.name.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                        <Link 
+                          href={`/brand/${category.name.toLowerCase().replace(/\s+/g, '-')}`}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            color: activeCategory === category.id ? '#1e40af' : '#374151',
+                            marginBottom: '2px',
+                            textDecoration: 'none'
+                          }}
+                        >
+                          {category.name}
+                        </Link>
+                        <span style={{
+                          fontSize: '12px',
+                          color: '#6b7280',
+                          fontWeight: '500'
+                        }}>
+                          {category.subcategories.reduce((total, sub) => total + sub.count, 0)} products
+                        </span>
+                      </div>
+                      {activeCategory === category.id && (
+                        <div style={{
+                          position: 'absolute',
+                          right: '12px',
+                          width: '6px',
+                          height: '6px',
+                          backgroundColor: '#3b82f6',
+                          borderRadius: '50%'
+                        }} />
+                      )}
+                    </div>
                   ))}
                 </nav>
               </div>
 
               {/* Right Content - Subcategories */}
-              <div className="flex-1">
+              <div className="mega-menu-content flex-1">
                 {activeCategoryData ? (
                   <div>
                     <div className="mb-6">
@@ -598,64 +822,34 @@ export default function MegaMenu() {
                       </h2>
                     </div>
                     
-                    <div className="grid grid-cols-4 gap-6">
+                    <div className="mega-menu-subcategories grid grid-cols-4 gap-6">
                       {activeCategoryData.subcategories.map((subcategory, index) => (
-                        <div key={index} className="space-y-3">
+                        <div key={index} className="mega-menu-subcategory space-y-3">
                           <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center mb-3 overflow-hidden">
-                            <img 
-                              src={getProductImageFromDB(activeCategoryData.id, subcategory.name)}
-                              alt={subcategory.name}
-                              className="w-full h-full object-cover rounded-lg"
-                            />
+                            {subcategory.items[0]?.image_url && subcategory.items[0].image_url.trim() !== '' ? (
+                              <img 
+                                src={subcategory.items[0].image_url}
+                                alt={subcategory.name}
+                                className="w-full h-full object-cover rounded-lg"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500 text-sm font-semibold rounded-lg">
+                                {subcategory.name.charAt(0)}
+                              </div>
+                            )}
                           </div>
                           
-                          <h3 className="font-semibold text-gray-900 text-sm">
+                          <h3 className="mega-menu-subcategory-title font-semibold text-gray-900 text-sm">
                             {subcategory.name}
                           </h3>
                           
-                          <ul className="space-y-1">
-                            {(() => {
-                              // Show loading state
-                              if (isLoading) {
-                                return (
-                                  <li className="text-sm text-gray-500 italic">
-                                    Loading products...
-                                  </li>
-                                );
-                              }
-                              
-                              // Get real products for this brand - ONLY show products that exist in database
-                              const realProducts = getRealProductsForBrand(activeCategoryData.name);
-                              
-                              // If no real products found, don't show anything (no fallback to hardcoded)
-                              if (realProducts.length === 0) {
-                                return (
-                                  <li className="text-sm text-gray-500 italic">
-                                    No products available
-                                  </li>
-                                );
-                              }
-                              
-                              return realProducts.slice(0, 5).map((product, itemIndex) => {
-                                const productSlug = product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                                
-                                return (
-                                  <li key={itemIndex}>
-                                    <Link
-                                      href={getLocalizedPath(`/product/${productSlug}`)}
-                                      className="text-sm text-gray-600 hover:text-purple-600 transition-colors"
-                                    >
-                                      {product.name}
-                                    </Link>
-                                  </li>
-                                );
-                              });
-                            })()}
-                          </ul>
+                          <div className="text-xs text-gray-500 mb-2">
+                            No products available
+                          </div>
                           
                           <Link
                             href={getLocalizedPath(`/brand/${activeCategoryData.name.toLowerCase().replace(/\s+/g, '-')}`)}
-                            className="inline-block text-sm font-medium text-purple-600 hover:text-purple-700"
+                            className="inline-block text-xs font-medium text-purple-600 hover:text-purple-700 transition-colors"
                           >
                             Show all ({subcategory.count})
                           </Link>
@@ -673,6 +867,95 @@ export default function MegaMenu() {
           </div>
         </div>
       )}
+      
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @media (max-width: 768px) {
+            .mega-menu-button {
+              display: none !important;
+            }
+            .mega-menu-dropdown {
+              top: 60px !important;
+              height: calc(100vh - 60px) !important;
+              padding: 15px !important;
+            }
+            .mega-menu-close {
+              font-size: 18px !important;
+              margin-bottom: 15px !important;
+            }
+            .mega-menu-container {
+              flex-direction: column !important;
+              gap: 20px !important;
+            }
+            .mega-menu-sidebar {
+              width: 100% !important;
+              flex-shrink: 1 !important;
+            }
+            .mega-menu-content {
+              width: 100% !important;
+              flex: 1 !important;
+            }
+            .mega-menu-categories {
+              display: grid !important;
+              grid-template-columns: repeat(2, 1fr) !important;
+              gap: 8px !important;
+              margin-bottom: 20px !important;
+            }
+            .mega-menu-category-button {
+              padding: 10px 12px !important;
+              font-size: 14px !important;
+              text-align: center !important;
+              flex-direction: column !important;
+              gap: 4px !important;
+            }
+            .mega-menu-category-icon {
+              font-size: 20px !important;
+            }
+            .mega-menu-category-name {
+              font-size: 12px !important;
+              font-weight: 500 !important;
+            }
+            .mega-menu-subcategories {
+              grid-template-columns: repeat(1, 1fr) !important;
+              gap: 20px !important;
+            }
+            .mega-menu-subcategory {
+              margin-bottom: 15px !important;
+            }
+            .mega-menu-subcategory-title {
+              font-size: 16px !important;
+              margin-bottom: 8px !important;
+            }
+            .mega-menu-products {
+              display: grid !important;
+              grid-template-columns: repeat(1, 1fr) !important;
+              gap: 8px !important;
+            }
+            .mega-menu-product-item {
+              font-size: 13px !important;
+              padding: 6px 0 !important;
+            }
+          }
+          @media (max-width: 480px) {
+            .mega-menu-dropdown {
+              padding: 10px !important;
+            }
+            .mega-menu-categories {
+              grid-template-columns: repeat(1, 1fr) !important;
+            }
+            .mega-menu-category-button {
+              padding: 12px !important;
+              font-size: 13px !important;
+            }
+            .mega-menu-subcategory-title {
+              font-size: 14px !important;
+            }
+            .mega-menu-product-item {
+              font-size: 12px !important;
+            }
+          }
+        `
+      }} />
     </div>
   );
 }

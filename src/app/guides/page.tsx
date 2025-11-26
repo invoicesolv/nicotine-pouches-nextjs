@@ -1,19 +1,58 @@
-'use client';
-
-import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import BlogSearch from '@/components/BlogSearch';
+import SSRGuidesGrid from '@/components/SSRGuidesGrid';
+import { supabase } from '@/lib/supabase';
+import { Metadata } from 'next';
+
 // Load extracted blog posts data
 const loadBlogPosts = async (): Promise<BlogPost[]> => {
   try {
-    const response = await fetch('/api/blog-posts');
-    if (!response.ok) {
-      throw new Error('Failed to fetch blog posts');
+    // Try to fetch from API first
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://nicotine-pouches.org';
+    
+    try {
+      console.log(`Trying to fetch from: ${baseUrl}/api/blog-posts`);
+      const response = await fetch(`${baseUrl}/api/blog-posts`, {
+        cache: 'no-store',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`Successfully fetched ${data.length} blog posts from ${baseUrl}`);
+        return data;
+      } else {
+        console.log(`Failed to fetch from ${baseUrl}: ${response.status} ${response.statusText}`);
+      }
+    } catch (fetchError) {
+      console.log(`Error fetching from ${baseUrl}:`, fetchError);
     }
-    return await response.json();
+    
+    // Fallback: Fetch from database directly
+    console.log('API fetch failed, trying database fallback');
+    try {
+      const { data: posts, error } = await supabase()
+        .from('blog_posts')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(20);
+      
+      if (error) {
+        console.error('Database fetch error:', error);
+        return [];
+      }
+      
+      console.log(`Successfully fetched ${posts?.length || 0} blog posts from database`);
+      return posts || [];
+    } catch (dbError) {
+      console.error('Database fallback error:', dbError);
+      return [];
+    }
   } catch (error) {
     console.error('Error loading blog posts:', error);
     return [];
@@ -35,47 +74,117 @@ interface BlogPost {
   };
 }
 
-export default function GuidesPage() {
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [filteredPosts, setFilteredPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchPosts = async () => {
-      const data = await loadBlogPosts();
-      // Sort posts by date (newest first)
-      const sortedPosts = data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      setPosts(sortedPosts);
-      setFilteredPosts(sortedPosts);
-      setLoading(false);
-    };
-    fetchPosts();
-  }, []);
-
-  const handleSearchResults = useCallback((results: BlogPost[]) => {
-    setFilteredPosts(results);
-  }, []);
-
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        fontSize: '18px',
-        color: '#666'
-      }}>
-        Loading...
-      </div>
-    );
-  }
-
-  const featuredPost = filteredPosts[0]; // Latest post as featured
-  const otherPosts = filteredPosts.slice(1);
+export default async function GuidesPage() {
+  const posts = await loadBlogPosts();
+  console.log('GuidesPage: Loaded posts:', posts.length);
+  
+  // Sort posts by date (newest first)
+  const sortedPosts = posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const featuredPost = sortedPosts[0]; // Latest post as featured
+  const paginatedPosts = sortedPosts.slice(1, 13); // Get 12 posts after featured
+  
+  console.log('GuidesPage: Featured post:', featuredPost?.title);
+  console.log('GuidesPage: Paginated posts:', paginatedPosts.length);
 
   return (
-    <div id="boxed-wrapper">
+    <>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @media (max-width: 768px) {
+            .guides-page-grid {
+              grid-template-columns: repeat(2, 1fr) !important;
+              gap: 15px !important;
+              padding: 0 15px !important;
+            }
+            .guides-page-container {
+              padding: 40px 0 !important;
+            }
+            .guides-page-title {
+              font-size: 1.8rem !important;
+              margin-bottom: 20px !important;
+            }
+            .guides-page-subtitle {
+              font-size: 1rem !important;
+              margin-bottom: 30px !important;
+            }
+            .featured-header-grid {
+              grid-template-columns: 1fr !important;
+              gap: 0 !important;
+              padding: 0 15px !important;
+            }
+            .featured-title {
+              font-size: 2.5rem !important;
+              line-height: 1.2 !important;
+              margin: 0 0 15px 0 !important;
+            }
+            .featured-image-container {
+              width: 100% !important;
+              height: 250px !important;
+              margin-top: 0 !important;
+              margin-bottom: 0 !important;
+              order: -1 !important;
+            }
+            .featured-header-grid {
+              gap: 15px !important;
+            }
+            .featured-title {
+              margin-top: 0 !important;
+            }
+            .featured-left-column {
+              margin-top: 0 !important;
+              margin-left: 0 !important;
+            }
+            .discover-more-header {
+              flex-direction: column !important;
+              align-items: flex-start !important;
+              gap: 20px !important;
+            }
+            .discover-more-title {
+              font-size: 1.8rem !important;
+              margin: 0 !important;
+            }
+            .filter-controls {
+              width: 100% !important;
+              flex-direction: row !important;
+              gap: 15px !important;
+              flex-wrap: wrap !important;
+            }
+            .breadcrumb {
+              padding: 0 20px !important;
+              margin-top: 20px !important;
+              margin-bottom: 30px !important;
+              display: block !important;
+              visibility: visible !important;
+              position: relative !important;
+              z-index: 1 !important;
+            }
+            .pagination-container {
+              flex-direction: column !important;
+              gap: 20px !important;
+            }
+            .pagination-buttons {
+              flex-wrap: wrap !important;
+              justify-content: center !important;
+              gap: 8px !important;
+            }
+            .pagination-button {
+              padding: 6px 10px !important;
+              font-size: 12px !important;
+              min-width: 35px !important;
+            }
+          }
+          @media (max-width: 480px) {
+            .guides-page-grid {
+              grid-template-columns: 1fr !important;
+              gap: 20px !important;
+            }
+            .featured-title {
+              font-size: 2rem !important;
+            }
+          }
+        `
+      }} />
+      <div id="boxed-wrapper">
       <div id="wrapper" className="fusion-wrapper">
         <Header />
         
@@ -85,12 +194,12 @@ export default function GuidesPage() {
         }}>
           
           {/* Breadcrumb */}
-          <div style={{
+          <div className="breadcrumb" style={{
             backgroundColor: '#ffffff',
             padding: '0'
           }}>
             <div style={{
-              padding: '0 20px 0 76px', // 20px container padding + 50px marginLeft + 4px = 74px total
+              padding: '0 20px 0 70px', // 20px container padding + 50px marginLeft = 70px total
               fontSize: '14px',
               color: '#666',
               fontFamily: 'Klarna Text, sans-serif',
@@ -110,7 +219,7 @@ export default function GuidesPage() {
               width: '100%',
               marginTop: '-20px'
             }}>
-              <div style={{
+              <div className="featured-header-grid" style={{
                 width: '100%',
                 padding: '0 20px',
                 display: 'grid',
@@ -120,7 +229,7 @@ export default function GuidesPage() {
               }}>
                 
                 {/* Left Column - Title and Content */}
-                <div style={{
+                <div className="featured-left-column" style={{
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'center',
@@ -131,7 +240,7 @@ export default function GuidesPage() {
                   marginLeft: '50px',
                   marginTop: '60px'
                 }}>
-                  <h1 style={{
+                  <h1 className="featured-title" style={{
                     fontSize: '80px',
                     fontWeight: '1000',
                     color: '#0B051D',
@@ -191,10 +300,13 @@ export default function GuidesPage() {
                     marginBottom: '30px',
                     fontFamily: 'Klarna Text, sans-serif'
                   }}>
-                    {featuredPost.seo_meta?.description || featuredPost.excerpt}
+                    {(() => {
+                      const content = featuredPost.seo_meta?.description || featuredPost.excerpt || '';
+                      return content.replace(/<[^>]*>/g, '').replace(/\[&hellip;\]/g, '...').replace(/&hellip;/g, '...').replace(/&#8217;/g, "'").replace(/&#8211;/g, "–").replace(/&#8212;/g, "—").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+                    })()}
                   </p>
 
-                  <Link href={`/${featuredPost.slug}`} style={{
+                  <Link href={`https://nicotine-pouches.org/${featuredPost.slug}`} style={{
                     display: 'inline-block',
                     backgroundColor: '#000',
                     color: 'white',
@@ -211,7 +323,7 @@ export default function GuidesPage() {
                 </div>
 
                 {/* Right Column - Image with Right Border Radius */}
-                <div style={{
+                <div className="featured-image-container" style={{
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
@@ -242,7 +354,7 @@ export default function GuidesPage() {
           )}
 
           {/* Discover More Section */}
-          <div style={{
+          <div id="posts-section" style={{
             backgroundColor: '#ffffff',
             padding: '40px 0',
             width: '100%'
@@ -259,12 +371,12 @@ export default function GuidesPage() {
                 gap: '20px',
                 marginBottom: '40px'
               }}>
-                <div style={{
+                <div className="discover-more-header" style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
-                  <h2 style={{
+                  <h2 className="discover-more-title" style={{
                     fontSize: '2.5rem',
                     fontWeight: 'bold',
                     color: '#333',
@@ -274,7 +386,7 @@ export default function GuidesPage() {
                     Discover more
                   </h2>
                   
-                  <div style={{
+                  <div className="filter-controls" style={{
                     display: 'flex',
                     gap: '12px',
                     alignItems: 'center'
@@ -290,7 +402,7 @@ export default function GuidesPage() {
                     cursor: 'pointer',
                     fontWeight: '500',
                     appearance: 'none',
-                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='https://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
                     backgroundPosition: 'right 8px center',
                     backgroundRepeat: 'no-repeat',
                     backgroundSize: '16px',
@@ -313,7 +425,7 @@ export default function GuidesPage() {
                     cursor: 'pointer',
                     fontWeight: '500',
                     appearance: 'none',
-                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='https://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
                     backgroundPosition: 'right 8px center',
                     backgroundRepeat: 'no-repeat',
                     backgroundSize: '16px',
@@ -324,127 +436,10 @@ export default function GuidesPage() {
                   </select>
                   </div>
                 </div>
-                
-                {/* Search Field */}
-                <div style={{
-                  maxWidth: '500px'
-                }}>
-                  <BlogSearch 
-                    posts={posts} 
-                    onSearchResults={handleSearchResults}
-                  />
-                </div>
               </div>
 
-              {/* Posts Grid */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: '30px'
-              }}>
-                {otherPosts.map((post) => {
-                  const displayTitle = post.seo_meta?.title || post.title;
-                  const displayImage = post.featured_image_local || post.featured_image || '/placeholder-product.jpg';
-                  
-                  return (
-                    <Link 
-                      key={post.wp_id} 
-                      href={`/${post.slug}`}
-                      style={{ textDecoration: 'none', color: 'inherit' }}
-                    >
-                      <article style={{
-                        backgroundColor: 'transparent',
-                        borderRadius: '0',
-                        overflow: 'visible',
-                        boxShadow: 'none',
-                        transition: 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        border: 'none'
-                      }}
-                      >
-                        {/* Featured Image - Rounded Corners and Separate */}
-                        <div style={{
-                          width: '100%',
-                          height: '210px',
-                          overflow: 'hidden',
-                          borderRadius: '25px',
-                          marginBottom: '20px',
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center'
-                        }}>
-                          <Image 
-                            src={displayImage}
-                            alt={displayTitle}
-                            width={300}
-                            height={230}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover',
-                              borderRadius: '12px'
-                            }}
-                          />
-                        </div>
-                        
-                        {/* Content - No border, no shadow */}
-                        <div style={{ 
-                          padding: '0',
-                          flex: 1,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          border: 'none',
-                          outline: 'none',
-                          backgroundColor: 'transparent',
-                          boxShadow: 'none'
-                        }}>
-                          <h3 style={{
-                            fontSize: '26px',
-                            fontWeight: '500',
-                            color: '#333',
-                            margin: '0 0 12px 0',
-                            lineHeight: '1.3',
-                            width: '100%',
-                            maxWidth: '100%'
-                          }}>
-                            {displayTitle}
-                          </h3>
-                          
-                          <p style={{
-                            fontSize: '14px',
-                            color: '#666',
-                            lineHeight: '1.5',
-                            margin: '0 0 16px 0',
-                            flex: 1,
-                            whiteSpace: 'normal',
-                            wordWrap: 'break-word'
-                          }}>
-                            {(() => {
-                              const content = post.seo_meta?.description || post.excerpt || '';
-                              const cleanedText = content.replace(/<[^>]*>/g, '').replace(/\[&hellip;\]/g, '...').replace(/&#8217;/g, "'").replace(/&#8211;/g, "–").replace(/&#8212;/g, "—").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-                              return cleanedText.length > 360 ? cleanedText.substring(0, 360) + '...' : cleanedText;
-                            })()}
-                          </p>
-                          
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            fontSize: '12px',
-                            color: '#999',
-                            marginTop: 'auto'
-                          }}>
-                            <span>By {post.author}</span>
-                            <span>{new Date(post.date).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </article>
-                    </Link>
-                  );
-                })}
-              </div>
+              {/* Posts Grid - Server Component */}
+              <SSRGuidesGrid posts={paginatedPosts} />
             </div>
           </div>
         </main>
@@ -452,5 +447,49 @@ export default function GuidesPage() {
         <Footer />
       </div>
     </div>
+    </>
   );
+}
+
+// Generate metadata for SEO
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: 'Nicotine Pouches Guides - Complete Tutorials & How-To Guides',
+    description: 'Comprehensive guides to help you understand nicotine pouches, their benefits, and how to use them effectively. Learn everything you need to know about nicotine pouches.',
+    keywords: 'nicotine pouches guides, how to use nicotine pouches, nicotine pouches tutorial, nicotine pouches tips, nicotine pouches benefits',
+    robots: 'index, follow',
+    authors: [{ name: 'Nicotine Pouches Team' }],
+    openGraph: {
+      title: 'Nicotine Pouches Guides - Complete Tutorials & How-To Guides',
+      description: 'Comprehensive guides to help you understand nicotine pouches, their benefits, and how to use them effectively.',
+      url: 'https://nicotine-pouches.org/guides',
+      siteName: 'Nicotine Pouches',
+      images: [
+        {
+          url: '/guides-og-image.jpg',
+          width: 1200,
+          height: 630,
+          alt: 'Nicotine Pouches Guides',
+        },
+      ],
+      locale: 'en-GB',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: 'Nicotine Pouches Guides - Complete Tutorials & How-To Guides',
+      description: 'Comprehensive guides to help you understand nicotine pouches, their benefits, and how to use them effectively.',
+      images: ['/guides-og-image.jpg'],
+      creator: '@nicotinepouches',
+      site: '@nicotinepouches',
+    },
+    alternates: {
+      canonical: 'https://nicotine-pouches.org/guides',
+      languages: {
+        'en-GB': 'https://nicotine-pouches.org/guides',
+        'en-US': 'https://nicotine-pouches.org/us/guides',
+        'x-default': 'https://nicotine-pouches.org/guides',
+      },
+    },
+  };
 }

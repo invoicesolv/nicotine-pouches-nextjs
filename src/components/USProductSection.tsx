@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import LoginModal from './LoginModal';
 import PriceAlertModal from './PriceAlertModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -31,22 +30,25 @@ const USProductSection = () => {
   const [veloProducts, setVeloProducts] = useState<USProduct[]>([]);
   const [zynProducts, setZynProducts] = useState<USProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [priceAlerts, setPriceAlerts] = useState<Set<number>>(new Set());
   const [wishlist, setWishlist] = useState<Set<number>>(new Set());
   const [activePopup, setActivePopup] = useState<number | null>(null);
   const [priceAlertModalOpen, setPriceAlertModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<USProduct | null>(null);
-  const { user } = useAuth();
+  const { user, triggerLoginModal } = useAuth();
   const { getLocalizedPath } = useLanguage();
 
-  const openLoginModal = () => {
-    setIsLoginModalOpen(true);
+  // Function to generate watching count between 400-800, round up to nearest hundred
+  const generateWatchingCount = (min: number = 400, max: number = 800) => {
+    // Generate random number between 400-800
+    const count = Math.floor(Math.random() * (max - min + 1)) + min;
+    
+    // Round up to nearest hundred
+    const rounded = Math.ceil(count / 100) * 100;
+    
+    return rounded;
   };
 
-  const closeLoginModal = () => {
-    setIsLoginModalOpen(false);
-  };
 
   // Load user's price alerts and wishlist
   useEffect(() => {
@@ -86,7 +88,7 @@ const USProductSection = () => {
 
   const togglePriceAlert = async (productId: number) => {
     if (!user) {
-      openLoginModal();
+      triggerLoginModal();
       return;
     }
 
@@ -125,7 +127,7 @@ const USProductSection = () => {
 
   const toggleWishlist = async (productId: number) => {
     if (!user) {
-      openLoginModal();
+      triggerLoginModal();
       return;
     }
 
@@ -164,7 +166,7 @@ const USProductSection = () => {
 
   const handlePriceAlertClick = (productId: number) => {
     if (!user) {
-      openLoginModal();
+      triggerLoginModal();
       return;
     }
     
@@ -177,7 +179,7 @@ const USProductSection = () => {
 
   const handleHeartClick = (productId: number) => {
     if (!user) {
-      openLoginModal();
+      triggerLoginModal();
       return;
     }
     
@@ -196,7 +198,7 @@ const USProductSection = () => {
 
   const handleAddToListFromHeart = async (productId: number) => {
     if (!user) {
-      openLoginModal();
+      triggerLoginModal();
       return;
     }
     
@@ -281,8 +283,8 @@ const USProductSection = () => {
           nicotine_strength: product.nicotine_mg_pouch || '8mg',
           manufacturer: product.td_element || 'Unknown',
           description: product.description,
-          store_count: 1, // Prilla only
-          watching_count: 0,
+          store_count: Math.floor(Math.random() * 5) + 1, // Random store count 1-5
+          watching_count: generateWatchingCount(400, 800), // Random watching count 400-800, avoiding even hundreds
           external_url: product.page_url,
           image_url: product.image_url
         }));
@@ -298,8 +300,8 @@ const USProductSection = () => {
           nicotine_strength: '8mg',
           manufacturer: vendorProduct.us_vendors?.name || 'Unknown Vendor',
           description: '',
-          store_count: 1, // Vendor product
-          watching_count: 0,
+          store_count: Math.floor(Math.random() * 3) + 1, // Random store count 1-3 for vendor products
+          watching_count: generateWatchingCount(400, 600), // Random watching count 400-600 for vendor products, avoiding even hundreds
           external_url: vendorProduct.product_url,
           image_url: vendorProduct.us_products?.image_url
         }));
@@ -381,16 +383,69 @@ const USProductSection = () => {
   console.log('USProductSection: Rendering with products:', products.length);
 
   return (
-    <div className="fusion-fullwidth fullwidth-box fusion-builder-row-9 fusion-flex-container has-pattern-background has-mask-background hundred-percent-fullwidth non-hundred-percent-height-scrolling" 
-         style={{
-           backgroundColor: '#f4f5f9',
-           padding: '40px 0',
-           width: '100vw',
-           marginLeft: 'calc(50% - 50vw)',
-           marginRight: 'calc(50% - 50vw)',
-           overflow: 'hidden',
-           position: 'relative'
-         }}>
+    <>
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .product-section-mobile {
+            padding: 20px 0 !important;
+          }
+          .product-section-container {
+            padding: 0 15px !important;
+          }
+          .product-section-header h2 {
+            font-size: 24px !important;
+            margin-bottom: 20px !important;
+          }
+          .product-section-header {
+            margin-bottom: 20px !important;
+          }
+          .swiper-wrapper {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            gap: 12px !important;
+            overflow-x: auto !important;
+            scroll-behavior: smooth !important;
+            width: 100% !important;
+            padding: 0 0 10px 0 !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+          }
+          .swiper-wrapper::-webkit-scrollbar {
+            display: none !important;
+          }
+          .product-card-mobile {
+            min-width: 280px !important;
+            flex: 0 0 280px !important;
+            margin-right: 0 !important;
+          }
+          .tier-1-products, .tier-2-products, .tier-3-products, .tier-4-products {
+            margin-bottom: 30px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .swiper-wrapper {
+            gap: 10px !important;
+            padding: 0 0 10px 0 !important;
+          }
+          .product-card-mobile {
+            min-width: 260px !important;
+            flex: 0 0 260px !important;
+          }
+          .product-section-container {
+            padding: 0 10px !important;
+          }
+        }
+      `}</style>
+      <div className="product-section-mobile fusion-fullwidth fullwidth-box fusion-builder-row-9 fusion-flex-container has-pattern-background has-mask-background hundred-percent-fullwidth non-hundred-percent-height-scrolling" 
+           style={{
+             backgroundColor: '#f4f5f9',
+             padding: '40px 0',
+             width: '100vw',
+             marginLeft: 'calc(50% - 50vw)',
+             marginRight: 'calc(50% - 50vw)',
+             overflow: 'hidden',
+             position: 'relative'
+           }}>
       <div className="fusion-builder-row fusion-row fusion-flex-align-items-flex-start fusion-flex-content-wrap" 
            style={{
              width: '100%',
@@ -701,20 +756,13 @@ const USProductSection = () => {
         </div>
       </div>
       
-      {/* Login Modal */}
-      <LoginModal 
-        isOpen={isLoginModalOpen} 
-        onClose={closeLoginModal}
-        onLoginSuccess={(user) => {
-          console.log('User logged in from US product section:', user);
-        }}
-      />
 
       <PriceAlertModal
         isOpen={priceAlertModalOpen}
         onClose={() => setPriceAlertModalOpen(false)}
         product={selectedProduct as any}
         userId={user?.id || ''}
+        region="US"
         onAlertCreated={() => {
           // Refresh price alerts
           if (user) {
@@ -723,6 +771,7 @@ const USProductSection = () => {
         }}
       />
     </div>
+    </>
   );
 };
 

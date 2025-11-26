@@ -21,6 +21,15 @@ export default function PriceSortFilter({
       }
       
       const sortOrder = (priceSortSelect as HTMLSelectElement).value;
+      
+      // Track price sort change in analytics
+      if ((window as any).vendorAnalytics) {
+        (window as any).vendorAnalytics.trackPriceSort(
+          (window as any).currentProductId || 'unknown',
+          sortOrder
+        );
+      }
+      
       const vendorCards = document.querySelectorAll(containerSelector);
       
       if (vendorCards.length === 0) {

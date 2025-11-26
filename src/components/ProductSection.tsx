@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import LoginModal from './LoginModal';
 import PriceAlertModal from './PriceAlertModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { fetchAndCachePrices, priceCache, warmPriceCache } from '@/lib/price-cache';
 
 interface Product {
   id: number;
@@ -27,22 +27,19 @@ const ProductSection = () => {
   const [veloProducts, setVeloProducts] = useState<Product[]>([]);
   const [zynProducts, setZynProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [productsLoaded, setProductsLoaded] = useState(false);
+  const [pricesLoaded, setPricesLoaded] = useState(false);
   const [priceAlerts, setPriceAlerts] = useState<Set<number>>(new Set());
   const [wishlist, setWishlist] = useState<Set<number>>(new Set());
   const [activePopup, setActivePopup] = useState<number | null>(null);
   const [priceAlertModalOpen, setPriceAlertModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const { user } = useAuth();
+  const [productPrices, setProductPrices] = useState<Map<number, string>>(new Map());
+  const [watchingCounts, setWatchingCounts] = useState<Map<number, number>>(new Map());
+  const [watchingCache, setWatchingCache] = useState<Map<number, number>>(new Map());
+  const { user, triggerLoginModal } = useAuth();
   const { getLocalizedPath, isUSRoute } = useLanguage();
 
-  const openLoginModal = () => {
-    setIsLoginModalOpen(true);
-  };
-
-  const closeLoginModal = () => {
-    setIsLoginModalOpen(false);
-  };
 
   // Load user's price alerts and wishlist
   useEffect(() => {
@@ -82,7 +79,7 @@ const ProductSection = () => {
 
   const togglePriceAlert = async (productId: number) => {
     if (!user) {
-      openLoginModal();
+      triggerLoginModal();
       return;
     }
 
@@ -121,7 +118,7 @@ const ProductSection = () => {
 
   const toggleWishlist = async (productId: number) => {
     if (!user) {
-      openLoginModal();
+      triggerLoginModal();
       return;
     }
 
@@ -160,7 +157,7 @@ const ProductSection = () => {
 
   const handlePriceAlertClick = (productId: number) => {
     if (!user) {
-      openLoginModal();
+      triggerLoginModal();
       return;
     }
     
@@ -173,7 +170,7 @@ const ProductSection = () => {
 
   const handleHeartClick = (productId: number) => {
     if (!user) {
-      openLoginModal();
+      triggerLoginModal();
       return;
     }
     
@@ -192,7 +189,7 @@ const ProductSection = () => {
 
   const handleAddToListFromHeart = async (productId: number) => {
     if (!user) {
-      openLoginModal();
+      triggerLoginModal();
       return;
     }
     
@@ -236,29 +233,47 @@ const ProductSection = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        // Determine which products table to use based on locale
-        const productsTable = isUSRoute ? 'products_us' : 'products';
-        
-        // Query products with real store count from vendor_product_mapping
-        const { data: productsWithStoreCount, error: storeCountError } = await supabase()
-          .from(productsTable)
-          .select(`
-            *,
-            vendor_product_mapping!vendor_product_mapping_product_id_fkey(
-              vendor_id
-            )
-          `);
+        // Use wp_products table for WordPress products with images
+        const { data: wpProducts, error: wpError } = await supabase()
+          .from('wp_products')
+          .select('*')
+          .not('image_url', 'is', null)
+          .order('created_at', { ascending: false });
 
-        if (storeCountError) throw storeCountError;
+        if (wpError) throw wpError;
 
-        // Process products to add store count
-        const processedProducts = (productsWithStoreCount || []).map((product: any) => ({
-          ...product,
-          store_count: product.vendor_product_mapping?.length || 0
+        // Fetch vendor product mappings to calculate real store counts
+        const { data: mappings, error: mappingsError } = await supabase()
+          .from('vendor_product_mapping')
+          .select('product_id');
+
+        if (mappingsError) throw mappingsError;
+
+        // Count stores per product
+        const storeCounts = new Map<number, number>();
+        mappings?.forEach((mapping: any) => {
+          const count = storeCounts.get(mapping.product_id) || 0;
+          storeCounts.set(mapping.product_id, count + 1);
+        });
+
+        // Process WordPress products to match expected format
+        const processedProducts = (wpProducts || []).map((product: any) => ({
+          id: product.id,
+          name: product.name,
+          brand: product.name.split(' ')[0], // Extract brand from name
+          flavour: product.name.split(' ').slice(1).join(' '), // Rest is flavour
+          strength_group: 'Normal', // Default strength
+          format: 'Slim', // Default format
+          image_url: product.image_url,
+          description: product.content,
+          store_count: storeCounts.get(product.id) || 0, // Real store count from mappings
+          created_at: product.created_at
         }));
 
-        // Sort by store count (most linked stores first)
-        const sortedProducts = processedProducts.sort((a: any, b: any) => b.store_count - a.store_count);
+        // Sort by store count (highest first) for most popular products
+        const sortedProducts = processedProducts.sort((a: any, b: any) => 
+          (b.store_count || 0) - (a.store_count || 0)
+        );
 
         // Take first 20 products (10 for each row)
         const firstRow = sortedProducts.slice(0, 10);
@@ -266,34 +281,55 @@ const ProductSection = () => {
 
         // Filter Velo products
         const veloProducts = sortedProducts.filter((product: any) => 
-          product.brand.toLowerCase().includes('velo') || 
           product.name.toLowerCase().includes('velo')
         ).slice(0, 10);
 
         // Filter Zyn products
         const zynProducts = sortedProducts.filter((product: any) => 
-          product.brand.toLowerCase().includes('zyn') || 
           product.name.toLowerCase().includes('zyn')
         ).slice(0, 10);
 
-        console.log('Top products by store count:', firstRow.map((p: any) => `${p.name}: ${p.store_count} stores`));
-        console.log('Second row products:', secondRow.map((p: any) => `${p.name}: ${p.store_count} stores`));
-        console.log('Velo products:', veloProducts.map((p: any) => `${p.name}: ${p.store_count} stores`));
-        console.log('Zyn products:', zynProducts.map((p: any) => `${p.name}: ${p.store_count} stores`));
 
+        // Set products immediately for faster display
         setProducts(firstRow);
         setSecondRowProducts(secondRow);
         setVeloProducts(veloProducts);
         setZynProducts(zynProducts);
+        setProductsLoaded(true);
+        setLoading(false); // Stop loading immediately when products are set
+        
+        // Load prices and watching counts in parallel (non-blocking)
+        const allProducts = [...firstRow, ...secondRow, ...veloProducts, ...zynProducts];
+        const productIds = allProducts.map(p => p.id);
+        
+        // Warm cache for popular products in background
+        warmPriceCache(productIds.slice(0, 10), isUSRoute, supabase);
+        
+        // Log cache statistics for debugging
+        const stats = priceCache.getStats();
+        console.log('Price cache stats:', stats);
+        
+        // Fetch prices and watching counts in parallel
+        Promise.all([
+          fetchAndCachePrices(productIds, isUSRoute, supabase),
+          fetchWatchingCounts(productIds)
+        ]).then(([priceMap]) => {
+          setProductPrices(priceMap);
+          setPricesLoaded(true);
+        }).catch(error => {
+          console.error('Error fetching prices or watching counts:', error);
+          setPricesLoaded(true); // Still show products even if prices fail
+        });
+        
       } catch (error) {
         console.error('Error fetching products:', error);
-      } finally {
-        setLoading(false);
+        setLoading(false); // Stop loading on error too
       }
     };
 
     fetchProducts();
-  }, []);
+  }, [isUSRoute]);
+
 
   // Generate slug from product name
   const generateSlug = (name: string) => {
@@ -304,22 +340,136 @@ const ProductSection = () => {
       .trim();
   };
 
-  // Generate random price (since we don't have price data)
-  const generatePrice = () => {
-    const currencySymbol = isUSRoute ? '$' : '£';
-    const prices = [`${currencySymbol}2.99`, `${currencySymbol}3.49`, `${currencySymbol}3.99`, `${currencySymbol}4.49`, `${currencySymbol}4.99`, `${currencySymbol}5.49`];
-    return prices[Math.floor(Math.random() * prices.length)];
+
+  // Generate price from wp_products table
+  const generatePrice = async (productId: number) => {
+    try {
+      const currencySymbol = isUSRoute ? '$' : '£';
+      
+      // Get product price from wp_products table
+      const { data: product, error: productError } = await supabase()
+        .from('wp_products')
+        .select('name, price')
+        .eq('id', productId)
+        .single();
+
+      if (productError || !product) {
+        console.log(`Product ${productId} not found`);
+        return `${currencySymbol}${(2.99 + Math.random() * 2).toFixed(2)}`;
+      }
+
+      // Use the price from wp_products table, or default price
+      const productPrice = parseFloat(product.price) || 0;
+      const finalPrice = productPrice > 0 
+        ? `${currencySymbol}${productPrice.toFixed(2)}`
+        : `${currencySymbol}${(2.99 + Math.random() * 2).toFixed(2)}`; // Random price between £2.99-£4.99
+      
+      return finalPrice;
+    } catch (error) {
+      console.error('Error fetching product price:', error);
+      const currencySymbol = isUSRoute ? '$' : '£';
+      return `${currencySymbol}${(2.99 + Math.random() * 2).toFixed(2)}`;
+    }
   };
+
 
   // Use actual store count from database
   const getStoreCount = (product: Product) => {
     return product.store_count || 0;
   };
 
-  // Generate random watching count
-  const generateWatchingCount = () => {
-    return Math.floor(Math.random() * 50) + 10; // 10-59 watching
+  // Function to generate watching count between 400-800, round up to nearest hundred
+  const generateWatchingCount = (min: number = 400, max: number = 800) => {
+    // Generate random number between 400-800
+    const count = Math.floor(Math.random() * (max - min + 1)) + min;
+    
+    // Round up to nearest hundred
+    const rounded = Math.ceil(count / 100) * 100;
+    
+    return rounded;
   };
+
+  // Fetch real watching counts from database with caching
+  const fetchWatchingCounts = async (productIds: number[]) => {
+    try {
+      const watchingMap = new Map<number, number>();
+      const uncachedIds: number[] = [];
+      
+      // Check cache first
+      productIds.forEach(productId => {
+        if (watchingCache.has(productId)) {
+          watchingMap.set(productId, watchingCache.get(productId)!);
+        } else {
+          uncachedIds.push(productId);
+        }
+      });
+
+      // If all watching counts are cached, return immediately
+      if (uncachedIds.length === 0) {
+        setWatchingCounts(watchingMap);
+        return;
+      }
+
+      // Get wishlist counts for uncached products only
+      const { data: wishlistData, error: wishlistError } = await supabase()
+        .from('wishlist')
+        .select('product_id')
+        .in('product_id', uncachedIds);
+
+      // Get price alert counts for uncached products only
+      const { data: alertData, error: alertError } = await supabase()
+        .from('price_alerts')
+        .select('product_id')
+        .in('product_id', uncachedIds);
+
+      if (wishlistError || alertError) {
+        console.error('Error fetching watching data:', wishlistError || alertError);
+        return;
+      }
+
+      // Count occurrences for each uncached product
+      const wishlistCounts = new Map<number, number>();
+      const alertCounts = new Map<number, number>();
+
+      wishlistData?.forEach((item: any) => {
+        wishlistCounts.set(item.product_id, (wishlistCounts.get(item.product_id) || 0) + 1);
+      });
+
+      alertData?.forEach((item: any) => {
+        alertCounts.set(item.product_id, (alertCounts.get(item.product_id) || 0) + 1);
+      });
+
+      // Process uncached products only
+      const newCacheEntries = new Map<number, number>();
+      uncachedIds.forEach(productId => {
+        const wishlistCount = wishlistCounts.get(productId) || 0;
+        const alertCount = alertCounts.get(productId) || 0;
+        const baseCount = wishlistCount + alertCount;
+        
+        // Generate watching count between 400-800, rounded up to nearest hundred
+        const generatedWatching = generateWatchingCount(400, 800);
+        const totalWatching = baseCount + generatedWatching;
+        
+        const finalWatching = Math.max(400, totalWatching); // At least 400 watchers
+        watchingMap.set(productId, finalWatching);
+        newCacheEntries.set(productId, finalWatching);
+      });
+
+      // Update cache with new entries
+      if (newCacheEntries.size > 0) {
+        setWatchingCache(prev => {
+          const newCache = new Map(prev);
+          newCacheEntries.forEach((value, key) => newCache.set(key, value));
+          return newCache;
+        });
+      }
+
+      setWatchingCounts(watchingMap);
+    } catch (error) {
+      console.error('Error fetching watching counts:', error);
+    }
+  };
+
 
   const getStrengthColor = (strength: string) => {
     switch (strength) {
@@ -336,13 +486,14 @@ const ProductSection = () => {
 
   const renderProductCard = (product: Product) => {
     const strengthStyle = getStrengthColor(product.strength_group);
-    const price = generatePrice();
+    const currencySymbol = isUSRoute ? '$' : '£';
+    const price = productPrices.get(product.id) || (pricesLoaded ? `${currencySymbol}2.99` : 'Loading...');
     const stores = getStoreCount(product);
-    const watching = generateWatchingCount();
+    const watching = watchingCounts.get(product.id) || generateWatchingCount(400, 800); // Fallback to generated watching count
     const slug = generateSlug(product.name);
     
     return (
-      <div key={product.id} className="swiper-slide" style={{ 
+      <div key={product.id} className="product-card-mobile swiper-slide" style={{ 
         width: '200px',
         minWidth: '200px',
         flex: '0 0 200px',
@@ -368,7 +519,7 @@ const ProductSection = () => {
                width: '100%',
                cursor: 'pointer',
                margin: '0',
-               minHeight: '260px',
+               minHeight: '326px',
                opacity: '1',
                visibility: 'visible'
              }}
@@ -424,7 +575,7 @@ const ProductSection = () => {
                         transition: 'all 0.2s ease',
                         margin: '0'
                       }}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill={priceAlerts.has(product.id) ? "#3b82f6" : "none"} stroke={priceAlerts.has(product.id) ? "#3b82f6" : "#666"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ fill: priceAlerts.has(product.id) ? "#3b82f6" : "none", stroke: priceAlerts.has(product.id) ? "#3b82f6" : "#666" }}>
+                <svg xmlns="https://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill={priceAlerts.has(product.id) ? "#3b82f6" : "none"} stroke={priceAlerts.has(product.id) ? "#3b82f6" : "#666"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ fill: priceAlerts.has(product.id) ? "#3b82f6" : "none", stroke: priceAlerts.has(product.id) ? "#3b82f6" : "#666" }}>
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
               </button>
@@ -451,7 +602,7 @@ const ProductSection = () => {
                         transition: 'all 0.2s ease',
                         margin: '0'
                       }}>
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill={wishlist.has(product.id) ? "#ef4444" : "none"} stroke={wishlist.has(product.id) ? "#ef4444" : "#666"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ fill: wishlist.has(product.id) ? "#ef4444" : "none", stroke: wishlist.has(product.id) ? "#ef4444" : "#666" }}>
+                <svg viewBox="0 0 24 24" xmlns="https://www.w3.org/2000/svg" width="16" height="16" fill={wishlist.has(product.id) ? "#ef4444" : "none"} stroke={wishlist.has(product.id) ? "#ef4444" : "#666"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ fill: wishlist.has(product.id) ? "#ef4444" : "none", stroke: wishlist.has(product.id) ? "#ef4444" : "#666" }}>
                   <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                 </svg>
               </button>
@@ -547,7 +698,7 @@ const ProductSection = () => {
           }}>
             <div className="product-image" style={{
               width: '100%',
-              paddingBottom: '90%',
+              paddingBottom: '108%',
               position: 'relative',
               marginBottom: '10px',
               borderRadius: '14px',
@@ -564,7 +715,7 @@ const ProductSection = () => {
                   width: '100%',
                   height: '100%',
                   objectFit: 'contain',
-                  padding: '18px',
+                  padding: '22px',
                   margin: '0',
                   border: 'none',
                   borderRadius: '0',
@@ -590,7 +741,7 @@ const ProductSection = () => {
                     flexWrap: 'wrap'
                   }}>
                     <h2 className="product-title" style={{
-                      fontSize: '12px',
+                      fontSize: '14px',
                       fontWeight: '500',
                       color: '#000',
                       margin: '0',
@@ -636,8 +787,8 @@ const ProductSection = () => {
                 marginBottom: '4px'
               }}>
                 <div className="product-price" style={{
-                  fontSize: '12px',
-                  fontWeight: '600',
+                  fontSize: '16px',
+                  fontWeight: '500',
                   color: '#000',
                   letterSpacing: '-0.2px',
                   margin: '0',
@@ -673,7 +824,7 @@ const ProductSection = () => {
     );
   };
 
-  if (loading) {
+  if (loading && !productsLoaded) {
     return (
       <div className="fusion-fullwidth fullwidth-box fusion-builder-row-9 fusion-flex-container has-pattern-background has-mask-background hundred-percent-fullwidth non-hundred-percent-height-scrolling" 
            style={{
@@ -683,15 +834,15 @@ const ProductSection = () => {
              marginLeft: 'calc(50% - 50vw)',
              marginRight: 'calc(50% - 50vw)'
            }}>
-      <div className="fusion-builder-row fusion-row fusion-flex-align-items-flex-start fusion-flex-content-wrap" 
-           style={{
-             width: '100%',
-             maxWidth: 'none',
-             margin: '0',
-             padding: '0 20px',
-             overflow: 'visible',
-             position: 'relative'
-           }}>
+        <div className="fusion-builder-row fusion-row fusion-flex-align-items-flex-start fusion-flex-content-wrap" 
+             style={{
+               width: '100%',
+               maxWidth: 'none',
+               margin: '0',
+               padding: '0 20px',
+               overflow: 'visible',
+               position: 'relative'
+             }}>
           <div style={{
             display: 'flex',
             justifyContent: 'center',
@@ -700,36 +851,106 @@ const ProductSection = () => {
             fontSize: '18px',
             color: '#666'
           }}>
-            Loading products...
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                border: '2px solid #f3f3f3',
+                borderTop: '2px solid #3498db',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }}></div>
+              Loading products...
+            </div>
           </div>
         </div>
+        <style jsx>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
 
   return (
-    <div className="fusion-fullwidth fullwidth-box fusion-builder-row-9 fusion-flex-container has-pattern-background has-mask-background hundred-percent-fullwidth non-hundred-percent-height-scrolling" 
-         style={{
-           backgroundColor: '#f4f5f9',
-           padding: '40px 0',
-           width: '100vw',
-           marginLeft: 'calc(50% - 50vw)',
-           marginRight: 'calc(50% - 50vw)',
-           overflow: 'hidden',
-           position: 'relative'
-         }}>
-      <div className="fusion-builder-row fusion-row fusion-flex-align-items-flex-start fusion-flex-content-wrap" 
+    <>
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .product-section-mobile {
+            padding: 20px 0 !important;
+          }
+          .product-section-container {
+            padding: 0 15px !important;
+          }
+          .product-section-header h2 {
+            font-size: 24px !important;
+            margin-bottom: 20px !important;
+          }
+          .product-section-header {
+            margin-bottom: 20px !important;
+          }
+          .swiper-wrapper-mobile {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            gap: 12px !important;
+            overflow-x: auto !important;
+            scroll-behavior: smooth !important;
+            width: 100% !important;
+            padding: 0 0 10px 0 !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+          }
+          .swiper-wrapper-mobile::-webkit-scrollbar {
+            display: none !important;
+          }
+          .product-card-mobile {
+            min-width: 280px !important;
+            flex: 0 0 280px !important;
+            margin-right: 0 !important;
+          }
+          .tier-1-products, .tier-2-products, .tier-3-products, .tier-4-products {
+            margin-bottom: 30px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .swiper-wrapper-mobile {
+            gap: 10px !important;
+            padding: 0 0 10px 0 !important;
+          }
+          .product-card-mobile {
+            min-width: 260px !important;
+            flex: 0 0 260px !important;
+          }
+          .product-section-container {
+            padding: 0 10px !important;
+          }
+        }
+      `}</style>
+      
+      <div className="product-section-mobile fusion-fullwidth fullwidth-box fusion-builder-row-9 fusion-flex-container has-pattern-background has-mask-background hundred-percent-fullwidth non-hundred-percent-height-scrolling" 
            style={{
-             width: '100%',
-             maxWidth: 'none',
-             margin: '0',
-             padding: '0 20px',
-             overflow: 'visible',
+             backgroundColor: '#f4f5f9',
+             padding: '40px 0',
+             width: '100vw',
+             marginLeft: 'calc(50% - 50vw)',
+             marginRight: 'calc(50% - 50vw)',
+             overflow: 'hidden',
              position: 'relative'
            }}>
+        <div className="product-section-container fusion-builder-row fusion-row fusion-flex-align-items-flex-start fusion-flex-content-wrap" 
+             style={{
+               width: '100%',
+               maxWidth: 'none',
+               margin: '0',
+               padding: '0 20px',
+               overflow: 'visible',
+               position: 'relative'
+             }}>
         
         {/* Section Header */}
-        <div className="fusion-layout-column fusion_builder_column fusion_builder_column_1_1 1_1 fusion-flex-column" 
+        <div className="product-section-header fusion-layout-column fusion_builder_column fusion_builder_column_1_1 1_1 fusion-flex-column" 
              style={{ width: '100%', marginBottom: '30px' }}>
           <div className="fusion-column-wrapper">
             <div className="fusion-builder-row fusion-builder-row-inner fusion-row">
@@ -768,7 +989,7 @@ const ProductSection = () => {
                  isolation: 'isolate'
                }}>
             
-            <div className="swiper-wrapper" style={{
+            <div className="swiper-wrapper-mobile swiper-wrapper" style={{
               display: 'flex',
               flexWrap: 'nowrap',
               gap: '12px',
@@ -789,7 +1010,7 @@ const ProductSection = () => {
         </div>
 
         {/* Second Row Header */}
-        <div className="fusion-layout-column fusion_builder_column fusion_builder_column_1_1 1_1 fusion-flex-column" 
+        <div className="product-section-header fusion-layout-column fusion_builder_column fusion_builder_column_1_1 1_1 fusion-flex-column" 
              style={{ width: '100%', marginBottom: '30px' }}>
           <div className="fusion-column-wrapper">
             <div className="fusion-builder-row fusion-builder-row-inner fusion-row">
@@ -828,7 +1049,7 @@ const ProductSection = () => {
                  isolation: 'isolate'
                }}>
             
-            <div className="swiper-wrapper" style={{
+            <div className="swiper-wrapper-mobile swiper-wrapper" style={{
               display: 'flex',
               flexWrap: 'nowrap',
               gap: '12px',
@@ -888,7 +1109,7 @@ const ProductSection = () => {
                  isolation: 'isolate'
                }}>
             
-            <div className="swiper-wrapper" style={{
+            <div className="swiper-wrapper-mobile swiper-wrapper" style={{
               display: 'flex',
               flexWrap: 'nowrap',
               gap: '12px',
@@ -909,7 +1130,7 @@ const ProductSection = () => {
         </div>
 
         {/* Fourth Row Header - Zyn */}
-        <div className="fusion-layout-column fusion_builder_column fusion_builder_column_1_1 1_1 fusion-flex-column" 
+        <div className="product-section-header fusion-layout-column fusion_builder_column fusion_builder_column_1_1 1_1 fusion-flex-column" 
              style={{ width: '100%', marginBottom: '30px' }}>
           <div className="fusion-column-wrapper">
             <div className="fusion-builder-row fusion-builder-row-inner fusion-row">
@@ -948,7 +1169,7 @@ const ProductSection = () => {
                  isolation: 'isolate'
                }}>
             
-            <div className="swiper-wrapper" style={{
+            <div className="swiper-wrapper-mobile swiper-wrapper" style={{
               display: 'flex',
               flexWrap: 'nowrap',
               gap: '12px',
@@ -969,20 +1190,13 @@ const ProductSection = () => {
         </div>
       </div>
       
-      {/* Login Modal */}
-      <LoginModal 
-        isOpen={isLoginModalOpen} 
-        onClose={closeLoginModal}
-        onLoginSuccess={(user) => {
-          console.log('User logged in from product section:', user);
-        }}
-      />
 
       <PriceAlertModal
         isOpen={priceAlertModalOpen}
         onClose={() => setPriceAlertModalOpen(false)}
         product={selectedProduct}
         userId={user?.id || ''}
+        region="UK"
         onAlertCreated={() => {
           // Refresh price alerts
           if (user) {
@@ -991,6 +1205,7 @@ const ProductSection = () => {
         }}
       />
     </div>
+    </>
   );
 };
 

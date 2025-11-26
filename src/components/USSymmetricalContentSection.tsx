@@ -5,14 +5,58 @@ import TableOfContents from './TableOfContents';
 
 const USSymmetricalContentSection = () => {
   return (
-    <div className="fusion-fullwidth fullwidth-box fusion-builder-row-11 fusion-flex-container has-pattern-background has-mask-background nonhundred-percent-fullwidth non-hundred-percent-height-scrolling" 
-         style={{
-           width: '100vw',
-           marginLeft: 'calc(50% - 50vw)',
-           marginRight: 'calc(50% - 50vw)',
-           padding: '60px 0',
-           backgroundColor: '#ffffff'
-         }}>
+    <>
+      <style jsx>{`
+        @media (min-width: 768px) {
+          .content-layout {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 40px !important;
+          }
+          .main-content {
+            flex: 2 !important;
+          }
+          .toc-content {
+            flex: 1 !important;
+            max-width: 384px !important;
+          }
+        }
+        @media (max-width: 767px) {
+          .content-layout {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 20px !important;
+          }
+          .main-content {
+            width: 100% !important;
+            flex: 1 !important;
+          }
+          .toc-content {
+            width: 100% !important;
+            flex: 1 !important;
+          }
+          .mobile-title {
+            font-size: 1.5rem !important;
+            line-height: 1.3 !important;
+          }
+          .mobile-text {
+            font-size: 14px !important;
+            line-height: 1.5 !important;
+          }
+          .mobile-h3 {
+            font-size: 1.2rem !important;
+            line-height: 1.3 !important;
+          }
+        }
+      `}</style>
+      <div className="fusion-fullwidth fullwidth-box fusion-builder-row-11 fusion-flex-container has-pattern-background has-mask-background nonhundred-percent-fullwidth non-hundred-percent-height-scrolling" 
+           style={{
+             width: '100vw',
+             marginLeft: 'calc(50% - 50vw)',
+             marginRight: 'calc(50% - 50vw)',
+             padding: '60px 0',
+             backgroundColor: '#ffffff'
+           }}>
       <div className="fusion-builder-row fusion-row fusion-flex-align-items-flex-start fusion-flex-justify-content-center fusion-flex-content-wrap" 
            style={{
              maxWidth: '1400px',
@@ -20,9 +64,14 @@ const USSymmetricalContentSection = () => {
              padding: '0 20px'
            }}>
         
-        {/* Main Heading Section - Left Aligned */}
+        {/* Main Heading Section - Centered Block with Left-Aligned Text */}
         <div className="fusion-layout-column fusion_builder_column fusion-builder-column-35 fusion_builder_column_2_3 2_3 fusion-flex-column" 
-             style={{ width: '66.666%', marginBottom: '40px' }}>
+             style={{ 
+               width: '100%', 
+               maxWidth: '800px', 
+               margin: '0 auto 40px auto',
+               padding: '0 20px'
+             }}>
           <div className="fusion-column-wrapper">
             <div className="fusion-text fusion-text-19" style={{ textAlign: 'left' }}>
               <h2 style={{
@@ -57,19 +106,16 @@ const USSymmetricalContentSection = () => {
              padding: '0 0 60px 0',
              backgroundColor: '#ffffff'
            }}>
-        <div className="fusion-builder-row fusion-row fusion-flex-align-items-stretch fusion-flex-justify-content-center fusion-flex-content-wrap" 
+        <div className="fusion-builder-row fusion-row fusion-flex-align-items-stretch fusion-flex-justify-content-center fusion-flex-content-wrap content-layout" 
              style={{
                maxWidth: '1400px',
                margin: '0 auto',
-               padding: '0 20px',
-               display: 'flex',
-               gap: '40px'
+               padding: '0 20px'
              }}>
           
-          {/* Main Content - 2/3 width */}
-          <div className="fusion-layout-column fusion_builder_column fusion-builder-column-36 fusion_builder_column_2_3 2_3 fusion-flex-column" 
+          {/* Main Content - Full width on mobile, 2/3 on desktop */}
+          <div className="fusion-layout-column fusion_builder_column fusion-builder-column-36 fusion_builder_column_2_3 2_3 fusion-flex-column main-content" 
                style={{ 
-                 flex: '2',
                  minHeight: '400px',
                  display: 'flex',
                  flexDirection: 'column'
@@ -331,11 +377,10 @@ const USSymmetricalContentSection = () => {
             </div>
           </div>
 
-          {/* Table of Contents - 1/3 width */}
-          <div className="fusion-layout-column fusion_builder_column fusion-builder-column-37 fusion_builder_column_1_3 1_3 fusion-flex-column" 
+          {/* Table of Contents - Full width on mobile, 1/3 on desktop */}
+          <div className="fusion-layout-column fusion_builder_column fusion-builder-column-37 fusion_builder_column_1_3 1_3 fusion-flex-column toc-content" 
                style={{ 
-                 flex: '1',
-                 minHeight: '400px',
+                 minHeight: 'auto',
                  display: 'flex',
                  flexDirection: 'column'
                }}>
@@ -351,6 +396,7 @@ const USSymmetricalContentSection = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

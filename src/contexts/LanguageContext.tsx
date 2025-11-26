@@ -55,8 +55,10 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
     if (cleanPath === '') cleanPath = '/';
     
     // Don't do anything if we're already on the correct language
-    if ((lang === 'us' && pathname.startsWith('/us/') && !pathname.includes('/us/us')) || 
-        (lang === 'uk' && !pathname.startsWith('/us/'))) {
+    const isCurrentlyUS = pathname.startsWith('/us/') || pathname === '/us';
+    const isCurrentlyUK = !isCurrentlyUS;
+    
+    if ((lang === 'us' && isCurrentlyUS) || (lang === 'uk' && isCurrentlyUK)) {
       return;
     }
     
@@ -73,21 +75,21 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
   const getLocalizedPath = (path: string) => {
     // If path already starts with /us/, return as is for US routes
     if (path.startsWith('/us/')) {
-      return path;
+      return `https://nicotine-pouches.org${path}`;
     }
     
     // If path already starts with / and we're on UK route, return as is
     if (path.startsWith('/') && currentLanguage === 'uk') {
-      return path;
+      return `https://nicotine-pouches.org${path}`;
     }
     
     // Remove leading slash if present
     const cleanPath = path.startsWith('/') ? path.substring(1) : path;
     
     if (currentLanguage === 'us') {
-      return `/us/${cleanPath}`;
+      return `https://nicotine-pouches.org/us/${cleanPath}`;
     } else {
-      return `/${cleanPath}`;
+      return `https://nicotine-pouches.org/${cleanPath}`;
     }
   };
 

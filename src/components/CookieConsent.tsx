@@ -19,8 +19,9 @@ export default function CookieConsent() {
   });
 
   useEffect(() => {
-    // Check if user has already consented
-    const hasConsented = localStorage.getItem('cookie-consent');
+    // Check if user has already consented (check both localStorage and cookies)
+    const hasConsented = localStorage.getItem('cookie-consent') || 
+                        document.cookie.includes('cookie-consent=');
     if (!hasConsented) {
       setShowBanner(true);
     }
@@ -33,7 +34,11 @@ export default function CookieConsent() {
       marketing: true,
       functional: true
     };
-    localStorage.setItem('cookie-consent', JSON.stringify(allAccepted));
+    const consentData = JSON.stringify(allAccepted);
+    localStorage.setItem('cookie-consent', consentData);
+    
+    // Set secure HTTP cookie
+    document.cookie = `cookie-consent=${encodeURIComponent(consentData)}; secure; samesite=lax; path=/; max-age=${60 * 60 * 24 * 365}`;
     setShowBanner(false);
   };
 
@@ -44,7 +49,11 @@ export default function CookieConsent() {
       marketing: false,
       functional: false
     };
-    localStorage.setItem('cookie-consent', JSON.stringify(onlyNecessary));
+    const consentData = JSON.stringify(onlyNecessary);
+    localStorage.setItem('cookie-consent', consentData);
+    
+    // Set secure HTTP cookie
+    document.cookie = `cookie-consent=${encodeURIComponent(consentData)}; secure; samesite=lax; path=/; max-age=${60 * 60 * 24 * 365}`;
     setShowBanner(false);
   };
 
@@ -53,7 +62,11 @@ export default function CookieConsent() {
   };
 
   const handleSavePreferences = () => {
-    localStorage.setItem('cookie-consent', JSON.stringify(preferences));
+    const consentData = JSON.stringify(preferences);
+    localStorage.setItem('cookie-consent', consentData);
+    
+    // Set secure HTTP cookie
+    document.cookie = `cookie-consent=${encodeURIComponent(consentData)}; secure; samesite=lax; path=/; max-age=${60 * 60 * 24 * 365}`;
     setShowBanner(false);
   };
 

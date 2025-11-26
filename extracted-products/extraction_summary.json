@@ -1,0 +1,10 @@
+{
+  "total_products": 711,
+  "products_with_images": 711,
+  "products_without_images": 0,
+  "extraction_date": "2025-09-14T19:07:52.885Z",
+  "output_files": {
+    "json": "/Users/solvifyab/Desktop/NP/nicotine-pouches-nextjs/extracted-products/wordpress_products_data.json",
+    "csv": "/Users/solvifyab/Desktop/NP/nicotine-pouches-nextjs/extracted-products/wordpress_products_data.csv"
+  }
+}

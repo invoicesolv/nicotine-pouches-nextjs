@@ -43,7 +43,6 @@ export default function PackFilter({ stores, onPackSizeChange }: PackFilterProps
         onPackSizeChange(selectedPack);
       }
 
-      // **ADD THESE CALLS**:
       // Update prices for the selected pack size
       if ((window as any).updatePrices) {
         (window as any).updatePrices(selectedPack);

@@ -1,69 +1,94 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import ProductGrid from '@/components/ProductGrid';
+import SSRProductGridWithSidebar from '@/components/SSRProductGridWithSidebar';
+import Link from 'next/link';
+import { Metadata } from 'next';
+import { generateComparePageMeta, pageMetaToMetadata } from '@/lib/meta-generator';
+import './compare-page.css';
 
 export default function ComparePage() {
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Header />
       
-      <main style={{ flex: 1 }}>
-        {/* Breadcrumb */}
-        <div style={{ 
-          backgroundColor: '#f8f9fa',
-          padding: '15px 0',
-          borderBottom: '1px solid #e9ecef'
-        }}>
-          <div style={{ 
-            maxWidth: '1200px',
-            margin: '0 auto',
-            padding: '0 20px',
-            fontSize: '14px',
-            color: '#666'
-          }}>
-            <a href="/" style={{ color: '#666', textDecoration: 'none' }}>Home</a>
-            <span style={{ margin: '0 8px' }}>»</span>
-            <span style={{ color: '#333', fontWeight: '500' }}>Compare Products</span>
-          </div>
-        </div>
+      <div id="boxed-wrapper">
+        <div id="wrapper" className="fusion-wrapper">
+          {/* Header */}
+          <Header />
 
-        {/* Page Header */}
-        <div style={{ 
-          backgroundColor: '#ffffff',
-          padding: '40px 0',
-          borderBottom: '1px solid #e9ecef'
-        }}>
-          <div style={{ 
-            maxWidth: '1200px',
-            margin: '0 auto',
-            padding: '0 20px',
-            textAlign: 'center'
+          {/* Main Content */}
+          <main id="main" className="clearfix" style={{
+            backgroundColor: '#ffffff',
+            minHeight: '100vh',
+            padding: '0',
+            margin: '0',
+            width: '100%'
           }}>
-            <h1 style={{ 
-              fontSize: '32px', 
-              fontWeight: '700', 
-              color: '#333', 
-              marginBottom: '16px'
+            
+            {/* Breadcrumb */}
+            <div style={{
+              backgroundColor: '#f8f9fa',
+              padding: '15px 0',
+              borderBottom: '1px solid #e9ecef'
             }}>
-              Compare Nicotine Pouches
-            </h1>
-            <p style={{ 
-              fontSize: '18px', 
-              color: '#666',
-              maxWidth: '600px',
-              margin: '0 auto',
-              lineHeight: '1.6'
-            }}>
-              Compare different nicotine pouch products side by side. Use the filters to find exactly what you're looking for.
-            </p>
-          </div>
-        </div>
+              <div className="compare-container" style={{
+                maxWidth: '100%',
+                margin: '0',
+                padding: '0 15px',
+                fontSize: '14px',
+                color: '#666'
+              }}>
+                <Link href="/" style={{ color: '#666', textDecoration: 'none' }}>Home</Link>
+                <span style={{ margin: '0 8px' }}>»</span>
+                <span>Compare Nicotine Pouches</span>
+              </div>
+            </div>
 
-        {/* Product Grid - Full Width */}
-        <ProductGrid />
-      </main>
-      
-      <Footer />
+            {/* Page Header */}
+            <div className="page-header" style={{
+              backgroundColor: '#ffffff',
+              padding: '40px 0',
+              borderBottom: '1px solid #e9ecef'
+            }}>
+              <div className="compare-container" style={{
+                maxWidth: '1200px',
+                margin: '0 auto',
+                padding: '0 15px',
+                textAlign: 'center'
+              }}>
+                <h1 style={{
+                  fontSize: '2.5rem',
+                  fontWeight: 'bold',
+                  color: '#333',
+                  margin: '0 0 15px 0'
+                }}>
+                  Compare Nicotine Pouches
+                </h1>
+                <p style={{
+                  fontSize: '18px',
+                  color: '#666',
+                  maxWidth: '600px',
+                  margin: '0 auto',
+                  lineHeight: '1.6'
+                }}>
+                  Find the best prices for nicotine pouches UK from top UK vendors. 
+                  Compare ratings, strengths, and flavors to find your perfect match.
+                </p>
+              </div>
+            </div>
+
+            {/* UK Products Section with Sidebar - Responsive */}
+            <SSRProductGridWithSidebar />
+
+          </main>
+
+        {/* Footer */}
+        <Footer />
+      </div>
     </div>
   );
+}
+
+// Generate metadata for SEO
+export async function generateMetadata(): Promise<Metadata> {
+  const metaData = pageMetaToMetadata(generateComparePageMeta());
+  return metaData;
 }

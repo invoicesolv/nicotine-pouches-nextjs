@@ -1,9 +1,109 @@
+'use client';
+
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export default function NicotinePouchesApi() {
   return (
-    <div id="boxed-wrapper">
+    <>
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .page-main-content {
+            flex-direction: column !important;
+            gap: 30px !important;
+            padding: 40px 0 !important;
+          }
+          .page-sidebar {
+            width: 100% !important;
+            min-width: 100% !important;
+            order: 2 !important;
+          }
+          .page-main-text {
+            width: 100% !important;
+            order: 1 !important;
+          }
+          .page-sidebar h3 {
+            font-size: 20px !important;
+            text-align: center !important;
+            margin-bottom: 20px !important;
+          }
+          .page-sidebar ul {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            gap: 15px !important;
+          }
+          .page-sidebar li {
+            margin-bottom: 0 !important;
+          }
+          .page-sidebar a {
+            padding: 10px 15px !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            background: #f9fafb !important;
+            text-align: center !important;
+            min-width: 120px !important;
+          }
+          .page-main-text h2 {
+            font-size: 28px !important;
+            text-align: center !important;
+            margin-bottom: 20px !important;
+          }
+          .page-main-text h3 {
+            font-size: 20px !important;
+            margin-bottom: 15px !important;
+          }
+          .page-main-text p {
+            font-size: 15px !important;
+            line-height: 1.5 !important;
+            margin-bottom: 20px !important;
+          }
+          .page-main-text ul {
+            padding-left: 15px !important;
+          }
+          .page-main-text li {
+            font-size: 15px !important;
+            margin-bottom: 10px !important;
+          }
+          .newsletter-section h2 {
+            font-size: 24px !important;
+          }
+          .newsletter-section p {
+            font-size: 14px !important;
+          }
+          .newsletter-form {
+            flex-direction: column !important;
+            max-width: 300px !important;
+          }
+          .newsletter-form input {
+            border-radius: 8px !important;
+            margin-bottom: 10px !important;
+          }
+          .newsletter-form button {
+            border-radius: 8px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .page-main-text h2 {
+            font-size: 24px !important;
+          }
+          .page-main-text h3 {
+            font-size: 18px !important;
+          }
+          .page-sidebar h3 {
+            font-size: 18px !important;
+          }
+          .page-sidebar a {
+            font-size: 14px !important;
+            padding: 8px 12px !important;
+            min-width: 100px !important;
+          }
+          .newsletter-section h2 {
+            font-size: 20px !important;
+          }
+        }
+      `}</style>
+      <div id="boxed-wrapper">
       <div id="wrapper" className="fusion-wrapper">
         {/* Header */}
         <Header />
@@ -17,7 +117,7 @@ export default function NicotinePouchesApi() {
                marginLeft: 'calc(50% - 50vw)',
                marginRight: 'calc(50% - 50vw)'
              }}>
-          <div className="fusion-builder-row fusion-row fusion-flex-align-items-flex-start fusion-flex-content-wrap" 
+          <div className="page-main-content fusion-builder-row fusion-row fusion-flex-align-items-flex-start fusion-flex-content-wrap" 
                style={{
                  width: '100%',
                  maxWidth: '1200px',
@@ -28,7 +128,7 @@ export default function NicotinePouchesApi() {
                }}>
             
             {/* Sidebar */}
-            <div className="fusion-layout-column fusion_builder_column fusion_builder_column_1_4 1_4 fusion-flex-column" 
+            <div className="page-sidebar fusion-layout-column fusion_builder_column fusion_builder_column_1_4 1_4 fusion-flex-column" 
                  style={{ width: '25%', minWidth: '250px' }}>
               <div className="fusion-column-wrapper">
                 <div className="fusion-title title fusion-title-1 fusion-sep-none fusion-title-text fusion-title-size-three" 
@@ -130,7 +230,7 @@ export default function NicotinePouchesApi() {
             </div>
 
             {/* Main Content */}
-            <div className="fusion-layout-column fusion_builder_column fusion_builder_column_3_4 3_4 fusion-flex-column" 
+            <div className="page-main-text fusion-layout-column fusion_builder_column fusion_builder_column_3_4 3_4 fusion-flex-column" 
                  style={{ width: '75%' }}>
               <div className="fusion-column-wrapper">
                 <div className="fusion-title title fusion-title-2 fusion-sep-none fusion-title-text fusion-title-size-two" 
@@ -191,88 +291,11 @@ export default function NicotinePouchesApi() {
           </div>
         </div>
 
-        {/* Newsletter Section */}
-        <div className="fusion-fullwidth fullwidth-box fusion-builder-row-2 fusion-flex-container has-pattern-background has-mask-background hundred-percent-fullwidth non-hundred-percent-height-scrolling" 
-             style={{
-               backgroundColor: '#1a1a1a',
-               padding: '60px 0',
-               width: '100vw',
-               marginLeft: 'calc(50% - 50vw)',
-               marginRight: 'calc(50% - 50vw)'
-             }}>
-          <div className="fusion-builder-row fusion-row fusion-flex-align-items-flex-start fusion-flex-justify-content-center fusion-flex-content-wrap" 
-               style={{
-                 width: '100%',
-                 maxWidth: '1200px',
-                 margin: '0 auto',
-                 padding: '0 20px',
-                 textAlign: 'center'
-               }}>
-            <div className="fusion-layout-column fusion_builder_column fusion-builder-column-1 fusion-flex-column" 
-                 style={{ width: '100%' }}>
-              <div className="fusion-column-wrapper">
-                <h2 style={{ 
-                  fontSize: '32px', 
-                  fontWeight: 'bold', 
-                  margin: '0 0 16px 0',
-                  color: 'white'
-                }}>
-                  Subscribe to our newsletter
-                </h2>
-                <p style={{ 
-                  fontSize: '16px', 
-                  color: '#ccc', 
-                  margin: '0 0 32px 0',
-                  maxWidth: '600px',
-                  marginLeft: 'auto',
-                  marginRight: 'auto'
-                }}>
-                  Easily keep up with the latest with Nicotine Pouches. We handpick the best in product news, trends and store deals.
-                </p>
-                
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  alignItems: 'center',
-                  maxWidth: '400px',
-                  margin: '0 auto'
-                }}>
-                  <input 
-                    type="email" 
-                    placeholder="Your email*" 
-                    style={{
-                      flex: 1,
-                      padding: '12px 16px',
-                      border: 'none',
-                      borderRadius: '8px 0 0 8px',
-                      fontSize: '16px',
-                      outline: 'none'
-                    }}
-                  />
-                  <button 
-                    type="submit" 
-                    style={{
-                      padding: '12px 24px',
-                      backgroundColor: '#666',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0 8px 8px 0',
-                      fontSize: '16px',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Submit
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Footer */}
         <Footer />
       </div>
     </div>
+    </>
   );
 }

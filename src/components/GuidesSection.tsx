@@ -69,11 +69,11 @@ const cleanExcerpt = (html: string): string => {
   let cleanedHtml = html
     .replace(/https:\/\/nicotine-pouches\.org\/wp-content\/uploads\/[^"'\s]+/g, (match) => {
       const filename = match.split('/').pop()?.split('?')[0] || '';
-      return `/blog-images/compressed/${filename}`;
+      return `/blog-images/${filename}`;
     })
     .replace(/https:\/\/[^"'\s]*\.(jpg|jpeg|png|gif|webp|avif)(\?[^"'\s]*)?/g, (match) => {
       const filename = match.split('/').pop()?.split('?')[0] || '';
-      return `/blog-images/compressed/${filename}`;
+      return `/blog-images/${filename}`;
     });
 
   return cleanedHtml
@@ -138,13 +138,40 @@ export default function GuidesSection() {
   }
 
   return (
-    <div style={{
-      backgroundColor: '#f8f9fa',
-      padding: '60px 0',
-      width: '100vw',
-      marginLeft: 'calc(50% - 50vw)',
-      marginRight: 'calc(50% - 50vw)'
-    }}>
+    <>
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .guides-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 15px !important;
+            padding: 0 15px !important;
+          }
+          .guides-container {
+            padding: 40px 0 !important;
+          }
+          .guides-title {
+            font-size: 1.8rem !important;
+            margin-bottom: 20px !important;
+          }
+          .guides-subtitle {
+            font-size: 1rem !important;
+            margin-bottom: 30px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .guides-grid {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+          }
+        }
+      `}</style>
+      <div className="guides-container" style={{
+        backgroundColor: '#f8f9fa',
+        padding: '60px 0',
+        width: '100vw',
+        marginLeft: 'calc(50% - 50vw)',
+        marginRight: 'calc(50% - 50vw)'
+      }}>
       <div style={{
         width: '100%',
         padding: '0 40px'
@@ -155,7 +182,7 @@ export default function GuidesSection() {
           textAlign: 'center',
           marginBottom: '50px'
         }}>
-          <h2 style={{
+          <h2 className="guides-title" style={{
             fontSize: '2.5rem',
             fontWeight: 'bold',
             color: '#1a1a1a',
@@ -164,7 +191,7 @@ export default function GuidesSection() {
           }}>
             Latest Guides
           </h2>
-          <p style={{
+          <p className="guides-subtitle" style={{
             fontSize: '1.125rem',
             color: '#666',
             margin: '0 0 30px 0',
@@ -196,7 +223,7 @@ export default function GuidesSection() {
         </div>
 
         {/* Guides Grid - Same as guides page */}
-        <div style={{
+        <div className="guides-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
           gap: '30px',
@@ -210,8 +237,8 @@ export default function GuidesSection() {
               (post.seo_meta?.og_image ? 
                 post.seo_meta.og_image.replace(/https:\/\/nicotine-pouches\.org\/wp-content\/uploads\/[^"'\s]+/, (match) => {
                   const filename = match.split('/').pop()?.split('?')[0] || '';
-                  return `/blog-images/compressed/${filename}`;
-                }) : null) || '/blog-images/compressed/post_28580_What_is_Nicotine_The_Ultimate_Guide.jpg';
+                  return `/blog-images/${filename}`;
+                }) : null) || '/blog-images/post_28580_What_is_Nicotine_The_Ultimate_Guide.jpg';
             
             return (
               <Link 
@@ -292,5 +319,6 @@ export default function GuidesSection() {
         </div>
       </div>
     </div>
+    </>
   );
 }

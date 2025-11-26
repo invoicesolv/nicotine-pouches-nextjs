@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { getLocalImagePath } from '@/utils/imageUtils';
 
 interface USProduct {
   id: number;
@@ -334,7 +335,7 @@ const USProductCard = ({
             background: '#fefefe'
           }}>
               <img 
-                src={product.image_url} 
+                src={getLocalImagePath(product.image_url, product.id, product.name)} 
                 alt={product.name}
                 onError={(e) => {
                   console.log('Image failed to load:', product.image_url);

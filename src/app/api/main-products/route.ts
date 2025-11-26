@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     // Build query with filters
     let query = supabase()
-      .from('products')
+      .from('wp_products')
       .select('*')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     // Get total count for pagination
     let countQuery = supabase()
-      .from('products')
+      .from('wp_products')
       .select('*', { count: 'exact', head: true });
 
     if (search) {

@@ -90,27 +90,41 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
   };
 
   return (
-    <div className="login-modal-overlay" style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 10000
-    }}>
+    <div 
+      className="login-modal-overlay" 
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 999999,
+        padding: '20px',
+        boxSizing: 'border-box',
+        visibility: 'visible',
+        opacity: 1
+      }}>
       <div className="login-modal" style={{
         backgroundColor: 'white',
         borderRadius: '16px',
-        padding: '40px',
+        padding: '30px',
         width: '100%',
         maxWidth: '400px',
-        margin: '20px',
+        maxHeight: '80vh',
+        overflowY: 'auto',
         boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
-        position: 'relative'
+        position: 'relative',
+        boxSizing: 'border-box',
+        margin: 'auto'
       }}>
         {/* Close Button */}
         <button
@@ -133,7 +147,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
         {/* Header */}
         <div style={{ textAlign: 'left', marginBottom: '30px' }}>
           <h2 style={{
-            fontSize: '28px',
+            fontSize: '24px',
             fontWeight: '600',
             color: '#1f2937',
             margin: '0 0 8px 0',
@@ -144,7 +158,8 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
           <p style={{
             fontSize: '14px',
             color: '#6b7280',
-            margin: 0
+            margin: 0,
+            lineHeight: '1.4'
           }}>
             Log in to track your alerts, or create an account and become a member today.
           </p>
@@ -165,7 +180,8 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justifyContent: 'center',
+            gap: '12px',
             marginBottom: '20px',
             transition: 'all 0.2s ease',
             fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif'
@@ -179,32 +195,13 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
             e.currentTarget.style.backgroundColor = 'white';
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              backgroundColor: '#8b5cf6',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: 'bold',
-              fontSize: '16px'
-            }}>
-              K
-            </div>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '14px', fontWeight: '500' }}>Continue as Kevin</div>
-              <div style={{ fontSize: '12px', color: '#6b7280' }}>kevin@solvify.se</div>
-            </div>
-          </div>
           <Image
             src="/google-logo.svg"
             alt="Google"
             width={20}
             height={20}
           />
+          <span>Continue with Google</span>
         </button>
 
         {/* Divider */}
@@ -411,6 +408,48 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
           </p>
         </div>
       </div>
+      
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .login-modal-overlay {
+            padding: 20px !important;
+            align-items: center !important;
+            justify-content: center !important;
+          }
+          
+          .login-modal {
+            padding: 20px !important;
+            max-height: 70vh !important;
+            margin: auto !important;
+            width: calc(100% - 40px) !important;
+          }
+          
+          .login-modal h2 {
+            font-size: 20px !important;
+          }
+          
+          .login-modal input {
+            font-size: 16px !important;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .login-modal-overlay {
+            padding: 15px !important;
+          }
+          
+          .login-modal {
+            padding: 15px !important;
+            border-radius: 12px !important;
+            max-height: 75vh !important;
+            width: calc(100% - 30px) !important;
+          }
+          
+          .login-modal h2 {
+            font-size: 18px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };
