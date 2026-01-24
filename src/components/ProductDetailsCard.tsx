@@ -13,7 +13,7 @@ interface ProductDetailsCardProps {
       variants?: Array<{
         prices: Record<string, string>;
       }>;
-      prices?: Record<string, string>; // For US stores
+      prices?: Record<string, string>;
     }>;
   };
 }
@@ -22,29 +22,23 @@ const ProductDetailsCard: React.FC<ProductDetailsCardProps> = ({ product }) => {
   const calculatePriceRange = () => {
     const prices = product.stores
       .flatMap((store) => {
-        // Handle both UK (with variants) and US (without variants) data structures
         if (store.variants && store.variants.length > 0) {
-          // UK structure: store has variants
           return store.variants.map((variant) => {
-            const priceStr = variant.prices?.['1pack'] || 'N/A';
-            if (priceStr === 'N/A') return null;
-            return parseFloat(priceStr.replace(/[£$]/g, ''));
+            const priceStr = variant.prices?.['1pack'];
+            if (!priceStr || priceStr === '' || priceStr === 'N/A' || priceStr === null) return null;
+            const num = parseFloat(priceStr.replace(/[£$]/g, ''));
+            return isNaN(num) || num <= 0 ? null : num;
           });
         } else {
-          // US structure: store has direct prices
-          const priceStr = store.prices?.['1pack'] || 'N/A';
-          if (priceStr === 'N/A') return null;
-          return [parseFloat(priceStr.replace(/[£$]/g, ''))];
+          const priceStr = store.prices?.['1pack'];
+          if (!priceStr || priceStr === '' || priceStr === 'N/A' || priceStr === null) return null;
+          const num = parseFloat(priceStr.replace(/[£$]/g, ''));
+          return isNaN(num) || num <= 0 ? null : [num];
         }
       })
       .filter((price): price is number => price !== null);
-    
-    if (prices.length === 0) return 'N/A';
-    if (prices.length === 1) {
-      const currency = product.stores[0]?.prices?.['1pack']?.includes('$') ? '$' : '£';
-      return `${currency}${prices[0]?.toFixed(2) || '0.00'}`;
-    }
-    
+
+    if (prices.length === 0) return null;
     const min = Math.min(...prices);
     const max = Math.max(...prices);
     const currency = product.stores[0]?.prices?.['1pack']?.includes('$') ? '$' : '£';
@@ -55,210 +49,94 @@ const ProductDetailsCard: React.FC<ProductDetailsCardProps> = ({ product }) => {
     return text.replace(/<[^>]*>/g, '').replace(/\\n/g, '').trim();
   };
 
+  const priceRange = calculatePriceRange();
+
+  const DetailRow = ({ label, value, isLast = false }: { label: string; value: string; isLast?: boolean }) => (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '8px 0',
+      borderBottom: isLast ? 'none' : '1px solid #f3f4f6'
+    }}>
+      <span style={{
+        fontSize: '12px',
+        color: '#6b7280',
+        fontWeight: '500'
+      }}>
+        {label}
+      </span>
+      <span style={{
+        fontSize: '12px',
+        color: '#1f2544',
+        fontWeight: '600'
+      }}>
+        {value}
+      </span>
+    </div>
+  );
+
   return (
     <div style={{
-      background: 'transparent',
-      borderRadius: '0',
-      padding: '0',
-      boxShadow: 'none',
-      border: 'none',
-      position: 'static',
-      maxWidth: '100%'
+      background: 'white',
+      borderRadius: '10px',
+      padding: '12px',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+      border: '1px solid #e5e7eb',
+      fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
     }}>
-      <div style={{ marginBottom: '1rem' }}>
-        <h3 style={{
-          fontSize: '1.125rem',
-          fontWeight: '700',
-          color: '#0f172a',
-          letterSpacing: '-0.025em',
-          margin: '0'
-        }}>
-          Product Details
-        </h3>
+      {/* Header */}
+      <h3 style={{
+        fontSize: '13px',
+        fontWeight: '700',
+        color: '#1f2544',
+        margin: '0 0 2px 0',
+        letterSpacing: '-0.2px'
+      }}>
+        Product Details
+      </h3>
+
+      {/* Details List */}
+      <div>
+        <DetailRow label="Brand" value={product.brand} />
+        <DetailRow label="Flavour" value={product.flavour} />
+        {product.strength_group && (
+          <DetailRow label="Strength" value={product.strength_group} />
+        )}
+        {product.format && (
+          <DetailRow label="Format" value={product.format} />
+        )}
+        <DetailRow
+          label="Available From"
+          value={`${product.stores.length} vendor${product.stores.length !== 1 ? 's' : ''}`}
+          isLast={!priceRange}
+        />
+        {priceRange && (
+          <DetailRow label="Price (1 Pack)" value={priceRange} isLast />
+        )}
       </div>
-      
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {/* Product Name - Full Width */}
-        <div style={{
-          padding: '0.75rem',
-          backgroundColor: '#f8fafc',
-          borderRadius: '6px',
-          border: '1px solid #e2e8f0'
-        }}>
-          <label style={{
-            fontSize: '0.65rem',
-            fontWeight: '600',
-            color: '#64748b',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            display: 'block',
-            marginBottom: '0.25rem'
-          }}>
-            Product Name
-          </label>
-          <div style={{
-            fontSize: '1rem',
-            fontWeight: '700',
-            color: '#0f172a',
-            lineHeight: '1.2',
-            margin: '0'
-          }}>
-            {product.name}
-          </div>
-        </div>
 
-        {/* Brand & Flavour - Side by Side */}
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+      {/* Description */}
+      {product.description && cleanDescription(product.description) && (
+        <div style={{ paddingTop: '8px' }}>
           <div style={{
-            flex: '1',
-            padding: '0.75rem',
-            backgroundColor: '#f8fafc',
-            borderRadius: '6px',
-            border: '1px solid #e2e8f0'
-          }}>
-            <label style={{
-              fontSize: '0.65rem',
-              fontWeight: '600',
-              color: '#64748b',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              display: 'block',
-              marginBottom: '0.25rem'
-            }}>
-              Brand
-            </label>
-            <div style={{
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              color: '#0f172a',
-              lineHeight: '1.2',
-              margin: '0'
-            }}>
-              {product.brand}
-            </div>
-          </div>
-          
-          <div style={{
-            flex: '1',
-            padding: '0.75rem',
-            backgroundColor: '#f8fafc',
-            borderRadius: '6px',
-            border: '1px solid #e2e8f0'
-          }}>
-            <label style={{
-              fontSize: '0.65rem',
-              fontWeight: '600',
-              color: '#64748b',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              display: 'block',
-              marginBottom: '0.25rem'
-            }}>
-              Flavour
-            </label>
-            <div style={{
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              color: '#0f172a',
-              lineHeight: '1.2',
-              margin: '0'
-            }}>
-              {product.flavour}
-            </div>
-          </div>
-        </div>
-
-        {/* Available Vendors & Price Range - Side by Side */}
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <div style={{
-            flex: '1',
-            padding: '0.75rem',
-            backgroundColor: '#f0f9ff',
-            borderRadius: '6px',
-            border: '1px solid #bae6fd'
-          }}>
-            <label style={{
-              fontSize: '0.65rem',
-              fontWeight: '600',
-              color: '#0369a1',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              display: 'block',
-              marginBottom: '0.25rem'
-            }}>
-              Available From
-            </label>
-            <div style={{
-              fontSize: '1rem',
-              fontWeight: '700',
-              color: '#0c4a6e',
-              lineHeight: '1.2',
-              margin: '0'
-            }}>
-              {product.stores.length} vendor{product.stores.length !== 1 ? 's' : ''}
-            </div>
-          </div>
-          
-          <div style={{
-            flex: '1',
-            padding: '0.75rem',
-            backgroundColor: '#f0fdf4',
-            borderRadius: '6px',
-            border: '1px solid #bbf7d0'
-          }}>
-            <label style={{
-              fontSize: '0.65rem',
-              fontWeight: '600',
-              color: '#166534',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              display: 'block',
-              marginBottom: '0.25rem'
-            }}>
-              Price Range (1 Pack)
-            </label>
-            <div style={{
-              fontSize: '1rem',
-              fontWeight: '700',
-              color: '#14532d',
-              lineHeight: '1.2',
-              margin: '0'
-            }}>
-              {calculatePriceRange()}
-            </div>
-          </div>
-        </div>
-
-        {/* Description - Full Width */}
-        <div style={{
-          padding: '0.75rem',
-          backgroundColor: '#fefce8',
-          borderRadius: '6px',
-          border: '1px solid #fde047',
-          borderLeft: '3px solid #eab308'
-        }}>
-          <label style={{
-            fontSize: '0.65rem',
-            fontWeight: '600',
-            color: '#a16207',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            display: 'block',
-            marginBottom: '0.5rem'
+            fontSize: '12px',
+            color: '#6b7280',
+            fontWeight: '500',
+            marginBottom: '4px'
           }}>
             Description
-          </label>
-          <div style={{
-            fontSize: '0.85rem',
-            fontWeight: '500',
-            color: '#451a03',
-            lineHeight: '1.4',
-            margin: '0'
-          }}>
-            {cleanDescription(product.description || '')}
           </div>
+          <p style={{
+            fontSize: '12px',
+            color: '#4b5563',
+            lineHeight: '1.5',
+            margin: 0
+          }}>
+            {cleanDescription(product.description)}
+          </p>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -59,15 +59,18 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
       try {
         setLoading(true);
         
-        // Fetch products and extract brands from names
+        // Fetch products with actual brand and flavour columns
         const { data: productData } = await supabase()
           .from('wp_products')
-          .select('name')
+          .select('name, brand, flavour')
           .not('name', 'is', null);
         
+        // Use actual brand column with fallback to name parsing
         const brandCounts = (productData || []).reduce((acc: Record<string, number>, item: any) => {
-          const brand = item.name.split(' ')[0];
-          acc[brand] = (acc[brand] || 0) + 1;
+          const brand = item.brand || item.name.split(' ')[0]; // Fallback to name parsing
+          if (brand && brand.trim()) {
+            acc[brand] = (acc[brand] || 0) + 1;
+          }
           return acc;
         }, {});
         
@@ -75,9 +78,9 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
           .map(([name, count]) => ({ name, count: count as number }))
           .sort((a, b) => b.count - a.count);
 
-        // Extract flavours from product names (everything after first word)
+        // Use actual flavour column with fallback to name parsing
         const flavourCounts = (productData || []).reduce((acc: Record<string, number>, item: any) => {
-          const flavour = item.name.split(' ').slice(1).join(' ');
+          const flavour = item.flavour || item.name.split(' ').slice(1).join(' '); // Fallback
           if (flavour && flavour.trim()) {
             acc[flavour] = (acc[flavour] || 0) + 1;
           }

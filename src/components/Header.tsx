@@ -8,6 +8,7 @@ import MegaMenu from './MegaMenu';
 import USMegaMenu from './USMegaMenu';
 import LiveSearch from './LiveSearch';
 import LoginModal from './LoginModal';
+import ClientPriceAlertModal from './ClientPriceAlertModal';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -17,7 +18,22 @@ const Header = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
-  const { user, signOut, loginModalTrigger } = useAuth();
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+  
+  // Safely get auth context - handle case where AuthProvider might not be available
+  let user = null;
+  let signOut = async () => {};
+  let loginModalTrigger = 0;
+  try {
+    const auth = useAuth();
+    user = auth.user;
+    signOut = auth.signOut;
+    loginModalTrigger = auth.loginModalTrigger;
+  } catch (error) {
+    // AuthProvider not available, use defaults
+    console.warn('AuthProvider not available in Header');
+  }
+  
   const { getLocalizedPath, isUSRoute } = useLanguage();
   const pathname = usePathname();
   
@@ -101,6 +117,15 @@ const Header = () => {
             justify-content: space-between !important;
             padding: 10px 15px !important;
             flex-wrap: nowrap !important;
+            width: 100% !important;
+            maxWidth: none !important;
+            margin: 0 !important;
+          }
+          .header-inner {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           .mobile-left {
             flex: 0 0 auto !important;
@@ -109,12 +134,19 @@ const Header = () => {
             flex: 1 !important;
             display: flex !important;
             justify-content: center !important;
+            align-items: center !important;
+          }
+          .mobile-center img {
+            max-height: 40px !important;
+            width: auto !important;
           }
           .mobile-right {
             flex: 0 0 auto !important;
           }
           .logo-container {
             flex: none !important;
+            position: static !important;
+            transform: none !important;
           }
           .logo-container img {
             max-height: 40px !important;
@@ -130,6 +162,18 @@ const Header = () => {
             display: block !important;
           }
         }
+        .header-container {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100% !important;
+        }
+        .header-inner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+        }
         @media (min-width: 769px) {
           .mobile-nav {
             display: none !important;
@@ -140,30 +184,39 @@ const Header = () => {
           .mobile-search {
             display: none !important;
           }
+          .header-container {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .header-inner {
+            width: calc(100% - 80px) !important;
+            max-width: 1400px !important;
+            margin: 0 auto !important;
+            padding-left: 0px !important;
+            padding-right: 0px !important;
+            position: relative;
+          }
+          .logo-container {
+            position: static;
+            transform: none;
+          }
         }
       `}</style>
       <div className="fusion-tb-header" style={{ width: '100vw' }}>
-        <header className="fusion-fullwidth fullwidth-box fusion-builder-row-1 fusion-flex-container has-pattern-background has-mask-background my-sticky-header hundred-percent-fullwidth non-hundred-percent-height-scrolling" 
-                style={{ 
-                  width: '100vw', 
+        <header className="fusion-fullwidth fullwidth-box fusion-builder-row-1 fusion-flex-container has-pattern-background has-mask-background my-sticky-header hundred-percent-fullwidth non-hundred-percent-height-scrolling"
+                style={{
+                  width: '100vw',
                   backgroundColor: 'white',
-                  padding: '15px 0',
-                  borderBottom: '1px solid #f0f0f0',
+                  padding: '12px 0',
                   marginLeft: 'calc(50% - 50vw)',
                   marginRight: 'calc(50% - 50vw)',
                   position: 'relative',
                   zIndex: 1000
                 }}>
-        <div className="fusion-builder-row fusion-row fusion-flex-align-items-center fusion-flex-justify-content-space-between fusion-flex-content-wrap header-container" 
-             style={{
-               width: '100%',
-               maxWidth: 'none',
-               margin: '0',
-               padding: '0 60px',
-               display: 'flex',
-               alignItems: 'center',
-               justifyContent: 'space-between'
-             }}>
+        <div className="fusion-builder-row fusion-row fusion-flex-align-items-center fusion-flex-justify-content-space-between fusion-flex-content-wrap header-container">
+          <div className="header-inner" style={{ position: 'relative', width: '100%' }}>
           
           {/* Mobile Left - Hamburger Menu */}
           <div className="mobile-left mobile-nav">
@@ -206,8 +259,8 @@ const Header = () => {
             </button>
           </div>
 
-          {/* Logo - Center on mobile, left on desktop */}
-          <div className="logo-container mobile-center" style={{ flex: '0 0 auto' }}>
+          {/* Mobile Logo - Center on mobile */}
+          <div className="mobile-center mobile-nav" style={{ flex: '1', display: 'flex', justifyContent: 'center' }}>
             <Link href={isUSRoute ? "/us" : "/"} aria-label="logo">
               <Image
                 src="/product-images/us/logo-1.png"
@@ -221,208 +274,267 @@ const Header = () => {
             </Link>
           </div>
 
-          {/* Desktop Live Search Bar - Hidden on homepage */}
-          {!isHomepage && (
-            <div className="search-container desktop-nav" style={{ flex: '1 1 auto', maxWidth: '400px', margin: '0 30px' }}>
-              <LiveSearch />
+          {/* Left Section: Logo + Navigation Links */}
+          <div className="desktop-nav" style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Logo */}
+            <div className="logo-container" style={{ flex: '0 0 auto', marginRight: '20px' }}>
+              <Link href={isUSRoute ? "/us" : "/"} aria-label="logo" style={{ display: 'flex', alignItems: 'center' }}>
+                <Image
+                  src="/product-images/us/logo-1.png"
+                  alt="Nicotine Pouches Logo"
+                  width={220}
+                  height={50}
+                  className="img-responsive"
+                  priority
+                  style={{ height: 'auto', width: 'auto', maxHeight: '45px' }}
+                />
+              </Link>
             </div>
-          )}
 
-          {/* Mobile Search Bar - Hidden on homepage */}
-          {!isHomepage && (
-            <div className="mobile-search">
-              <LiveSearch />
-            </div>
-          )}
-
-          {/* Desktop Navigation */}
-          <div className="desktop-nav" style={{ flex: '0 0 auto', margin: '0 20px' }}>
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-              <div style={{ marginRight: '15px' }}>
+            {/* Desktop Navigation Links */}
+            <nav style={{ display: 'flex', alignItems: 'center', gap: '0' }}>
+              <div>
                 {isUSRoute ? <USMegaMenu /> : <MegaMenu />}
               </div>
-              
-              {!isUSRoute && (
-                <Link href={getLocalizedPath('/guides')} style={{
-                  color: '#333',
-                  textDecoration: 'none',
-                  fontSize: '16px',
-                  fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
-                  fontWeight: '500',
-                  padding: '10px 15px',
-                  borderRadius: '8px',
-                  transition: 'all 0.3s ease'
-                }}>
-                  Guides
-                </Link>
-              )}
-              
-              <Link href={getLocalizedPath('/how-to-use')} style={{
-                color: '#333',
+
+              <Link href={getLocalizedPath('/guides')} style={{
+                color: '#1f2544',
                 textDecoration: 'none',
-                fontSize: '16px',
-                fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
-                fontWeight: '500',
-                padding: '10px 15px',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
+                fontSize: '15px',
+                fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+                fontWeight: '600',
+                padding: '8px 16px',
+                transition: 'all 0.2s ease'
+              }}>
+                Guides
+              </Link>
+
+              <Link href={getLocalizedPath('/how-to-use')} style={{
+                color: '#1f2544',
+                textDecoration: 'none',
+                fontSize: '15px',
+                fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+                fontWeight: '600',
+                padding: '8px 16px',
+                transition: 'all 0.2s ease'
               }}>
                 How to use
               </Link>
-              
-              <Link href="/compare" style={{
-                color: '#FD8E98',
+
+              <Link href={getLocalizedPath('/compare')} style={{
+                color: '#1f2544',
                 textDecoration: 'none',
-                fontSize: '16px',
-                fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
-                fontWeight: '500',
-                padding: '10px 15px',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
+                fontSize: '15px',
+                fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+                fontWeight: '600',
+                padding: '8px 16px',
+                transition: 'all 0.2s ease'
               }}>
                 Compare
               </Link>
-              
+
               <Link href={getLocalizedPath('/about-us')} style={{
-                color: '#333',
+                color: '#1f2544',
                 textDecoration: 'none',
-                fontSize: '16px',
-                fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
-                fontWeight: '500',
-                padding: '10px 15px',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
+                fontSize: '15px',
+                fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+                fontWeight: '600',
+                padding: '8px 16px',
+                transition: 'all 0.2s ease'
               }}>
                 About us
               </Link>
-              
-              {/* Language Switcher */}
-              <LanguageSwitcher />
             </nav>
           </div>
 
-
-            {/* Mobile Right - Search Icon */}
-            <div className="mobile-right mobile-nav">
+          {/* Right Section: Country Switcher + Sign In Button */}
+          <div className="desktop-nav" style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Country Dropdown */}
+            <div style={{ position: 'relative' }}>
               <button
-                onClick={toggleSearch}
+                onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
                 style={{
-                  background: 'transparent',
-                  border: 'none',
-                  padding: '8px',
-                  cursor: 'pointer',
-                  color: '#333',
-                  fontSize: '20px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  gap: '6px',
+                  padding: '8px 12px',
+                  backgroundColor: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+                  color: '#1f2544',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
                 }}
-                aria-label="Search"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <path d="m21 21-4.35-4.35"></path>
+                <span style={{ fontSize: '16px' }}>{isUSRoute ? '🇺🇸' : '🇬🇧'}</span>
+                <span>{isUSRoute ? 'US' : 'UK'}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: isCountryDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+                  <path d="m6 9 6 6 6-6"/>
                 </svg>
               </button>
+
+              {isCountryDropdownOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: '0',
+                  marginTop: '4px',
+                  backgroundColor: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  overflow: 'hidden',
+                  zIndex: 1000,
+                  minWidth: '140px'
+                }}>
+                  <Link
+                    href="/"
+                    onClick={() => setIsCountryDropdownOpen(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '10px 14px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      color: !isUSRoute ? '#1f2544' : '#6b7280',
+                      backgroundColor: !isUSRoute ? '#f3f4f6' : '#fff',
+                      textDecoration: 'none',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                  >
+                    <span style={{ fontSize: '18px' }}>🇬🇧</span>
+                    <span>United Kingdom</span>
+                  </Link>
+                  <Link
+                    href="/us"
+                    onClick={() => setIsCountryDropdownOpen(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '10px 14px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+                      color: isUSRoute ? '#1f2544' : '#6b7280',
+                      backgroundColor: isUSRoute ? '#f3f4f6' : '#fff',
+                      textDecoration: 'none',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                  >
+                    <span style={{ fontSize: '18px' }}>🇺🇸</span>
+                    <span>United States</span>
+                  </Link>
+                </div>
+              )}
             </div>
 
-            {/* Desktop User Actions */}
-            <div className="desktop-nav" style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: '15px' }}>
-              {user ? (
-                // User is logged in
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Link 
-                    href="/dashboard"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 12px',
-                      backgroundColor: '#f3f4f6',
-                      borderRadius: '20px',
-                      fontSize: '14px',
-                      color: '#374151',
-                      textDecoration: 'none',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease'
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = '#e5e7eb';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f3f4f6';
-                    }}
-                  >
-                    <div style={{
-                      width: '24px',
-                      height: '24px',
-                      backgroundColor: '#8b5cf6',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontWeight: 'bold',
-                      fontSize: '12px'
-                    }}>
-                      {user.user_metadata?.name?.charAt(0) || user.email?.charAt(0) || 'U'}
-                    </div>
-                    <span>{user.user_metadata?.name || user.email}</span>
-                  </Link>
-                  <button 
-                    onClick={signOut}
-                    style={{
-                      background: 'transparent',
-                      border: '2px solid #dc2626',
-                      color: '#dc2626',
-                      padding: '8px 16px',
-                      borderRadius: '20px',
-                      fontSize: '14px',
-                      fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease'
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = '#dc2626';
-                      e.currentTarget.style.color = 'white';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.color = '#dc2626';
-                    }}
-                  >
-                    Logout
-                  </button>
-                </div>
+            {user ? (
+              // User is logged in
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Link
+                  href="/dashboard"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 16px',
+                    backgroundColor: 'transparent',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '100px',
+                    fontSize: '14px',
+                    color: '#1f2544',
+                    textDecoration: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+                    fontWeight: '500'
+                  }}
+                >
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    backgroundColor: '#8b5cf6',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    fontSize: '11px'
+                  }}>
+                    {user.user_metadata?.name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                  </div>
+                  <span>Account</span>
+                </Link>
+                <button
+                  onClick={signOut}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid #e5e7eb',
+                    color: '#1f2544',
+                    padding: '10px 20px',
+                    borderRadius: '100px',
+                    fontSize: '14px',
+                    fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
             ) : (
               // User is not logged in
-              <button 
+              <button
                 onClick={openLoginModal}
                 style={{
                   background: 'transparent',
-                  border: '2px solid #198fd9',
-                  color: '#198fd9',
-                  padding: '8px 20px',
-                  borderRadius: '20px',
+                  border: '1px solid #e5e7eb',
+                  color: '#1f2544',
+                  padding: '10px 20px',
+                  borderRadius: '100px',
                   fontSize: '14px',
-                  fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                  fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
                   fontWeight: '500',
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = '#198fd9';
-                  e.currentTarget.style.color = 'white';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = '#198fd9';
+                  transition: 'all 0.2s ease'
                 }}
               >
-                Login
+                Sign in
               </button>
             )}
+          </div>
+
+          {/* Mobile Right - Search Icon */}
+          <div className="mobile-right mobile-nav">
+            <button
+              onClick={toggleSearch}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: '8px',
+                cursor: 'pointer',
+                color: '#333',
+                fontSize: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              aria-label="Search"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+            </button>
+          </div>
           </div>
         </div>
 
@@ -447,32 +559,30 @@ const Header = () => {
 
               {/* Mobile Navigation Links */}
               <nav style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
-                {!isUSRoute && (
-                  <Link 
-                    href={getLocalizedPath('/guides')} 
-                    onClick={() => setIsMenuOpen(false)}
-                    style={{
-                      color: '#333',
-                      textDecoration: 'none',
-                      fontSize: '18px',
-                      fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
-                      fontWeight: '500',
-                      padding: '12px 0',
-                      borderBottom: '1px solid #f0f0f0'
-                    }}
-                  >
-                    Guides
-                  </Link>
-                )}
-                
-                <Link 
-                  href={getLocalizedPath('/how-to-use')} 
+                <Link
+                  href={getLocalizedPath('/guides')}
                   onClick={() => setIsMenuOpen(false)}
                   style={{
                     color: '#333',
                     textDecoration: 'none',
                     fontSize: '18px',
-                    fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                    fontWeight: '500',
+                    padding: '12px 0',
+                    borderBottom: '1px solid #f0f0f0'
+                  }}
+                >
+                  Guides
+                </Link>
+
+                <Link
+                  href={getLocalizedPath('/how-to-use')}
+                  onClick={() => setIsMenuOpen(false)}
+                  style={{
+                    color: '#333',
+                    textDecoration: 'none',
+                    fontSize: '18px',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     fontWeight: '500',
                     padding: '12px 0',
                     borderBottom: '1px solid #f0f0f0'
@@ -480,15 +590,15 @@ const Header = () => {
                 >
                   How to use
                 </Link>
-                
-                <Link 
-                  href="/compare" 
+
+                <Link
+                  href={getLocalizedPath('/compare')}
                   onClick={() => setIsMenuOpen(false)}
                   style={{
-                    color: '#FD8E98',
+                    color: '#333',
                     textDecoration: 'none',
                     fontSize: '18px',
-                    fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     fontWeight: '500',
                     padding: '12px 0',
                     borderBottom: '1px solid #f0f0f0'
@@ -496,15 +606,15 @@ const Header = () => {
                 >
                   Compare
                 </Link>
-                
-                <Link 
-                  href={getLocalizedPath('/about-us')} 
+
+                <Link
+                  href={getLocalizedPath('/about-us')}
                   onClick={() => setIsMenuOpen(false)}
                   style={{
                     color: '#333',
                     textDecoration: 'none',
                     fontSize: '18px',
-                    fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     fontWeight: '500',
                     padding: '12px 0',
                     borderBottom: '1px solid #f0f0f0'
@@ -600,7 +710,7 @@ const Header = () => {
                       width: '100%'
                     }}
                   >
-                    Login
+                    Sign in
                   </button>
                 )}
               </div>
@@ -717,11 +827,14 @@ const Header = () => {
       )}
       
       {/* Login Modal */}
-      <LoginModal 
-        isOpen={isLoginModalOpen} 
+      <LoginModal
+        isOpen={isLoginModalOpen}
         onClose={closeLoginModal}
         onLoginSuccess={handleLoginSuccess}
       />
+
+      {/* Price Alert Modal - Site-wide */}
+      <ClientPriceAlertModal />
       </div>
     </>
   );

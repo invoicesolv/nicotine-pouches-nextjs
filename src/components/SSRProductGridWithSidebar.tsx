@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-// import ProductButtonScript from './ProductButtonScript';
-// import ClientPriceAlertModal from './ClientPriceAlertModal';
-// import FilterHandler from './FilterHandler';
+import FilterHandler from './FilterHandler';
+import ProductCardWithDropdown from './ProductCardWithDropdown';
+import FilterSidebarClient from './FilterSidebarClient';
+
+const PRODUCTS_PER_PAGE = 48;
 
 interface Product {
   id: number;
@@ -18,16 +20,31 @@ interface Product {
   link: string;
 }
 
+interface Filters {
+  brand: string;
+  vendor: string;
+  flavour: string;
+  strength: string;
+  minPrice: string;
+  maxPrice: string;
+  format: string;
+}
+
 interface SSRProductGridProps {
   brandFilter?: string;
   vendorFilter?: string;
   isUSRoute?: boolean;
+  currentPage?: number;
+  filters?: Filters;
 }
 
-const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute = false }: SSRProductGridProps) => {
+const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute = false, currentPage = 1, filters }: SSRProductGridProps) => {
+  const activeFilters = filters || { brand: '', vendor: '', flavour: '', strength: '', minPrice: '', maxPrice: '', format: '' };
+  const offset = (currentPage - 1) * PRODUCTS_PER_PAGE;
   // Fetch products on the server
   let products: Product[] = [];
-  
+  let totalProducts = 0;
+
   // Fetch sidebar data on the server
   let sidebarData = {
     brands: [] as { name: string; count: number }[],
@@ -76,19 +93,53 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
       }
     } else {
       // For brand filtering or no filter, get products directly
+      let countQuery = supabase().from('wp_products').select('*', { count: 'exact', head: true });
       let query = supabase().from('wp_products').select('*');
-      
-      // Apply brand filter if provided (extract brand from name)
+
+      // Apply filters from URL params
+      if (activeFilters.brand) {
+        countQuery = countQuery.ilike('name', `${activeFilters.brand}%`);
+        query = query.ilike('name', `${activeFilters.brand}%`);
+      }
+      if (activeFilters.flavour) {
+        countQuery = countQuery.ilike('name', `%${activeFilters.flavour}%`);
+        query = query.ilike('name', `%${activeFilters.flavour}%`);
+      }
+      if (activeFilters.strength) {
+        countQuery = countQuery.eq('strength_group', activeFilters.strength);
+        query = query.eq('strength_group', activeFilters.strength);
+      }
+      if (activeFilters.format) {
+        countQuery = countQuery.eq('format', activeFilters.format);
+        query = query.eq('format', activeFilters.format);
+      }
+      if (activeFilters.minPrice) {
+        countQuery = countQuery.gte('price', parseFloat(activeFilters.minPrice));
+        query = query.gte('price', parseFloat(activeFilters.minPrice));
+      }
+      if (activeFilters.maxPrice) {
+        countQuery = countQuery.lte('price', parseFloat(activeFilters.maxPrice));
+        query = query.lte('price', parseFloat(activeFilters.maxPrice));
+      }
+
+      // Legacy brand filter support
       if (brandFilter) {
+        countQuery = countQuery.ilike('name', `${brandFilter}%`);
         query = query.ilike('name', `${brandFilter}%`);
       }
-      
-      const { data: productData, error } = await query;
-      
+
+      // Get total count
+      const { count } = await countQuery;
+      totalProducts = count || 0;
+
+      // Get paginated results
+      const { data: productData, error } = await query
+        .range(offset, offset + PRODUCTS_PER_PAGE - 1);
+
       if (error) {
         throw error;
       }
-      
+
       data = Array.isArray(productData) ? productData : [];
     }
 
@@ -160,8 +211,7 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
       
       sidebarData.brands = Object.entries(brandCounts)
         .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 20);
+        .sort((a, b) => b.count - a.count);
 
       // Fetch flavours with counts - extract from product names
       const flavourCounts: Record<string, number> = {};
@@ -174,8 +224,7 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
       
       sidebarData.flavours = Object.entries(flavourCounts)
         .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 20);
+        .sort((a, b) => b.count - a.count);
 
       // Use default strengths since wp_products doesn't have strength data
       const totalProducts = productDataForSidebar?.length || 0;
@@ -227,306 +276,33 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
     console.error('Error fetching products:', error);
   }
 
-  const getStrengthColor = (strength: string) => {
-    switch (strength) {
-      case 'Normal':
-        return { bg: '#E6FFE6', color: '#228B22' };
-      case 'Strong':
-        return { bg: '#FFF2CC', color: '#D6B656' };
-      case 'Extra Strong':
-        return { bg: '#FFE6E6', color: '#D63384' };
-      default:
-        return { bg: '#E6FFE6', color: '#228B22' };
-    }
-  };
-
-  const renderProductCard = (product: Product) => {
-    const strengthStyle = getStrengthColor(product.strength);
-    
-    return (
-      <div key={product.id} className="swiper-slide" style={{ 
-        width: '100%',
-        minWidth: '0',
-        flex: 'none',
-        marginRight: '0',
-        opacity: '1',
-        visibility: 'visible',
-        transform: 'none',
-        boxSizing: 'border-box',
-        overflow: 'hidden'
-      }}>
-        <div className="product-card" 
-             data-product-id={product.id}
-             style={{
-               position: 'relative',
-               background: 'transparent',
-               backgroundColor: 'transparent',
-               borderRadius: '0',
-               overflow: 'visible',
-               transition: 'transform 0.2s',
-               height: '100%',
-               display: 'flex',
-               flexDirection: 'column',
-               padding: '0',
-               boxShadow: 'none',
-               width: '100%',
-               cursor: 'pointer',
-               margin: '0',
-               minHeight: '200px',
-               opacity: '1',
-               visibility: 'visible'
-             }}>
-          
-          {/* Watching Badge */}
-          <div className="watching-badge" style={{
-            position: 'absolute',
-            top: '10px',
-            left: '10px',
-            background: '#e5ff7d',
-            padding: '3px 8px',
-            borderRadius: '100px',
-            fontSize: '11px',
-            fontFamily: '"Klarna 600", system-ui, -apple-system, sans-serif',
-            fontWeight: '600',
-            color: 'rgba(0, 0, 0, 0.9)',
-            zIndex: 2,
-            letterSpacing: '-0.1px',
-            whiteSpace: 'nowrap',
-            lineHeight: '1.4'
-          }}>
-            {product.watching}+ watching
-          </div>
-          
-          {/* Button Group */}
-          <div className="button-group" style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            display: 'flex',
-            gap: '8px',
-            zIndex: 100
-          }}>
-            <div className="alert-button">
-              <button className="price-alert-toggle" 
-                      data-product-id={product.id}
-                      data-nonce="0510cae8a4"
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        background: 'transparent',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '50%',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '8px',
-                        transition: 'all 0.2s ease',
-                        margin: '0'
-                      }}>
-                <svg xmlns="https://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-              </button>
-            </div>
-
-            <div className="favorite-button">
-              <button className="wishlist-toggle" 
-                      data-product-id={product.id}
-                      data-nonce="0510cae8a4"
-                      data-is-in-wishlist="false"
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        background: 'transparent',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '50%',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '8px',
-                        transition: 'all 0.2s ease',
-                        margin: '0'
-                      }}>
-                <svg viewBox="0 0 24 24" xmlns="https://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-          
-          <Link href={product.link} className="product-link" style={{ 
-            position: 'relative',
-            zIndex: 1,
-            textDecoration: 'none',
-            color: 'inherit',
-            display: 'block',
-            pointerEvents: 'auto'
-          }}>
-            <div className="product-image" style={{
-              width: '100%',
-              paddingBottom: '60%',
-              position: 'relative',
-              marginBottom: '8px',
-              borderRadius: '12px',
-              overflow: 'hidden',
-              background: '#fefefe',
-              border: '1px solid #e0e0e0'
-            }}>
-              <img 
-                src={product.image} 
-                alt={product.name}
-                style={{
-                  position: 'absolute',
-                  top: '0',
-                  left: '0',
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                  padding: '12px',
-                  margin: '0',
-                  border: 'none',
-                  borderRadius: '0',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <div className="product-details" style={{ 
-              padding: '4px',
-              flexGrow: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              margin: '0',
-              background: 'transparent',
-              border: 'none'
-            }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '8px',
-                    flexWrap: 'wrap'
-                  }}>
-                    <h2 className="product-title" style={{
-                      fontSize: '14px',
-                      fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
-                      fontWeight: '500',
-                      color: '#000',
-                      margin: '0',
-                      lineHeight: '1.3',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      lineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      boxOrient: 'vertical',
-                      overflow: 'hidden',
-                      maxHeight: '2.6em',
-                      letterSpacing: '-0.2px',
-                      padding: '0',
-                      textAlign: 'left',
-                      flex: '1',
-                      minWidth: '0'
-                    }}>
-                      {product.name}
-                    </h2>
-
-                    <span className="product-strength-label" 
-                          style={{
-                            backgroundColor: strengthStyle.bg,
-                            color: strengthStyle.color,
-                            padding: '2px 6px',
-                            borderRadius: '12px',
-                            fontSize: '10px',
-                            fontFamily: '"Klarna 600", system-ui, -apple-system, sans-serif',
-                            fontWeight: '600',
-                            display: 'inline-block',
-                            whiteSpace: 'nowrap',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px'
-                          }}>
-                      {product.strength}
-                    </span>
-                  </div>
-
-              <div className="rating-price-container" style={{
-                marginTop: 'auto',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '4px'
-              }}>
-                <div className="product-price" style={{
-                  fontSize: '14px',
-                  fontFamily: '"Klarna 600", system-ui, -apple-system, sans-serif',
-                  fontWeight: '600',
-                  color: '#000',
-                  letterSpacing: '-0.2px',
-                  margin: '0',
-                  padding: '0',
-                  lineHeight: '1'
-                }}>
-                  {product.price}
-                </div>
-              </div>
-
-              <div className="store-count" style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px',
-                fontSize: '10px',
-                fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
-                color: '#666',
-                marginTop: '4px',
-                letterSpacing: '-0.2px',
-                lineHeight: '1'
-              }}>
-                <span className="store-count-badge" style={{
-                  fontWeight: '500',
-                  color: '#666'
-                }}>
-                  {product.stores}
-                </span>
-                <span className="store-count-text" style={{ color: '#666' }}>stores</span>
-              </div>
-            </div>
-          </Link>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <>
       {/* <ProductButtonScript />
       <ClientPriceAlertModal /> */}
-      {/* <FilterHandler /> */}
+      <FilterHandler />
       <style dangerouslySetInnerHTML={{
         __html: `
           /* Fix the main layout */
           .product-grid-container {
             display: flex !important;
-            align-items: flex-start !important;
+            align-items: stretch !important;
             gap: 10px !important;
             min-height: auto !important;
             height: auto !important;
           }
-          
+
           .sidebar-mobile {
             flex-shrink: 0 !important;
-            align-self: flex-start !important;
-            height: fit-content !important;
-            max-height: 80vh !important;
+            align-self: stretch !important;
+            min-height: 100% !important;
             overflow-y: auto !important;
           }
-          
+
           .products-mobile {
             flex-shrink: 0 !important;
-            align-self: flex-start !important;
-            height: fit-content !important;
+            align-self: stretch !important;
+            min-height: 100% !important;
             margin-top: 0 !important;
             padding-top: 0 !important;
           }
@@ -547,7 +323,7 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
           /* Fix product grid layout when products are hidden */
           .products-grid-mobile {
             display: grid !important;
-            grid-template-columns: repeat(4, 1fr) !important;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 170px)) !important;
             gap: 8px !important;
             width: 100% !important;
             align-items: start !important;
@@ -592,11 +368,11 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
               width: 80% !important;
             }
             .products-grid-mobile {
-              grid-template-columns: repeat(5, 1fr) !important;
+              grid-template-columns: repeat(auto-fill, minmax(150px, 170px)) !important;
               gap: 12px !important;
             }
           }
-          
+
           /* Desktop (1200px - 1399px) */
           @media (min-width: 1200px) and (max-width: 1399px) {
             .sidebar-mobile {
@@ -607,11 +383,11 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
               width: 78% !important;
             }
             .products-grid-mobile {
-              grid-template-columns: repeat(4, 1fr) !important;
+              grid-template-columns: repeat(auto-fill, minmax(150px, 170px)) !important;
               gap: 10px !important;
             }
           }
-          
+
           /* Small Desktop (1024px - 1199px) */
           @media (min-width: 1024px) and (max-width: 1199px) {
             .sidebar-mobile {
@@ -622,11 +398,11 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
               width: 75% !important;
             }
             .products-grid-mobile {
-              grid-template-columns: repeat(3, 1fr) !important;
+              grid-template-columns: repeat(auto-fill, minmax(150px, 170px)) !important;
               gap: 10px !important;
             }
           }
-          
+
           /* Tablet (768px - 1023px) */
           @media (min-width: 768px) and (max-width: 1023px) {
             .sidebar-mobile {
@@ -637,7 +413,7 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
               width: 70% !important;
             }
             .products-grid-mobile {
-              grid-template-columns: repeat(3, 1fr) !important;
+              grid-template-columns: repeat(auto-fill, minmax(140px, 160px)) !important;
               gap: 8px !important;
             }
           }
@@ -727,13 +503,18 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
               padding: 10px !important;
             }
           }
+          
+          /* Show More Button Hover Effect */
+          #show-more-brands:hover {
+            color: #1d4ed8 !important;
+          }
         `
       }} />
       
              <div className="product-grid-container" style={{
                display: 'flex',
                gap: '10px',
-               alignItems: 'flex-start',
+               alignItems: 'stretch',
                width: '100%',
                minHeight: '600px',
                backgroundColor: '#f4f5f9',
@@ -741,645 +522,13 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
                margin: '0',
                position: 'relative'
              }}>
-        
-        {/* Sidebar */}
-        <div className="sidebar-mobile" style={{
-          width: '280px',
-          backgroundColor: '#fff',
-          padding: '0',
-          borderRadius: '0',
-          boxShadow: 'none',
-          height: 'fit-content',
-          maxHeight: '80vh',
-          overflowY: 'auto',
-          position: 'sticky',
-          top: '20px',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-          flexShrink: 0
-        }}>
-          
-          {/* Brands Section */}
-          <div style={{ padding: '15px 0', borderBottom: '1px solid #e5e7eb' }}>
-            <div style={{
-              textAlign: 'left',
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#333',
-              marginBottom: '12px',
-              padding: '0 12px',
-              width: 'calc(100% - 24px)',
-              margin: '0 auto 12px auto'
-            }}>
-              Brands
-            </div>
-            
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              marginBottom: '12px',
-              padding: '8px 12px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '12px',
-              border: '1px solid #e5e7eb',
-              margin: '0 auto 12px auto',
-              width: 'calc(100% - 24px)'
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.35-4.35"/>
-              </svg>
-              <input
-                type="text"
-                placeholder="Find brand"
-                style={{
-                  border: 'none',
-                  outline: 'none',
-                  backgroundColor: 'transparent',
-                  width: '100%',
-                  fontSize: '14px',
-                  color: '#333'
-                }}
-              />
-            </div>
-            
-            {sidebarData.brands.slice(0, 8).map((brand, index) => (
-              <label key={index} style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                margin: '0 auto',
-                width: 'calc(100% - 24px)',
-                cursor: 'pointer',
-                fontSize: '14px',
-                color: '#333'
-              }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="checkbox"
-                      name={`brand-${brand.name}`}
-                      value={brand.name}
-                      style={{ 
-                        margin: '0',
-                        width: '16px',
-                        height: '16px',
-                        accentColor: '#1e40af'
-                      }}
-                    />
-                    <span>{brand.name}</span>
-                  </div>
-                <span style={{ 
-                  fontSize: '12px', 
-                  color: '#666',
-                  fontWeight: '500'
-                }}>
-                  {brand.count}
-                </span>
-              </label>
-            ))}
-          </div>
 
-          {/* Vendors Section */}
-          <div style={{ padding: '15px 0', borderBottom: '1px solid #e5e7eb' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '8px 12px',
-              margin: '0 auto',
-              width: 'calc(100% - 24px)',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#333',
-              position: 'relative'
-            }}>
-              <span>Vendors</span>
-              <span style={{ 
-                fontSize: '14px',
-                transform: 'rotate(180deg)',
-                transition: 'transform 0.2s ease'
-              }}>
-                ▲
-              </span>
-            </div>
-            
-            <div style={{ marginTop: '8px' }}>
-              {sidebarData.vendors.map((vendor, index) => (
-                <label key={index} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 12px',
-                  margin: '0 auto',
-                  width: 'calc(100% - 24px)',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  color: '#333',
-                  transition: 'background-color 0.2s ease'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="checkbox"
-                      name={`vendor-${vendor.name}`}
-                      value={vendor.name}
-                      style={{ 
-                        margin: '0',
-                        width: '16px',
-                        height: '16px',
-                        accentColor: '#1e40af'
-                      }}
-                    />
-                    <span>{vendor.name}</span>
-                  </div>
-                  <span style={{ 
-                    fontSize: '12px', 
-                    color: '#666',
-                    fontWeight: '500'
-                  }}>
-                    {vendor.count}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Flavours Section */}
-          <div style={{ padding: '15px 0', borderBottom: '1px solid #e5e7eb' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '8px 12px',
-              margin: '0 auto',
-              width: 'calc(100% - 24px)',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#333',
-              position: 'relative'
-            }}>
-              <span>Flavours</span>
-              <span style={{ 
-                fontSize: '14px',
-                transform: 'rotate(180deg)',
-                transition: 'transform 0.2s ease'
-              }}>
-                ▲
-              </span>
-            </div>
-            
-            <div style={{ marginTop: '8px' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: '12px',
-                padding: '8px 12px',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '12px',
-                border: '1px solid #e5e7eb',
-                margin: '0 auto 12px auto',
-                width: 'calc(100% - 24px)'
-              }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
-                  <circle cx="11" cy="11" r="8"/>
-                  <path d="m21 21-4.35-4.35"/>
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Find flavour"
-                  style={{
-                    border: 'none',
-                    outline: 'none',
-                    backgroundColor: 'transparent',
-                    width: '100%',
-                    fontSize: '14px',
-                    color: '#333'
-                  }}
-                />
-              </div>
-              
-              {sidebarData.flavours.slice(0, 6).map((flavour, index) => (
-                <label key={index} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 12px',
-                  margin: '0 auto',
-                  width: 'calc(100% - 24px)',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  color: '#333'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="checkbox"
-                      name={`flavour-${flavour.name}`}
-                      value={flavour.name}
-                      style={{ 
-                        margin: '0',
-                        width: '16px',
-                        height: '16px',
-                        accentColor: '#1e40af'
-                      }}
-                    />
-                    <span>{flavour.name}</span>
-                  </div>
-                  <span style={{ 
-                    fontSize: '12px', 
-                    color: '#666',
-                    fontWeight: '500'
-                  }}>
-                    {flavour.count}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Strength Section */}
-          <div style={{ padding: '15px 0', borderBottom: '1px solid #e5e7eb' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '8px 12px',
-              margin: '0 auto',
-              width: 'calc(100% - 24px)',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#333',
-              position: 'relative'
-            }}>
-              <span>Strength</span>
-              <span style={{ 
-                fontSize: '14px',
-                transform: 'rotate(180deg)',
-                transition: 'transform 0.2s ease'
-              }}>
-                ▲
-              </span>
-            </div>
-            
-            <div style={{ marginTop: '12px' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: '12px',
-                padding: '8px 12px',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '12px',
-                border: '1px solid #e5e7eb',
-                margin: '0 auto 12px auto',
-                width: 'calc(100% - 24px)'
-              }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
-                  <circle cx="11" cy="11" r="8"/>
-                  <path d="m21 21-4.35-4.35"/>
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Find strength"
-                  style={{
-                    border: 'none',
-                    outline: 'none',
-                    backgroundColor: 'transparent',
-                    width: '100%',
-                    fontSize: '14px',
-                    color: '#333'
-                  }}
-                />
-              </div>
-              
-              {sidebarData.strengths.map((strength, index) => (
-                <label key={index} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 12px',
-                  margin: '0 auto',
-                  width: 'calc(100% - 24px)',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  color: '#333'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="radio"
-                      name="strength"
-                      value={strength.name}
-                      style={{ 
-                        margin: '0',
-                        width: '16px',
-                        height: '16px',
-                        accentColor: '#1e40af'
-                      }}
-                    />
-                    <span>{strength.name}</span>
-                  </div>
-                  <span style={{ 
-                    fontSize: '12px', 
-                    color: '#666',
-                    fontWeight: '500'
-                  }}>
-                    {strength.count}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Price Section */}
-          <div style={{ padding: '15px 0', borderBottom: '1px solid #e5e7eb' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '8px 12px',
-              margin: '0 auto',
-              width: 'calc(100% - 24px)',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#333',
-              position: 'relative'
-            }}>
-              <span>Price</span>
-              <span style={{ 
-                fontSize: '14px',
-                transform: 'rotate(180deg)',
-                transition: 'transform 0.2s ease'
-              }}>
-                ▲
-              </span>
-            </div>
-            
-            <div style={{ marginTop: '12px' }}>
-              {/* Range Slider with Histogram */}
-              <div style={{ marginBottom: '16px', width: 'calc(100% - 24px)', margin: '0 auto 16px auto' }}>
-                <div style={{
-                  height: '20px',
-                  backgroundColor: '#f3f4f6',
-                  borderRadius: '10px',
-                  position: 'relative',
-                  marginBottom: '8px'
-                }}>
-                  {/* Histogram bars */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '0',
-                    right: '0',
-                    height: '4px',
-                    backgroundColor: '#d1d5db',
-                    borderRadius: '2px',
-                    transform: 'translateY(-50%)'
-                  }} />
-                  {/* Histogram bars representing price distribution */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '2px',
-                    left: '10%',
-                    width: '8px',
-                    height: '16px',
-                    backgroundColor: '#1e40af',
-                    borderRadius: '1px'
-                  }} />
-                  <div style={{
-                    position: 'absolute',
-                    top: '4px',
-                    left: '20%',
-                    width: '8px',
-                    height: '12px',
-                    backgroundColor: '#1e40af',
-                    borderRadius: '1px'
-                  }} />
-                  <div style={{
-                    position: 'absolute',
-                    top: '2px',
-                    left: '30%',
-                    width: '8px',
-                    height: '16px',
-                    backgroundColor: '#1e40af',
-                    borderRadius: '1px'
-                  }} />
-                  <div style={{
-                    position: 'absolute',
-                    top: '6px',
-                    left: '40%',
-                    width: '8px',
-                    height: '8px',
-                    backgroundColor: '#1e40af',
-                    borderRadius: '1px'
-                  }} />
-                </div>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '12px',
-                  color: '#666'
-                }}>
-                  <span>£0</span>
-                  <span>£15</span>
-                </div>
-              </div>
-              
-              {/* Price Input Fields */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '16px',
-                width: 'calc(100% - 24px)',
-                margin: '0 auto 16px auto'
-              }}>
-                <input
-                  type="number"
-                  name="price-min"
-                  placeholder="Min"
-                  style={{
-                    width: '60px',
-                    padding: '6px 8px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                />
-                <span style={{ color: '#666' }}>-</span>
-                <input
-                  type="number"
-                  name="price-max"
-                  placeholder="Max"
-                  style={{
-                    width: '60px',
-                    padding: '6px 8px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-              
-              {/* Predefined Price Ranges */}
-              {[
-                { name: 'Up to £3', count: 45 },
-                { name: '£3 - £5', count: 78 },
-                { name: '£5 - £8', count: 92 },
-                { name: 'At least £8', count: 34 }
-              ].map((range, index) => (
-                <label key={index} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 12px',
-                  margin: '0 auto',
-                  width: 'calc(100% - 24px)',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  color: '#333'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="radio"
-                      name="price"
-                      style={{ 
-                        margin: '0',
-                        width: '16px',
-                        height: '16px',
-                        accentColor: '#1e40af'
-                      }}
-                    />
-                    <span>{range.name}</span>
-                  </div>
-                  <span style={{ 
-                    fontSize: '12px', 
-                    color: '#666',
-                    fontWeight: '500'
-                  }}>
-                    {range.count}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Format Section */}
-          <div style={{ padding: '15px 0', borderBottom: '1px solid #e5e7eb' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '8px 12px',
-              margin: '0 auto',
-              width: 'calc(100% - 24px)',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#333',
-              position: 'relative'
-            }}>
-              <span>Format</span>
-              <span style={{ 
-                fontSize: '14px',
-                transform: 'rotate(180deg)',
-                transition: 'transform 0.2s ease'
-              }}>
-                ▲
-              </span>
-            </div>
-            
-            <div style={{ marginTop: '12px' }}>
-              {sidebarData.formats.map((format, index) => (
-                <label key={index} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 12px',
-                  margin: '0 auto',
-                  width: 'calc(100% - 24px)',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  color: '#333'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="checkbox"
-                      name={`format-${format.name}`}
-                      value={format.name}
-                      style={{ 
-                        margin: '0',
-                        width: '16px',
-                        height: '16px',
-                        accentColor: '#1e40af'
-                      }}
-                    />
-                    <span>{format.name}</span>
-                  </div>
-                  <span style={{ 
-                    fontSize: '12px', 
-                    color: '#666',
-                    fontWeight: '500'
-                  }}>
-                    {format.count}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Rating Section */}
-          <div style={{ padding: '15px 0', borderBottom: '1px solid #e5e7eb' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '8px 12px',
-              margin: '0 auto',
-              width: 'calc(100% - 24px)',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#333',
-              position: 'relative'
-            }}>
-              <span>Rating</span>
-              <span style={{ 
-                fontSize: '14px',
-                transform: 'rotate(0deg)',
-                transition: 'transform 0.2s ease'
-              }}>
-                ▼
-              </span>
-            </div>
-          </div>
-
-          {/* On Sale Section */}
-          <div style={{ padding: '15px 0' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '8px 12px',
-              margin: '0 auto',
-              width: 'calc(100% - 24px)',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#333',
-              position: 'relative'
-            }}>
-              <span>On Sale</span>
-              <span style={{ 
-                fontSize: '14px',
-                transform: 'rotate(0deg)',
-                transition: 'transform 0.2s ease'
-              }}>
-                ▼
-              </span>
-            </div>
-          </div>
-        </div>
+        {/* Client-Side Filter Sidebar */}
+        <FilterSidebarClient
+          sidebarData={sidebarData}
+          basePath="/compare"
+          activeFilters={activeFilters}
+        />
 
         {/* Products Section - 82% of space on desktop, full width on mobile */}
         <div className="products-mobile" style={{
@@ -1412,7 +561,7 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
           {/* Products Grid */}
           <div className="products-grid-mobile swiper-wrapper" style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 170px))',
             gap: '8px',
             width: '100%'
           }}>
@@ -1421,9 +570,133 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
                 <div style={{ fontSize: '18px', color: '#666' }}>No products found</div>
               </div>
             ) : (
-              products.map(renderProductCard)
+              products.map((product) => (
+                <ProductCardWithDropdown key={product.id} product={product} />
+              ))
             )}
           </div>
+
+          {/* Pagination */}
+          {totalProducts > PRODUCTS_PER_PAGE && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '8px',
+              marginTop: '32px',
+              marginBottom: '20px',
+              flexWrap: 'wrap'
+            }}>
+              {currentPage > 1 && (
+                <Link
+                  href={`/compare?page=${currentPage - 1}`}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: '#fff',
+                    color: '#374151',
+                    textDecoration: 'none',
+                    fontSize: '14px',
+                    fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  ← Previous
+                </Link>
+              )}
+
+              {(() => {
+                const totalPages = Math.ceil(totalProducts / PRODUCTS_PER_PAGE);
+                const pages = [];
+                const maxVisible = 5;
+                let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                let end = Math.min(totalPages, start + maxVisible - 1);
+                if (end - start + 1 < maxVisible) {
+                  start = Math.max(1, end - maxVisible + 1);
+                }
+
+                if (start > 1) {
+                  pages.push(
+                    <Link key={1} href="/compare?page=1" style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: '#fff',
+                      color: '#374151',
+                      textDecoration: 'none',
+                      fontSize: '14px',
+                      fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
+                    }}>1</Link>
+                  );
+                  if (start > 2) {
+                    pages.push(<span key="start-dots" style={{ color: '#9ca3af' }}>...</span>);
+                  }
+                }
+
+                for (let i = start; i <= end; i++) {
+                  pages.push(
+                    <Link
+                      key={i}
+                      href={`/compare?page=${i}`}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: currentPage === i ? '2px solid #1f2544' : '1px solid #e5e7eb',
+                        backgroundColor: currentPage === i ? '#1f2544' : '#fff',
+                        color: currentPage === i ? '#fff' : '#374151',
+                        textDecoration: 'none',
+                        fontSize: '14px',
+                        fontWeight: currentPage === i ? '600' : '400',
+                        fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
+                      }}
+                    >
+                      {i}
+                    </Link>
+                  );
+                }
+
+                if (end < totalPages) {
+                  if (end < totalPages - 1) {
+                    pages.push(<span key="end-dots" style={{ color: '#9ca3af' }}>...</span>);
+                  }
+                  pages.push(
+                    <Link key={totalPages} href={`/compare?page=${totalPages}`} style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: '#fff',
+                      color: '#374151',
+                      textDecoration: 'none',
+                      fontSize: '14px',
+                      fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
+                    }}>{totalPages}</Link>
+                  );
+                }
+
+                return pages;
+              })()}
+
+              {currentPage < Math.ceil(totalProducts / PRODUCTS_PER_PAGE) && (
+                <Link
+                  href={`/compare?page=${currentPage + 1}`}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: '#fff',
+                    color: '#374151',
+                    textDecoration: 'none',
+                    fontSize: '14px',
+                    fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Next →
+                </Link>
+              )}
+            </div>
+          )}
         </div>
     </div>
     </>

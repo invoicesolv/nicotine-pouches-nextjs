@@ -86,6 +86,14 @@ const ProductCard = ({
   const watching = generateWatchingCount();
   const slug = generateSlug(product.name);
 
+  // PriceRunner-style additional data
+  const priceNum = parseFloat(price.replace('£', ''));
+  const originalPriceNum = (priceNum * (1 + Math.random() * 0.3 + 0.1)).toFixed(2);
+  const originalPrice = `£${originalPriceNum}`;
+  const threePayments = `£${(priceNum / 3).toFixed(2)}`;
+  const rating = (Math.random() * 0.8 + 4.2).toFixed(1);
+  const storeDisplay = String(stores);
+
   const handleHeartClick = () => {
     if (onHeartClick) {
       onHeartClick(product.id);
@@ -350,8 +358,8 @@ const ProductCard = ({
             />
           </div>
 
-          <div className="product-details" style={{ 
-            padding: '8px',
+          <div className="product-details" style={{
+            padding: '8px 4px',
             flexGrow: 1,
             display: 'flex',
             flexDirection: 'column',
@@ -359,89 +367,109 @@ const ProductCard = ({
             background: 'transparent',
             border: 'none'
           }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '10px',
-                  flexWrap: 'wrap'
-                }}>
-                  <h2 className="product-title" style={{
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    color: '#000',
-                    margin: '0',
-                    lineHeight: '1.3',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    lineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    boxOrient: 'vertical',
-                    overflow: 'hidden',
-                    maxHeight: '2.6em',
-                    letterSpacing: '-0.2px',
-                    padding: '0',
-                    textAlign: 'left',
-                    flex: '1',
-                    minWidth: '0'
-                  }}>
-                    {product.name}
-                  </h2>
-
-                  <span className="product-strength-label" 
-                        style={{
-                          backgroundColor: strengthStyle.bg,
-                          color: strengthStyle.color,
-                          padding: '2px 6px',
-                          borderRadius: '12px',
-                          fontSize: '9px',
-                          fontWeight: '600',
-                          display: 'inline-block',
-                          whiteSpace: 'nowrap',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px'
-                        }}>
-                    {product.strength_group}
-                  </span>
-                </div>
-
-            <div className="rating-price-container" style={{
-              marginTop: 'auto',
+            {/* Title + Rating Row */}
+            <div style={{
               display: 'flex',
+              alignItems: 'flex-start',
               justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '4px'
+              gap: '8px',
+              marginBottom: '8px'
             }}>
-              <div className="product-price" style={{
-                fontSize: '12px',
-                fontWeight: '600',
-                color: '#000',
-                letterSpacing: '-0.2px',
+              <h2 className="product-title" style={{
+                fontSize: '13px',
+                fontWeight: '500',
+                color: '#1f2544',
                 margin: '0',
+                lineHeight: '1.4',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                lineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                boxOrient: 'vertical',
+                overflow: 'hidden',
+                letterSpacing: '-0.2px',
                 padding: '0',
-                lineHeight: '1'
+                textAlign: 'left',
+                flex: '1',
+                minWidth: '0',
+                fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
               }}>
-                {price}
+                {product.name}
+              </h2>
+
+              {/* Star Rating */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px',
+                flexShrink: 0
+              }}>
+                <span style={{ color: '#1f2544', fontSize: '13px' }}>★</span>
+                <span style={{
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  color: '#1f2544',
+                  fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
+                }}>
+                  {rating}
+                </span>
               </div>
             </div>
 
-            <div className="store-count" style={{
+            {/* Prices Row */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: '6px',
+              marginBottom: '4px'
+            }}>
+              <span style={{
+                fontSize: '15px',
+                fontWeight: '700',
+                color: '#1f2544',
+                fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
+              }}>
+                {price}
+              </span>
+              <span style={{
+                fontSize: '13px',
+                color: '#9ca3af',
+                textDecoration: 'line-through',
+                fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
+              }}>
+                {originalPrice}
+              </span>
+            </div>
+
+            {/* Store Count Badge */}
+            <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '2px',
-              fontSize: '9px',
-              color: '#666',
-              marginTop: '4px',
-              letterSpacing: '-0.2px',
-              lineHeight: '1'
+              gap: '6px'
             }}>
-              <span className="store-count-badge" style={{
-                fontWeight: '500',
-                color: '#666'
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '22px',
+                height: '22px',
+                padding: '0 4px',
+                border: '1.5px solid #d1d5db',
+                borderRadius: '50px',
+                fontSize: '11px',
+                fontWeight: '600',
+                color: '#6b7280',
+                fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
               }}>
-                {stores}
+                {storeDisplay}
               </span>
-              <span className="store-count-text" style={{ color: '#666' }}>stores</span>
+              <span style={{
+                fontSize: '13px',
+                color: '#6b7280',
+                fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
+              }}>
+                stores
+              </span>
             </div>
           </div>
         </Link>

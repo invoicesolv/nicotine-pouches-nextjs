@@ -119,10 +119,7 @@ const USMegaMenu = () => {
     setActiveCategory(null);
   };
 
-  const activeCategoryData = categories.find(cat => cat.id === activeCategory);
-  
-  console.log('Active category:', activeCategory);
-  console.log('Active category data:', activeCategoryData);
+  const activeCategoryData = activeCategory ? categories.find(cat => cat.id === activeCategory) : undefined;
 
   return (
     <>
@@ -188,17 +185,17 @@ const USMegaMenu = () => {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
-          padding: '12px 16px',
+          gap: '6px',
+          padding: '8px 16px',
           backgroundColor: 'transparent',
           border: 'none',
           borderRadius: '8px',
-          fontSize: '16px',
-          fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
-          fontWeight: '500',
-          color: '#333',
+          fontSize: '15px',
+          fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+          fontWeight: '600',
+          color: '#1f2544',
           cursor: 'pointer',
-          transition: 'all 0.3s ease',
+          transition: 'all 0.2s ease',
           position: 'relative'
         }}
       >

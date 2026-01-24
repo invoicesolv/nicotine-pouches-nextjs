@@ -4,6 +4,19 @@ import SSRUSProductGridWithSidebar from '@/components/SSRUSProductGridWithSideba
 import Link from 'next/link';
 import { Metadata } from 'next';
 
+interface PageProps {
+  searchParams: Promise<{
+    page?: string;
+    brand?: string;
+    vendor?: string;
+    flavour?: string;
+    strength?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    format?: string;
+  }>;
+}
+
 // Generate metadata for SEO
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -38,15 +51,27 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: {
       canonical: 'https://nicotine-pouches.org/us/compare',
       languages: {
-        'en-US': 'https://nicotine-pouches.org/us/compare',
         'en-GB': 'https://nicotine-pouches.org/compare',
+        'en-US': 'https://nicotine-pouches.org/us/compare',
         'x-default': 'https://nicotine-pouches.org/us/compare',
       },
     },
   };
 }
 
-export default function USComparePage() {
+export default async function USComparePage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const currentPage = parseInt(params.page || '1', 10);
+  const filters = {
+    brand: params.brand || '',
+    vendor: params.vendor || '',
+    flavour: params.flavour || '',
+    strength: params.strength || '',
+    minPrice: params.minPrice || '',
+    maxPrice: params.maxPrice || '',
+    format: params.format || ''
+  };
+
   return (
     <div id="boxed-wrapper">
       <div id="wrapper" className="fusion-wrapper">
@@ -115,12 +140,12 @@ export default function USComparePage() {
 
 
           {/* US Products Section with Sidebar */}
-          <SSRUSProductGridWithSidebar />
+          <SSRUSProductGridWithSidebar currentPage={currentPage} filters={filters} />
 
         </main>
 
         {/* Footer */}
-        <Footer />
+        <Footer showBrandsLink={false} isUSRoute={true} />
       </div>
     </div>
   );

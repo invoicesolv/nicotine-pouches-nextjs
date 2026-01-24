@@ -6,7 +6,31 @@ import { Metadata } from 'next';
 import { generateComparePageMeta, pageMetaToMetadata } from '@/lib/meta-generator';
 import './compare-page.css';
 
-export default function ComparePage() {
+interface PageProps {
+  searchParams: Promise<{
+    page?: string;
+    brand?: string;
+    vendor?: string;
+    flavour?: string;
+    strength?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    format?: string;
+  }>;
+}
+
+export default async function ComparePage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const currentPage = parseInt(params.page || '1', 10);
+  const filters = {
+    brand: params.brand || '',
+    vendor: params.vendor || '',
+    flavour: params.flavour || '',
+    strength: params.strength || '',
+    minPrice: params.minPrice || '',
+    maxPrice: params.maxPrice || '',
+    format: params.format || ''
+  };
   return (
       
       <div id="boxed-wrapper">
@@ -76,7 +100,7 @@ export default function ComparePage() {
             </div>
 
             {/* UK Products Section with Sidebar - Responsive */}
-            <SSRProductGridWithSidebar />
+            <SSRProductGridWithSidebar currentPage={currentPage} filters={filters} />
 
           </main>
 

@@ -1,6 +1,6 @@
 import Header from '@/components/Header';
 import HomepageGrid from '@/components/HomepageGrid';
-import USProductSection from '@/components/USProductSection';
+import USDynamicProductSections from '@/components/USDynamicProductSections';
 import USSymmetricalContentSection from '@/components/USSymmetricalContentSection';
 import Footer from '@/components/Footer';
 import FAQSchema from '@/components/FAQSchema';
@@ -63,13 +63,13 @@ export default function USHome() {
         <HomepageGrid />
         
         {/* US Product Section */}
-        <USProductSection />
+        <USDynamicProductSections />
 
         {/* US Symmetrical Content Section with TOC */}
         <USSymmetricalContentSection />
 
         {/* Footer */}
-        <Footer />
+        <Footer showBrandsLink={false} isUSRoute={true} />
         
         {/* FAQ Schema */}
         <FAQSchema />

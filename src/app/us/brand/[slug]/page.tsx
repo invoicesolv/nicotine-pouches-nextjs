@@ -10,15 +10,40 @@ import { generateBrandHreflang, generateSafeHreflang } from '@/lib/hreflang';
 import './brand-page.css';
 
 // Fetch brand data from Supabase
-async function getBrandData(slug: string) {
+async function getBrandData(slug: string): Promise<{ brandName: string; totalProducts: number } | null> {
   try {
-    const brandName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    // First, get all unique brands to find the exact match
+    const { data: allBrands } = await supabase()
+      .from('us_products')
+      .select('brand')
+      .not('brand', 'is', null);
     
-    // Get all products for this brand (filter by name starting with brand)
+    // Convert slug to search terms
+    const slugLower = slug.toLowerCase();
+    
+    // Find matching brand (case-insensitive, handle variations)
+    const brandNames: string[] = (allBrands || [])
+      .map((b: any) => b.brand)
+      .filter((brand: any): brand is string => typeof brand === 'string' && brand !== 'UNKNOWN');
+    const uniqueBrands = Array.from(new Set(brandNames));
+    const matchingBrand: string | undefined = uniqueBrands.find((brand: string) => {
+      if (!brand) return false;
+      const brandLower = brand.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const slugNormalized = slugLower.replace(/[^a-z0-9]/g, '');
+      return brandLower === slugNormalized || 
+             brand.toLowerCase() === slugLower ||
+             brand.toLowerCase().replace(/[^a-z0-9]/g, '') === slugNormalized;
+    });
+    
+    if (!matchingBrand) {
+      return null;
+    }
+    
+    // Get all products for this brand
     const { data: products, error } = await supabase()
       .from('us_products')
       .select('*')
-      .ilike('product_title', `${brandName}%`)
+      .eq('brand', matchingBrand)
       .not('image_url', 'is', null)
       .order('product_title');
 
@@ -32,7 +57,7 @@ async function getBrandData(slug: string) {
     }
 
     return {
-      brandName: brandName,
+      brandName: matchingBrand,
       totalProducts: products.length
     };
   } catch (error) {
@@ -48,6 +73,10 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
   if (!brandData) {
     notFound();
   }
+
+  // TypeScript type narrowing - brandData is guaranteed to be non-null here
+  const { brandName, totalProducts } = brandData;
+
   return (
       
       <div id="boxed-wrapper">
@@ -85,7 +114,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
                 <span style={{ margin: '0 8px' }}>»</span>
                 <Link href="/here-we-are" style={{ color: '#666', textDecoration: 'none' }}>About Us</Link>
                 <span style={{ margin: '0 8px' }}>»</span>
-                <span>{brandData.brandName}</span>
+                <span>{brandName}</span>
               </div>
             </div>
 
@@ -107,7 +136,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
                   color: '#333',
                   margin: '0 0 15px 0'
                 }}>
-                  {brandData.brandName} Nicotine Pouches
+                  {brandName} Nicotine Pouches
                 </h1>
                 <p style={{
                   fontSize: '18px',
@@ -116,19 +145,19 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
                   margin: '0 auto',
                   lineHeight: '1.6'
                 }}>
-                  Find the best prices for {brandData.brandName} nicotine pouches from top US vendors. 
+                  Find the best prices for {brandName} nicotine pouches from top US vendors. 
                   Compare ratings, strengths, and flavors to find your perfect match.
                 </p>
               </div>
             </div>
 
             {/* US Products Section with Sidebar - Responsive */}
-            <SSRUSProductGridWithSidebar brandFilter={brandData.brandName} isUSRoute={true} />
+            <SSRUSProductGridWithSidebar brandFilter={brandName} isUSRoute={true} />
 
           </main>
 
         {/* Footer */}
-        <Footer />
+        <Footer showBrandsLink={false} isUSRoute={true} />
       </div>
     </div>
   );
@@ -156,18 +185,22 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const baseUrl = 'https://nicotine-pouches.org';
   const usBrandUrl = `${baseUrl}/us/brand/${slug}`;
   
-  // Add hreflang for US brand pages
+  // Generate hreflang using the fixed function (only US, no cross-region links)
   const hreflang = generateSafeHreflang(generateBrandHreflang(slug, true));
+  const languages: Record<string, string> = {};
+  hreflang.forEach(entry => {
+    languages[entry.lang] = entry.url;
+  });
   
   return {
     ...metaData,
     alternates: {
       canonical: usBrandUrl,
-      languages: {
-        'en-US': usBrandUrl,
-        'en-GB': `${baseUrl}/brand/${slug}`,
-        'x-default': usBrandUrl,
-      },
+      languages,
+    },
+    openGraph: {
+      ...metaData.openGraph,
+      url: usBrandUrl, // Fix Open Graph URL to match canonical
     },
   };
 }

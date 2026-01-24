@@ -5,27 +5,39 @@ import Footer from '@/components/Footer';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import VendorLogo from '@/components/VendorLogo';
-import PackFilter from '@/components/PackFilter';
 import PriceSortFilter from '@/components/PriceSortFilter';
 import ShippingFilter from '@/components/ShippingFilter';
-import ReviewFilter from '@/components/ReviewFilter';
 import ReviewBalls from '@/components/ReviewBalls';
-import ReviewForm from '@/components/ReviewForm';
-import ReviewsDisplay from '@/components/ReviewsDisplay';
 import VendorAnalytics from '@/components/VendorAnalytics';
 import ProductDetailsCard from '@/components/ProductDetailsCard';
 import FAQSection from '@/components/FAQSection';
 import CookieConsent from '@/components/CookieConsent';
+import PriceAlertSignupPopup from '@/components/PriceAlertSignupPopup';
 import { getImageStyles } from '@/utils/imageUtils';
 import { generateProductHreflang, generateSafeHreflang } from '@/lib/hreflang';
 import { generateProductSEO, extractProductDataFromDB } from '@/lib/seo';
 import { generateLLMSEO, extractLLMSEODataFromDB } from '@/lib/llm-seo';
+import ExpandableUSVendorCard from '@/components/ExpandableUSVendorCard';
 
 // Fetch US product data from Supabase
 async function getUSProduct(slug: string) {
   try {
     // Convert slug back to proper case name
-    const properCaseName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    // Handle special cases: 'on-' becomes 'On!', 'sesh-' becomes 'Sesh+', 'nic-s-' stays 'NIC-S'
+    let properCaseName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    
+    // Replace 'On' with 'On!' at the start (for ON brand products)
+    if (properCaseName.startsWith('On ')) {
+      properCaseName = properCaseName.replace(/^On /, 'On! ');
+    }
+    // Replace 'Sesh' with 'Sesh+' at the start (for SESH brand products)
+    if (properCaseName.startsWith('Sesh ')) {
+      properCaseName = properCaseName.replace(/^Sesh /, 'Sesh+ ');
+    }
+    // Replace 'Nic S' with 'NIC-S' (for NIC-S brand products)
+    if (properCaseName.startsWith('Nic S ')) {
+      properCaseName = properCaseName.replace(/^Nic S /, 'NIC-S ');
+    }
     
     // First try to find by exact name match
     let { data: product, error } = await supabase()
@@ -34,10 +46,30 @@ async function getUSProduct(slug: string) {
       .eq('product_title', properCaseName)
       .single();
     
-    // If not found, try case-insensitive match
+    // If not found, try case-insensitive match with flexible special character handling
     if (error || !product) {
-      const searchTerm = slug.replace(/-/g, ' ');
+      // Handle triple hyphens (from "Tin - VELO" -> "tin---velo")
+      // Replace multiple consecutive hyphens with a single space-dash-space pattern
+      let normalizedSlug = slug.replace(/-{2,}/g, ' - ');
+      const baseSearchTerm = normalizedSlug.replace(/-/g, ' ');
       
+      // Try multiple variations: with/without special chars, with proper case
+      const variations = [
+        baseSearchTerm,
+        baseSearchTerm.replace(/^on /i, 'On! '),
+        baseSearchTerm.replace(/^sesh /i, 'Sesh+ '),
+        baseSearchTerm.replace(/^nic s /i, 'NIC-S '),
+        // Handle VELO/McLaren case variations
+        baseSearchTerm.replace(/\bvelo\b/gi, 'VELO'),
+        baseSearchTerm.replace(/\bmclaren\b/gi, 'McLaren'),
+        baseSearchTerm.replace(/\bformula\s+1\b/gi, 'Formula 1'),
+        // Try with proper case
+        baseSearchTerm.replace(/\b\w/g, l => l.toUpperCase()),
+        // Try with original slug (in case it matches better)
+        slug.replace(/-{2,}/g, ' - ').replace(/-/g, ' '),
+      ];
+      
+      for (const searchTerm of variations) {
       const { data: products, error: searchError } = await supabase()
         .from('us_products')
         .select('*')
@@ -45,15 +77,45 @@ async function getUSProduct(slug: string) {
         .limit(1);
 
       if (searchError) {
-        console.error('Search error:', searchError);
-        return null;
+          continue;
+        }
+        
+        if (products && products.length > 0) {
+          product = products[0];
+          break;
+        }
       }
       
-      if (!products || products.length === 0) {
-        return null;
+      // If still not found, try fuzzy search by splitting into words
+      if (!product) {
+        const words = baseSearchTerm.split(/\s+/).filter(w => w.length > 2);
+        if (words.length > 0) {
+          const { data: products, error: searchError } = await supabase()
+            .from('us_products')
+            .select('*')
+            .or(words.map(w => `product_title.ilike.%${w}%`).join(','))
+            .limit(10);
+          
+          if (!searchError && products && products.length > 0) {
+            // Find the best match (product with most matching words)
+            const bestMatch = products.reduce((best: any, p: any) => {
+              const productWords = p.product_title.toLowerCase().split(/[\s-]+/);
+              const matchCount = words.filter((w: string) => productWords.some((pw: string) => pw.includes(w.toLowerCase()))).length;
+              const bestMatchCount = best ? words.filter((w: string) => best.product_title.toLowerCase().split(/[\s-]+/).some((pw: string) => pw.includes(w.toLowerCase()))).length : 0;
+              return matchCount > bestMatchCount ? p : best;
+            }, null as any);
+            
+            if (bestMatch) {
+              product = bestMatch;
+            }
+          }
+        }
       }
       
-      product = products[0];
+      if (!product) {
+        // Silently return null - product doesn't exist, will show 404 page
+        return null;
+      }
     }
 
     // Get US vendor products that are mapped to this product using the new mapping system
@@ -177,17 +239,19 @@ async function getUSProduct(slug: string) {
           price: formatPrice(vp.price_1pack),
           link: vp.url || '#',
           vendorId: vp.us_vendor_id,
-          prices: {
-            '1pack': formatPrice(vp.price_1pack),
-            '3pack': formatPrice(vp.price_3pack),
-            '5pack': formatPrice(vp.price_5pack),
-            '10pack': formatPrice(vp.price_10pack),
-            '20pack': formatPrice(vp.price_20pack),
-            '25pack': formatPrice(vp.price_25pack),
-            '30pack': formatPrice(vp.price_30pack),
-            '50pack': formatPrice(vp.price_50pack)
-          }
-        });
+        prices: {
+          '1pack': formatPrice(vp.price_1pack),
+          '3pack': formatPrice(vp.price_3pack),
+          '5pack': formatPrice(vp.price_5pack),
+          '10pack': formatPrice(vp.price_10pack),
+          '15pack': formatPrice(vp.price_15pack),
+          '20pack': formatPrice(vp.price_20pack),
+          '25pack': formatPrice(vp.price_25pack),
+          '30pack': formatPrice(vp.price_30pack),
+          '50pack': formatPrice(vp.price_50pack),
+          '100pack': formatPrice(vp.price_100pack)
+        }
+      });
       }
     });
     
@@ -209,10 +273,12 @@ async function getUSProduct(slug: string) {
           '3pack': '$11.97',
           '5pack': '$19.95',
           '10pack': '$39.90',
+          '15pack': '$59.85',
           '20pack': '$79.80',
           '25pack': '$99.75',
           '30pack': '$119.70',
-          '50pack': '$199.50'
+          '50pack': '$199.50',
+          '100pack': '$399.00'
         }
       });
     }
@@ -626,16 +692,6 @@ export default async function USProductPage({ params }: USProductPageProps) {
           }
         `
       }} />
-        {/* Structured Data - Regular SEO */}
-        {product.regularSeoData?.schema_json_ld && (
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify(product.regularSeoData.schema_json_ld)
-            }}
-          />
-        )}
-        
         {/* Structured Data - LLM SEO */}
         {product.llmSeoData?.schema_json_ld && (
           <script
@@ -682,7 +738,7 @@ export default async function USProductPage({ params }: USProductPageProps) {
         
         {/* Hreflang Meta Tags */}
         {generateSafeHreflang(generateProductHreflang(resolvedParams.slug, true)).map((entry) => (
-          <link key={entry.lang} rel="alternate" hrefLang={entry.lang} href={entry.url} />
+          <link key={entry.lang} rel="alternate" {...({ hreflang: entry.lang } as any)} href={entry.url} />
         ))}
       <div id="boxed-wrapper">
         <div id="wrapper" className="fusion-wrapper">
@@ -766,22 +822,6 @@ export default async function USProductPage({ params }: USProductPageProps) {
                     {product.name}
                 </h1>
 
-                <div className="product-rating" style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  marginBottom: '20px'
-                }}>
-                  <div style={{ marginRight: '8px' }}>
-                      <ReviewBalls rating={product.rating || 4.5} size={24} />
-                  </div>
-                  <span style={{
-                    color: '#666',
-                    fontSize: '18px',
-                    fontWeight: '500'
-                  }}>
-                      {(product.rating || 4.5).toFixed(1)}
-                  </span>
-                </div>
 
                   {/* Short Description */}
                 <p style={{
@@ -870,7 +910,6 @@ export default async function USProductPage({ params }: USProductPageProps) {
                     paddingRight: '32px'
                   }}>
                     <option value="low-high">Lowest Price</option>
-                    <option value="high-low">Highest Price</option>
                   </select>
                   
                   {/* Pack Size Filter */}
@@ -894,10 +933,12 @@ export default async function USProductPage({ params }: USProductPageProps) {
                     <option value="3pack">3 Pack</option>
                     <option value="5pack">5 Pack</option>
                     <option value="10pack">10 Pack</option>
+                    <option value="15pack">15 Pack</option>
                     <option value="20pack">20 Pack</option>
                     <option value="25pack">25 Pack</option>
                     <option value="30pack">30 Pack</option>
                     <option value="50pack">50 Pack</option>
+                    <option value="100pack">100 Pack</option>
                   </select>
                   
                 {/* Shipping Filter */}
@@ -918,29 +959,8 @@ export default async function USProductPage({ params }: USProductPageProps) {
                     paddingRight: '32px'
                   }}>
                     <option value="fastest">Fastest Shipping</option>
-                    <option value="slowest">Slowest Shipping</option>
                   </select>
                 
-                {/* Review Filter */}
-                <select id="review-sort" style={{
-                  padding: '6px 12px',
-                  border: '1px solid #e9ecef',
-                  borderRadius: '20px',
-                  fontSize: '0.85rem',
-                  backgroundColor: '#fff',
-                  color: '#495057',
-                  cursor: 'pointer',
-                  fontWeight: '500',
-                  appearance: 'none',
-                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
-                  backgroundPosition: 'right 8px center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: '16px',
-                  paddingRight: '32px'
-                }}>
-                  <option value="highest-rated">Highest Rated</option>
-                  <option value="lowest-rated">Lowest Rated</option>
-                  </select>
                 </div>
 
                 {/* Vendor List */}
@@ -949,177 +969,13 @@ export default async function USProductPage({ params }: USProductPageProps) {
                   flexDirection: 'column',
                   gap: '12px'
                 }}>
-                {product.stores.map((store: any, index: number) => {
-                  return (
-                   <div key={index} 
-                        className="vendor-card"
-                         data-store-index={index}
-                        data-vendor-id={store.vendorId}
-                        data-vendor-name={store.name}
-                         data-price={store.prices?.['1pack']?.replace('$', '') || '0'}
-                        data-store-name={store.name}
-                        style={{
-                          backgroundColor: '#fff',
-                          borderRadius: '20px',
-                          border: '1px solid #fff',
-                          padding: '0',
-                          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.08)',
-                           transition: 'all 0.3s ease'
-                        }}>
-                     
-                     {/* Top Section - Logo and Vendor Name */}
-                     <div className="comparison-table-top" style={{
-                       display: 'flex',
-                       alignItems: 'center',
-                       padding: '1rem 1.5rem 0.75rem 1.5rem',
-                       borderBottom: '3px solid #f3f3f5',
-                       position: 'relative'
-                     }}>
-                       {/* Chevron down icon before vertical border line */}
-                       <div className="comparison-chevron" style={{
-                         position: 'absolute',
-                         left: '12px',
-                         top: '50%',
-                         transform: 'translateY(-50%)',
-                         cursor: 'pointer'
-                       }}>
-                         <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
-                           <path d="M2 2L8 8L14 2" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                         </svg>
-                       </div>
-                       {/* Vertical border line closer to arrow icon */}
-                       <div className="comparison-vertical-border" style={{
-                         position: 'absolute',
-                         left: '50px',
-                         top: '0',
-                         width: '3px',
-                         height: '100%',
-                         backgroundColor: '#f3f3f5'
-                       }}></div>
-                       <div style={{
-                         display: 'flex',
-                         alignItems: 'center',
-                         gap: '12px'
-                       }}>
-                        <a href={`/vendor/${store.name.toLowerCase().replace(/\s+/g, '-')}`} rel="nofollow">
-                          <VendorLogo 
-                            logo={store.logo} 
-                            name={store.name} 
-                            size={38}
-                          />
-                        </a>
-                        <a 
-                          href={`/vendor/${store.name.toLowerCase().replace(/\s+/g, '-')}`}
-                          rel="nofollow"
-                          style={{
-                            fontSize: '0.95rem',
-                            fontWeight: '600',
-                            color: '#1f2937',
-                            textDecoration: 'none'
-                          }}
-                          className="vendor-name hover:text-blue-600 transition-colors"
-                        >
-                          {store.name}
-                        </a>
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          marginLeft: '8px'
-                        }}>
-                          <ReviewBalls rating={store.rating || 4.5} size={16} />
-                          <span className="review-rating" style={{
-                            fontSize: '0.75rem',
-                            color: '#6b7280',
-                            fontWeight: '500'
-                          }}>
-                            {(store.rating || 4.5).toFixed(1)}
-                          </span>
-                        </div>
-                       </div>
-                     </div>
-
-                     {/* Bottom Section - Product Details and Price */}
-                     <div style={{
-                       display: 'flex',
-                       alignItems: 'center',
-                       justifyContent: 'space-between',
-                       padding: '0.75rem 1.5rem 1rem 1.5rem'
-                     }}>
-                       <div style={{
-                         display: 'flex',
-                         flexDirection: 'column',
-                         gap: '4px',
-                         flex: '1'
-                       }}>
-                           <a href={store.link || '#'}
-                            className="product-title-link"
-                            style={{
-                              fontSize: '0.9rem',
-                              color: '#0073aa',
-                              textDecoration: 'none',
-                              fontWeight: '500'
-                            }}>
-                           {store.product}
-                           <span className="pack-size-display" style={{ color: '#6b7280', fontSize: '0.85rem' }}> (1 Pack)</span>
-                         </a>
-                         
-                       </div>
-
-                       <div style={{
-                         display: 'flex',
-                         alignItems: 'center',
-                         gap: '12px'
-                       }}>
-                         <div style={{
-                           display: 'flex',
-                           flexDirection: 'column',
-                           alignItems: 'flex-end',
-                           gap: '2px'
-                         }}>
-                           <span className="price-display" style={{
-                             fontSize: '1.25rem',
-                             fontWeight: 'bold',
-                             color: '#1f2937'
-                           }}>
-                               {store.prices?.['1pack'] || 'N/A'}
-                           </span>
-                           <div style={{
-                             fontSize: '0.75rem',
-                             color: '#6b7280'
-                           }}>
-                             <span>Lowest price</span>
-                           </div>
-                         </div>
-                         
-                           <a href={store.link || '#'}
-                            target="_blank"
-                            rel="nofollow"
-                            className="buy-now-button"
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              backgroundColor: 'transparent',
-                              border: 'none',
-                              padding: '8px',
-                              cursor: 'pointer',
-                              textDecoration: 'none',
-                              borderRadius: '4px'
-                            }}>
-                           <span style={{
-                             fontSize: '1.1rem',
-                             color: '#6b7280',
-                             fontWeight: 'bold'
-                           }}>
-                             &gt;
-                           </span>
-                         </a>
-                       </div>
-                     </div>
-                  </div>
-                  );
-                })}
+                {product.stores.map((store: any, index: number) => (
+                  <ExpandableUSVendorCard
+                    key={index}
+                    store={store}
+                    storeIndex={index}
+                  />
+                ))}
                 </div>
               </div>
 
@@ -1139,39 +995,6 @@ export default async function USProductPage({ params }: USProductPageProps) {
             </div>
           </div>
 
-          {/* Reviews Section */}
-          <div className="reviews-section" style={{
-            backgroundColor: '#f8f9fa',
-            padding: '40px 0'
-          }}>
-            <div className="reviews-grid" style={{
-              maxWidth: '1200px',
-              margin: '0 auto',
-              padding: '0 20px',
-              display: 'grid',
-              gridTemplateColumns: '1fr 300px',
-              gap: '2rem'
-            }}>
-              
-              {/* Reviews Display */}
-              <div className="reviews-display">
-                <ReviewsDisplay productId={product.id} />
-              </div>
-
-              {/* Review Form */}
-              <div className="review-form">
-                <ReviewForm 
-                  productId={product.id}
-                  productName={product.name}
-                  vendors={product.stores.map((store: any) => ({
-                    id: store.vendorId,
-                    name: store.name,
-                    logo: store.logo
-                  }))}
-                />
-              </div>
-            </div>
-          </div>
 
             {/* FAQ Section */}
             <div style={{ marginBottom: '40px' }}>
@@ -1180,8 +1003,11 @@ export default async function USProductPage({ params }: USProductPageProps) {
         </main>
 
         {/* Footer */}
-        <Footer />
+        <Footer showBrandsLink={false} isUSRoute={true} />
       </div>
+      
+      {/* Filter Coordinator - Disabled due to runtime errors */}
+      {/* <FilterCoordinator /> */}
       
       {/* Vendor Analytics Component */}
       <VendorAnalytics 
@@ -1190,8 +1016,6 @@ export default async function USProductPage({ params }: USProductPageProps) {
         region="US" 
       />
       
-      {/* Pack Filter Component */}
-      <PackFilter stores={product.stores} />
       
       {/* Price Sort Filter Component */}
       <PriceSortFilter />
@@ -1199,11 +1023,16 @@ export default async function USProductPage({ params }: USProductPageProps) {
       {/* Shipping Filter Component */}
       <ShippingFilter />
       
-      {/* Review Filter Component */}
-      <ReviewFilter />
         
         {/* Cookie Consent */}
         <CookieConsent />
+        
+        {/* Price Alert Signup Popup - Show on US product pages */}
+        <PriceAlertSignupPopup 
+          key={`popup-us-product-${product.id}`} 
+          delay={3000} 
+          scrollThreshold={30} 
+        />
         
         {/* Client-side JavaScript for dynamic functionality */}
         <script
@@ -1341,22 +1170,104 @@ export default async function USProductPage({ params }: USProductPageProps) {
                 }
               };
               
-              // Set up pack size change handler and variant button handlers
-              document.addEventListener('DOMContentLoaded', function() {
-                const packSizeSelect = document.getElementById('pack-size');
+              // Create simple coordination function for US page - AVAILABLE IMMEDIATELY
+              window.coordinateFilters = function(selectedPack, options = {}) {
+                const { updatePrices = true, filterCards = true, triggerSort = true } = options;
                 
-                if (packSizeSelect) {
-                  // Override the PackFilter's event listener with our enhanced version
-                  packSizeSelect.addEventListener('change', function() {
-                    const selectedPack = this.value;
-                    window.updatePackSizeDisplay(selectedPack);
+                try {
+                  // Step 1: Update prices if requested
+                  if (updatePrices && typeof window.updatePrices === 'function') {
                     window.updatePrices(selectedPack);
+                  }
+                  
+                  // Step 2: Filter vendor cards if requested
+                  if (filterCards && typeof window.filterVendorCards === 'function') {
                     window.filterVendorCards(selectedPack);
-                  });
+                  }
+                  
+                  // Step 3: Trigger dependent sorts if requested
+                  if (triggerSort) {
+                    setTimeout(() => {
+                      const priceSortSelect = document.getElementById('price-sort');
+                      if (priceSortSelect) {
+                        priceSortSelect.dispatchEvent(new Event('change'));
+                      }
+                      
+                      const shippingSortSelect = document.getElementById('shipping-sort');
+                      if (shippingSortSelect) {
+                        shippingSortSelect.dispatchEvent(new Event('change'));
+                      }
+                      
+                      const reviewSortSelect = document.getElementById('review-sort');
+                      if (reviewSortSelect) {
+                        reviewSortSelect.dispatchEvent(new Event('change'));
+                      }
+                    }, 100);
+                  }
+                } catch (error) {
+                  console.error('❌ Error coordinating filters:', error);
+                }
+              };
+              
+              // Emit filtersReady event immediately after defining functions
+              window.dispatchEvent(new Event('filtersReady'));
+              console.log('✅ US Filters ready event dispatched');
+              
+              // PACK FILTER INITIALIZATION - After React hydration
+              (function initUSPackFilter() {
+                let initialized = false;
+                
+                function setupAndRun() {
+                  if (initialized) return;
+                  
+                  const packSizeSelect = document.getElementById('pack-size');
+                  const vendorCards = document.querySelectorAll('.vendor-card');
+                  
+                  // Only proceed if both exist
+                  if (!packSizeSelect || vendorCards.length === 0) {
+                    return;
+                  }
+                  
+                  initialized = true;
+                  
+                  // Set up event listener
+                  packSizeSelect.removeEventListener('change', window.handleUSPackSizeChange);
+                  packSizeSelect.addEventListener('change', window.handleUSPackSizeChange);
+                  
+                  // Run initial coordination immediately
+                  const defaultPack = packSizeSelect.value || '1pack';
+                  if (typeof window.coordinateFilters === 'function') {
+                    window.coordinateFilters(defaultPack);
+                  }
+                  
+                  console.log('✅ US Pack filter initialized and ran with:', defaultPack);
                 }
                 
-                // US version doesn't use variant buttons, so no setup needed
-              });
+                // Try on load event (after React hydration)
+                window.addEventListener('load', setupAndRun);
+                
+                // Also try with requestAnimationFrame (right after next paint)
+                requestAnimationFrame(() => {
+                  requestAnimationFrame(setupAndRun);
+                });
+                
+                // Fallback: try after 200ms
+                setTimeout(setupAndRun, 200);
+              })();
+              
+              // US Pack size change handler
+              window.handleUSPackSizeChange = function(event) {
+                const selectedPack = event.target.value;
+                if (typeof window.updatePackSizeDisplay === 'function') {
+                  window.updatePackSizeDisplay(selectedPack);
+                }
+                if (typeof window.updatePrices === 'function') {
+                  window.updatePrices(selectedPack);
+                }
+                if (typeof window.filterVendorCards === 'function') {
+                  window.filterVendorCards(selectedPack);
+                }
+              };
             `
           }}
         />
@@ -1364,5 +1275,3 @@ export default async function USProductPage({ params }: USProductPageProps) {
     </>
   );
 }
-
-

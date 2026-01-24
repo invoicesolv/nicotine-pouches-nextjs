@@ -4,25 +4,164 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import SSRProductGridWithSidebar from '@/components/SSRProductGridWithSidebar';
 import Link from 'next/link';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { getSEOTags, renderSchemaTag, generateStandaloneAggregateRating, generateBreadcrumbSchema } from '@/lib/seo-core';
 import { getBrandSEOTemplate, generateBreadcrumbData } from '@/lib/seo-templates';
 import { getBrandAggregateRating } from '@/lib/aggregate-ratings';
 import { generateBrandHreflang, generateSafeHreflang } from '@/lib/hreflang';
+import { getBrandLogo } from '@/lib/brand-logos';
 import './brand-page.css';
+
+// Slug-to-brand mapping: maps display name slugs to database brand values
+// This handles cases where homepage uses full display names (e.g., "Nordic Spirit")
+// but database stores shortened brand names (e.g., "Nordic")
+const slugToBrandMap: Record<string, { displayName: string; queryPattern: string; useProductName: boolean }> = {
+  'nordic-spirit': { displayName: 'Nordic Spirit', queryPattern: 'Nordic Spirit', useProductName: true },
+  'white-fox': { displayName: 'White Fox', queryPattern: 'White Fox', useProductName: true },
+  'vyou': { displayName: 'V&YOU', queryPattern: 'V&YOU', useProductName: false }, // Try regular ampersand first, code will try HTML entity as fallback
+  'v-you': { displayName: 'V&YOU', queryPattern: 'V&YOU', useProductName: false }, // Try regular ampersand first, code will try HTML entity as fallback
+  'juice-head': { displayName: 'Juice Head', queryPattern: 'Juice Head', useProductName: true },
+};
+
+// Helper function to convert slug to potential brand name for product name matching
+function slugToDisplayName(slug: string): string {
+  return slug
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
 
 // Fetch brand data from Supabase
 async function getBrandData(slug: string) {
   try {
-    const brandName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    const slugLower = slug.toLowerCase();
+    let displayBrandName: string | null = null;
+    let queryPattern: string | null = null;
+    let useProductNameQuery = false;
     
-    // Get all products for this brand (filter by name starting with brand)
-    const { data: products, error } = await supabase()
+    // Strategy 1: Check slug-to-brand mapping first
+    const mapping = slugToBrandMap[slugLower];
+    if (mapping) {
+      displayBrandName = mapping.displayName;
+      queryPattern = mapping.queryPattern;
+      useProductNameQuery = mapping.useProductName;
+    } else {
+      // Strategy 2: Try matching against brand column directly
+      // Get all unique brands from database (first word of product name)
+      const { data: allProducts } = await supabase()
+        .from('wp_products')
+        .select('name')
+        .not('name', 'is', null);
+      
+      const brandNames: string[] = (allProducts || [])
+        .map((p: any) => p.name?.split(' ')[0])
+        .filter((brand: any): brand is string => typeof brand === 'string' && Boolean(brand));
+      const uniqueBrands = Array.from(new Set(brandNames));
+      
+      const slugNormalized = slugLower.replace(/[^a-z0-9]/g, '');
+      
+      // Find matching brand (case-insensitive, handle special characters)
+      const foundBrand = uniqueBrands.find((brand: string) => {
+        if (!brand) return false;
+        const brandLower = brand.toLowerCase();
+        const brandNormalized = brandLower.replace(/[^a-z0-9]/g, '');
+        
+        return brandNormalized === slugNormalized || 
+               brandLower === slugLower ||
+               brandLower.replace(/[^a-z0-9]/g, '') === slugNormalized;
+      });
+      
+      if (foundBrand) {
+        displayBrandName = foundBrand;
+        queryPattern = foundBrand;
+        useProductNameQuery = false;
+      } else {
+        // Strategy 3: Try matching against product names (for multi-word brands)
+        // Convert slug to display name: "nordic-spirit" -> "Nordic Spirit"
+        const potentialDisplayName = slugToDisplayName(slug);
+        
+        // Check if any product name starts with this display name
+        const { data: testProducts } = await supabase()
+          .from('wp_products')
+          .select('name')
+          .ilike('name', `${potentialDisplayName}%`)
+          .limit(1);
+        
+        if (testProducts && testProducts.length > 0) {
+          displayBrandName = potentialDisplayName;
+          queryPattern = potentialDisplayName;
+          useProductNameQuery = true;
+        }
+      }
+    }
+    
+    if (!displayBrandName || !queryPattern) {
+      return null;
+    }
+    
+    // Query products based on the matching strategy
+    let products;
+    let error;
+    
+    if (useProductNameQuery) {
+      // For multi-word brands, query by product name pattern
+      const result = await supabase()
+        .from('wp_products')
+        .select('*')
+        .ilike('name', `${queryPattern}%`)
+        .not('image_url', 'is', null)
+        .order('name');
+      
+      products = result.data;
+      error = result.error;
+    } else {
+      // Query by brand column (first word of product name)
+      // For brands with special characters like V&YOU, try multiple patterns
+      const patternsToTry: string[] = [queryPattern];
+      
+      // Add alternative patterns for ampersand handling
+      if (queryPattern.includes('&amp;')) {
+        patternsToTry.push(queryPattern.replace(/&amp;/g, '&'));
+      }
+      if (queryPattern.includes('&') && !queryPattern.includes('&amp;')) {
+        patternsToTry.push(queryPattern.replace(/&/g, '&amp;'));
+      }
+      
+      let result: any = { data: null, error: null };
+      
+      // Try each pattern until we find results
+      for (const pattern of patternsToTry) {
+        result = await supabase()
       .from('wp_products')
       .select('*')
-      .ilike('name', `${brandName}%`)
+          .ilike('name', `${pattern}%`)
       .not('image_url', 'is', null)
       .order('name');
+        
+        if (result.data && result.data.length > 0) {
+          break;
+        }
+      }
+      
+      // If still no results with image filter, try without image filter
+      if (!result.data || result.data.length === 0) {
+        for (const pattern of patternsToTry) {
+          result = await supabase()
+            .from('wp_products')
+            .select('*')
+            .ilike('name', `${pattern}%`)
+            .order('name');
+          
+          if (result.data && result.data.length > 0) {
+            break;
+          }
+        }
+      }
+      
+      products = result.data;
+      error = result.error;
+    }
 
     if (error) {
       console.error('Error fetching brand products:', error);
@@ -37,12 +176,12 @@ async function getBrandData(slug: string) {
     const featuredProduct = products[0];
 
     return {
-      brandName: brandName,
+      brandName: displayBrandName,
       featuredProduct: {
         id: featuredProduct.id,
         name: featuredProduct.name,
         image: featuredProduct.image_url || '/placeholder-product.jpg',
-        description: featuredProduct.content || `Compare ${brandName} nicotine pouches - best prices and deals UK.`,
+        description: featuredProduct.content || `Compare ${displayBrandName} nicotine pouches - best prices and deals UK.`,
         brand: featuredProduct.name.split(' ')[0],
         strength_group: 'Normal',
         flavour: featuredProduct.name.split(' ').slice(1).join(' '),
@@ -77,13 +216,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description: brandData.featuredProduct.description,
     productCount: brandData.totalProducts,
     image: brandData.featuredProduct.image,
-    aggregateRating: ratingData?.aggregateRating || {
-      "@type": "AggregateRating",
-      "ratingValue": "4.5",
-      "reviewCount": 0,
-      "bestRating": "5",
-      "worstRating": "1"
-    }
+    // Only include aggregateRating if we have valid reviews (reviewCount > 0)
+    // Google rejects schema with reviewCount: 0
+    aggregateRating: ratingData?.aggregateRating && ratingData.reviewCount > 0 
+      ? ratingData.aggregateRating 
+      : undefined
   };
 
   // Generate SEO data using centralized template
@@ -110,13 +247,11 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
     description: brandData.featuredProduct.description,
     productCount: brandData.totalProducts,
     image: brandData.featuredProduct.image,
-    aggregateRating: ratingData?.aggregateRating || {
-      "@type": "AggregateRating",
-      "ratingValue": "4.5",
-      "reviewCount": 0,
-      "bestRating": "5",
-      "worstRating": "1"
-    }
+    // Only include aggregateRating if we have valid reviews (reviewCount > 0)
+    // Google rejects schema with reviewCount: 0
+    aggregateRating: ratingData?.aggregateRating && ratingData.reviewCount > 0 
+      ? ratingData.aggregateRating 
+      : undefined
   };
 
   // Generate breadcrumb data
@@ -124,8 +259,8 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
 
   return (
     <>
-      {/* Standalone AggregateRating Schema */}
-      {ratingData && generateStandaloneAggregateRating('Brand', brandData.brandName, ratingData.aggregateRating)}
+      {/* Standalone AggregateRating Schema - Only render if reviewCount > 0 */}
+      {ratingData && ratingData.reviewCount > 0 && generateStandaloneAggregateRating('Brand', brandData.brandName, ratingData.aggregateRating)}
       
       {/* Brand Schema */}
       {renderSchemaTag('brand', brandSEOData)}
@@ -184,6 +319,30 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
               padding: '0 15px',
               textAlign: 'center'
             }}>
+              {/* Brand Logo */}
+              {getBrandLogo(brandData.brandName) && (
+                <div style={{
+                  marginBottom: '20px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}>
+                  <Image
+                    src={getBrandLogo(brandData.brandName)!}
+                    alt={`${brandData.brandName} logo`}
+                    width={200}
+                    height={200}
+                    style={{
+                      maxWidth: '200px',
+                      maxHeight: '200px',
+                      height: 'auto',
+                      width: 'auto',
+                      objectFit: 'contain'
+                    }}
+                    unoptimized
+                  />
+                </div>
+              )}
               <h1 style={{
                 fontSize: '2.5rem',
                 fontWeight: 'bold',
