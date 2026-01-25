@@ -1,3113 +1,3282 @@
 'use client';
 
-import '../globals.css'; // Import admin-specific dark mode styles
+import '../globals.css';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, supabaseAdmin } from '../../../lib/supabase';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
-import { 
-  Plus, 
-  Search, 
-  Upload, 
-  Users, 
-  Package, 
-  Settings, 
-  Eye, 
-  EyeOff, 
-  ExternalLink,
-  CheckCircle,
-  XCircle,
-  Clock,
-  DollarSign,
-  Globe,
-  Link as LinkIcon,
-  FileText,
-  BarChart3,
-  TrendingUp,
-  Activity,
-  Zap,
-  Shield,
-  Database,
-  Download,
-  RefreshCw,
-  AlertCircle,
-  CheckSquare,
-  X,
-  ArrowUpRight,
-  ArrowDownRight,
-  Calendar,
-  Inbox,
-  LineChart,
-  Square,
-  CreditCard,
-  PieChart,
-  Crown,
-  HelpCircle,
-  Move,
-  UserPlus,
-  ShoppingCart,
-  Mail,
-  Phone
-} from 'lucide-react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { AdminThemeProvider } from '@/components/admin-theme-provider';
 import { toast } from 'sonner';
+import VendorLogo from '@/components/VendorLogo';
+import { 
+  Users, 
+  Package, 
+  FileSpreadsheet, 
+  Mail,
+  Upload as UploadIcon,
+  Search,
+  X,
+  Plus,
+  CheckCircle,
+  XCircle,
+  Globe,
+  ShieldCheck,
+  Store,
+  ArrowLeftRight,
+  Filter
+} from 'lucide-react';
 
-interface Vendor {
-  id: number;
-  name: string;
-  website: string;
-  website_url?: string;
-  contact_email: string;
-  contact_phone: string;
-  description: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at?: string;
+// Offer Vendor Row Component
+function OfferVendorRow({ vendor, onUpdate }: { vendor: any; onUpdate: (id: number | string, updates: any) => Promise<boolean> }) {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [offerType, setOfferType] = useState(vendor.offer_type || '');
+  const [offerValue, setOfferValue] = useState(vendor.offer_value?.toString() || '');
+  const [offerDescription, setOfferDescription] = useState(vendor.offer_description || '');
+
+  // Update state when vendor prop changes
+  useEffect(() => {
+    if (!isUpdating) {
+      setOfferType(vendor.offer_type || '');
+      setOfferValue(vendor.offer_value?.toString() || '');
+      setOfferDescription(vendor.offer_description || '');
+    }
+  }, [vendor.offer_type, vendor.offer_value, vendor.offer_description, vendor.id]);
+
+  return (
+    <Card className="bg-slate-800 border-slate-700 p-4">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4 flex-1">
+            <VendorLogo 
+              logo={vendor.logo_url || ''} 
+              name={vendor.name} 
+              size={48}
+            />
+            <div>
+              <h3 className="text-base font-semibold text-white">{vendor.name}</h3>
+              {vendor.website && (
+                <p className="text-xs text-slate-400">{vendor.website}</p>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="text-xs text-slate-400 mb-2 block">Offer Type</label>
+            <select
+              value={offerType}
+              onChange={(e) => {
+                setOfferType(e.target.value);
+                if (e.target.value === '') {
+                  setOfferValue('');
+                  setOfferDescription('');
+                }
+              }}
+              disabled={isUpdating}
+              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-sm text-white"
+            >
+              <option value="">No Offer</option>
+              <option value="percentage_discount">Percentage Discount</option>
+              <option value="extra_pouches">Extra Pouches</option>
+            </select>
+          </div>
+          
+          {offerType && (
+            <>
+              <div>
+                <label className="text-xs text-slate-400 mb-2 block">
+                  {offerType === 'percentage_discount' ? 'Discount %' : 'Extra Pouches'}
+                </label>
+                <Input
+                  type="number"
+                  value={offerValue}
+                  onChange={(e) => setOfferValue(e.target.value)}
+                  placeholder={offerType === 'percentage_discount' ? '0-100' : 'Number'}
+                  disabled={isUpdating}
+                  min={offerType === 'percentage_discount' ? '0' : '1'}
+                  max={offerType === 'percentage_discount' ? '100' : undefined}
+                  className="bg-slate-900 border-slate-700 text-white"
+                />
+              </div>
+              
+              <div>
+                <label className="text-xs text-slate-400 mb-2 block">Description (Optional)</label>
+                <Input
+                  value={offerDescription}
+                  onChange={(e) => setOfferDescription(e.target.value)}
+                  placeholder="e.g., Limited time offer"
+                  disabled={isUpdating}
+                  className="bg-slate-900 border-slate-700 text-white"
+                />
+              </div>
+            </>
+          )}
+          
+          <div className="flex items-end">
+            <Button
+              size="sm"
+              onClick={async () => {
+                if (!offerType || !offerValue) {
+                  toast.error('Please fill in all required fields');
+                  return;
+                }
+                setIsUpdating(true);
+                try {
+                  const updates: any = {
+                    offer_type: offerType || null,
+                    offer_value: offerType && offerValue ? parseFloat(offerValue) : null,
+                    offer_description: offerType ? offerDescription : null
+                  };
+                  console.log('Saving offer for', vendor.name, updates);
+                  const success = await onUpdate(vendor.id, updates);
+                  console.log('Save result:', success);
+                  if (success) {
+                    toast.success(`${vendor.name} offer updated`);
+                    // State will update via useEffect when vendor prop updates after loadVendors
+                  } else {
+                    toast.error('Failed to update offer');
+                    // Revert to original values on failure
+                    setOfferType(vendor.offer_type || '');
+                    setOfferValue(vendor.offer_value?.toString() || '');
+                    setOfferDescription(vendor.offer_description || '');
+                  }
+                } catch (error) {
+                  console.error('Error saving offer:', error);
+                  toast.error('Failed to update offer');
+                  // Revert to original values on error
+                  setOfferType(vendor.offer_type || '');
+                  setOfferValue(vendor.offer_value?.toString() || '');
+                  setOfferDescription(vendor.offer_description || '');
+                } finally {
+                  setIsUpdating(false);
+                }
+              }}
+              disabled={isUpdating || (offerType && !offerValue)}
+              className="bg-blue-600 hover:bg-blue-700 w-full"
+            >
+              {isUpdating ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
+        </div>
+        
+        {offerType && offerValue && (
+          <div className="mt-2 p-2 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-300">
+            Preview: {offerType === 'percentage_discount' 
+              ? `${offerValue}% OFF` 
+              : `+${offerValue} Extra Pouches`}
+            {offerDescription && ` - ${offerDescription}`}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
 }
 
-interface USVendor {
-  id: string;
-  name: string;
-  website: string;
-  website_url?: string;
-  contact_email?: string;
-  contact_phone?: string;
-  description?: string;
-  status: string;
-  region?: string;
-  created_at: string;
-  updated_at?: string;
+// Currency Converter Vendor Row Component
+function CurrencyConverterVendorRow({ vendor, onUpdate }: { vendor: any; onUpdate: (id: number | string, updates: any) => Promise<boolean> }) {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [currency, setCurrency] = useState(vendor.currency || 'GBP');
+  const [needsConversion, setNeedsConversion] = useState(vendor.needs_currency_conversion || false);
+
+  return (
+    <Card className="bg-slate-800 border-slate-700 p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4 flex-1">
+          <VendorLogo 
+            logo={vendor.logo_url || ''} 
+            name={vendor.name} 
+            size={48}
+          />
+          <div>
+            <h3 className="text-base font-semibold text-white">{vendor.name}</h3>
+            {vendor.website && (
+              <p className="text-xs text-slate-400">{vendor.website}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-slate-300">Currency:</label>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              disabled={isUpdating}
+              className="px-3 py-1 bg-slate-900 border border-slate-700 rounded text-sm text-white"
+            >
+              <option value="GBP">GBP (£)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="USD">USD ($)</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={needsConversion}
+              onChange={(e) => setNeedsConversion(e.target.checked)}
+              disabled={isUpdating}
+              className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500"
+            />
+            <label className="text-sm text-slate-300">
+              Convert EUR to GBP
+            </label>
+          </div>
+          <Button
+            size="sm"
+            onClick={async () => {
+              setIsUpdating(true);
+              const success = await onUpdate(vendor.id, {
+                currency,
+                needs_currency_conversion: needsConversion && currency === 'EUR'
+              });
+              if (success) {
+                toast.success(`${vendor.name} currency settings updated`);
+              }
+              setIsUpdating(false);
+            }}
+            disabled={isUpdating || (needsConversion && currency !== 'EUR')}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {isUpdating ? 'Saving...' : 'Save'}
+          </Button>
+        </div>
+      </div>
+      {needsConversion && currency === 'EUR' && (
+        <div className="mt-3 p-2 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-300">
+          ⚠️ All prices from this vendor will be converted from EUR to GBP using the configured exchange rate.
+        </div>
+      )}
+    </Card>
+  );
 }
 
-interface USVendorProduct {
-  id: string;
-  vendor_id: string;
-  us_product_id: number;
-  price_1pack?: number;
-  price_3pack?: number;
-  price_5pack?: number;
-  price_10pack?: number;
-  price_20pack?: number;
-  price_25pack?: number;
-  price_30pack?: number;
-  price_50pack?: number;
-  url?: string;
-}
+// Vendor Card Component with Shipping Info Editing
+function VendorCard({ vendor, region, onUpdate, onDelete }: { vendor: any; region: 'UK' | 'US'; onUpdate: (id: number | string, updates: any) => Promise<boolean>; onDelete: (id: number | string) => Promise<void> }) {
+  const [isEditingShipping, setIsEditingShipping] = useState(false);
+  const [shippingInfo, setShippingInfo] = useState(vendor.shipping_info || '');
+  const [shippingCost, setShippingCost] = useState(vendor.shipping_cost?.toString() || '0');
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(vendor.free_shipping_threshold?.toString() || '0');
+  const [isSavingShipping, setIsSavingShipping] = useState(false);
+  const [isEditingTrustpilot, setIsEditingTrustpilot] = useState(false);
+  const [trustpilotScore, setTrustpilotScore] = useState(vendor.trustpilot_score?.toString() || '');
+  const [reviewCount, setReviewCount] = useState(vendor.review_count?.toString() || '0');
+  const [isSavingTrustpilot, setIsSavingTrustpilot] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [showReviews, setShowReviews] = useState(false);
 
-interface Signup {
-  id: string;
-  email: string;
-  created_at: string;
-  updated_at: string;
-  source: string;
-  is_active: boolean;
-  confirmed_at?: string;
-  unsubscribed_at?: string;
-}
+  // Update shipping fields when vendor prop changes, but only if not currently editing
+  useEffect(() => {
+    if (!isEditingShipping && !isSavingShipping) {
+      const newShippingInfo = vendor.shipping_info || '';
+      setShippingInfo(newShippingInfo);
+      setShippingCost(vendor.shipping_cost?.toString() || '0');
+      setFreeShippingThreshold(vendor.free_shipping_threshold?.toString() || '0');
+    }
+  }, [vendor.shipping_info, vendor.shipping_cost, vendor.free_shipping_threshold, vendor.id]);
 
-interface USProduct {
-  id: number;
-  product_title: string;
-  brand: string;
-  flavour?: string;
-  strength?: string;
-  format?: string;
-  nicotine_mg_pouch?: number;
-  td_element?: string;
-  description?: string;
-  page_url?: string;
-  image_url?: string;
-  created_at: string;
-  updated_at?: string;
-}
+  // Update Trustpilot score and review count when vendor prop changes, but only if not currently editing
+  useEffect(() => {
+    if (!isEditingTrustpilot && !isSavingTrustpilot) {
+      setTrustpilotScore(vendor.trustpilot_score?.toString() || '');
+      setReviewCount(vendor.review_count?.toString() || '0');
+    }
+  }, [vendor.trustpilot_score, vendor.review_count, vendor.id]);
 
-interface VendorProduct {
-  id: string;
-  vendor_id: number;
-  name: string;
-  brand: string;
-  url?: string;
-  price_1pack?: string;
-  price_3pack?: string;
-  price_5pack?: string;
-  price_10pack?: string;
-  price_20pack?: string;
-  price_25pack?: string;
-  price_30pack?: string;
-  price_50pack?: string;
-  created_at: string;
-  updated_at?: string;
-}
+  // Fetch reviews for this vendor
+  const fetchVendorReviews = async () => {
+    if (!showReviews && reviews.length === 0) {
+      setLoadingReviews(true);
+      try {
+        const response = await fetch(`/api/reviews?vendorId=${vendor.id}&vendorOnly=true`);
+        const data = await response.json();
+        if (response.ok) {
+          setReviews(data.reviews || []);
+        }
+      } catch (error) {
+        console.error('Error fetching reviews:', error);
+      } finally {
+        setLoadingReviews(false);
+      }
+    }
+    setShowReviews(!showReviews);
+  };
 
-interface Product {
-  id: number;
-  name: string;
-  brand: string;
-  flavour?: string;
-  strength_group?: string;
-  format?: string;
-  price?: number;
-  image_url?: string;
-  description?: string;
-  page_url?: string;
-  created_at: string;
-  updated_at?: string;
-}
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
-interface ProductMatch {
-  id: number;
-  name: string;
-  brand: string;
-  flavour?: string;
-  similarity: number;
-}
+  return (
+    <Card className="bg-slate-900 border-slate-800 p-4">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4 flex-1">
+            <VendorLogo 
+              logo={vendor.logo_url || ''} 
+              name={vendor.name} 
+              size={56}
+            />
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-lg font-semibold text-white">{vendor.name}</h3>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    (region === 'UK' ? vendor.is_active : vendor.status === 'active')
+                      ? 'bg-green-500/10 text-green-400'
+                      : 'bg-red-500/10 text-red-400'
+                  }`}
+                >
+                  {(region === 'UK' ? vendor.is_active : vendor.status === 'active')
+                    ? 'Active'
+                    : 'Inactive'}
+                </span>
+              </div>
+              {vendor.website && (
+                <p className="text-sm text-slate-400">{vendor.website}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {vendor.website && (
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="h-8 w-8"
+                onClick={() => window.open(vendor.website, '_blank')}
+              >
+                <Globe className="h-4 w-4" />
+              </Button>
+            )}
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => onDelete(vendor.id)}
+              className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        
+        {/* Shipping Information Section */}
+        <div className="border-t border-slate-800 pt-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <label className="text-xs text-slate-400 mb-2 block">
+                Shipping Information
+              </label>
+              {isEditingShipping ? (
+                <div className="space-y-3">
+                  <Input
+                    value={shippingInfo}
+                    onChange={(e) => setShippingInfo(e.target.value)}
+                    placeholder="Enter shipping information..."
+                    className="bg-slate-800 border-slate-700 text-white"
+                    disabled={isSavingShipping}
+                  />
+                  {/* Shipping Cost Fields */}
+                  <div className="mt-3 pt-3 border-t border-slate-700">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs text-slate-300 mb-1 block font-medium">
+                          Shipping Cost (£)
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={shippingCost}
+                          onChange={(e) => setShippingCost(e.target.value)}
+                          placeholder="0.00"
+                          className="bg-slate-800 border-slate-600 text-white w-full"
+                          disabled={isSavingShipping}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-slate-300 mb-1 block font-medium">
+                          Free Shipping Threshold (£)
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={freeShippingThreshold}
+                          onChange={(e) => setFreeShippingThreshold(e.target.value)}
+                          placeholder="0.00"
+                          className="bg-slate-800 border-slate-600 text-white w-full"
+                          disabled={isSavingShipping}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        if (!shippingInfo.trim()) {
+                          toast.error('Shipping information cannot be empty');
+                          return;
+                        }
+                        setIsSavingShipping(true);
+                        const success = await onUpdate(vendor.id, {
+                          shipping_info: shippingInfo.trim(),
+                          shipping_cost: parseFloat(shippingCost) || 0,
+                          free_shipping_threshold: parseFloat(freeShippingThreshold) || 0
+                        });
+                        if (success) {
+                          // Keep the saved value visible immediately
+                          // The vendor prop will update after loadVendors completes
+                          setIsEditingShipping(false);
+                        } else {
+                          // If save failed, revert to original
+                          setShippingInfo(vendor.shipping_info || '');
+                          setShippingCost(vendor.shipping_cost?.toString() || '0');
+                          setFreeShippingThreshold(vendor.free_shipping_threshold?.toString() || '0');
+                          setIsEditingShipping(false);
+                        }
+                        setIsSavingShipping(false);
+                      }}
+                      disabled={isSavingShipping}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setShippingInfo(vendor.shipping_info || '');
+                        setShippingCost(vendor.shipping_cost?.toString() || '0');
+                        setFreeShippingThreshold(vendor.free_shipping_threshold?.toString() || '0');
+                        setIsEditingShipping(false);
+                      }}
+                      disabled={isSavingShipping}
+                      className="border-slate-700"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-slate-300 flex-1">
+                      {shippingInfo ? (
+                        shippingInfo
+                      ) : (
+                        <span className="text-slate-500 italic">No shipping information</span>
+                      )}
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setIsEditingShipping(true)}
+                      className="text-blue-400 hover:text-blue-300"
+                    >
+                      Edit
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-slate-400">
+                    {shippingCost && parseFloat(shippingCost) > 0 && (
+                      <span>Shipping Cost: £{parseFloat(shippingCost).toFixed(2)}</span>
+                    )}
+                    {freeShippingThreshold && parseFloat(freeShippingThreshold) > 0 && (
+                      <span>Free shipping over £{parseFloat(freeShippingThreshold).toFixed(2)}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
-interface VendorProductMatch {
-  vendor_product: string;
-  matches: ProductMatch[];
-}
+        {/* Trustpilot Score Section (UK Only) */}
+        {region === 'UK' && (
+          <div className="border-t border-slate-800 pt-3">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 space-y-3">
+                <div>
+                  <label className="text-xs text-slate-400 mb-2 block">
+                    Trustpilot Score
+                  </label>
+                  {isEditingTrustpilot ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            max="5"
+                            value={trustpilotScore}
+                            onChange={(e) => setTrustpilotScore(e.target.value)}
+                            placeholder="Enter Trustpilot score (0-5)"
+                            className="bg-slate-800 border-slate-700 text-white"
+                            disabled={isSavingTrustpilot}
+                          />
+                        </div>
+                        <div>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={reviewCount}
+                            onChange={(e) => setReviewCount(e.target.value)}
+                            placeholder="Review count"
+                            className="bg-slate-800 border-slate-700 text-white"
+                            disabled={isSavingTrustpilot}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={async () => {
+                            const score = trustpilotScore ? parseFloat(trustpilotScore) : null;
+                            if (score !== null && (score < 0 || score > 5)) {
+                              toast.error('Trustpilot score must be between 0 and 5');
+                              return;
+                            }
+                            const count = reviewCount ? parseInt(reviewCount) : 0;
+                            if (count < 0) {
+                              toast.error('Review count must be 0 or greater');
+                              return;
+                            }
+                            setIsSavingTrustpilot(true);
+                            const success = await onUpdate(vendor.id, {
+                              trustpilot_score: score,
+                              review_count: count
+                            });
+                            if (success) {
+                              setIsEditingTrustpilot(false);
+                            } else {
+                              setTrustpilotScore(vendor.trustpilot_score?.toString() || '');
+                              setReviewCount(vendor.review_count?.toString() || '0');
+                              setIsEditingTrustpilot(false);
+                            }
+                            setIsSavingTrustpilot(false);
+                          }}
+                          disabled={isSavingTrustpilot}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          {isSavingTrustpilot ? 'Saving...' : 'Save'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setTrustpilotScore(vendor.trustpilot_score?.toString() || '');
+                            setReviewCount(vendor.review_count?.toString() || '0');
+                            setIsEditingTrustpilot(false);
+                          }}
+                          disabled={isSavingTrustpilot}
+                          className="border-slate-700"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-slate-300 flex-1">
+                        {trustpilotScore ? (
+                          `${trustpilotScore}/5.0`
+                        ) : (
+                          <span className="text-slate-500 italic">No Trustpilot score set</span>
+                        )}
+                        {reviewCount && parseInt(reviewCount) > 0 && (
+                          <span className="text-slate-400 ml-2">
+                            ({reviewCount} {parseInt(reviewCount) === 1 ? 'review' : 'reviews'})
+                          </span>
+                        )}
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setIsEditingTrustpilot(true)}
+                        className="text-blue-400 hover:text-blue-300"
+                      >
+                        Edit
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
-interface ProductMapping {
-  vendor_product: string;
-  product_id: number;
-  vendor_id: string | number;
+        {/* Reviews Section */}
+        <div className="border-t border-slate-800 pt-3 mt-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block font-medium">
+                    Reviews
+                  </label>
+                  <p className="text-xs text-slate-500">
+                    View and manage reviews for this vendor
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={fetchVendorReviews}
+                  className="text-blue-400 hover:text-blue-300 text-xs"
+                  disabled={loadingReviews}
+                >
+                  {showReviews ? 'Hide' : 'Show'} Reviews ({reviews.length > 0 ? reviews.length : (vendor.review_count || 0)})
+                </Button>
+              </div>
+              {showReviews && (
+                <div className="mt-3 space-y-2 max-h-64 overflow-y-auto">
+                  {loadingReviews ? (
+                    <div className="text-sm text-slate-400 text-center py-4">
+                      Loading reviews...
+                    </div>
+                  ) : reviews.length === 0 ? (
+                    <div className="text-sm text-slate-500 italic text-center py-4">
+                      No reviews yet
+                    </div>
+                  ) : (
+                    reviews.map((review) => (
+                      <div
+                        key={review.id}
+                        className="p-3 bg-slate-800 rounded border border-slate-700"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-slate-300">
+                              {review.vendors?.name || 'Unknown'}
+                            </span>
+                            <span className="text-xs text-yellow-400">
+                              {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                            </span>
+                          </div>
+                          <span className="text-xs text-slate-500">
+                            {formatDate(review.created_at)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 line-clamp-2">
+                          {review.review_text}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
 }
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [selectedRegion, setSelectedRegion] = useState<'UK' | 'US'>('UK');
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [vendorProducts, setVendorProducts] = useState<VendorProduct[]>([]);
-  const [mainProducts, setMainProducts] = useState<Product[]>([]);
-  
-  // US-specific state
-  const [usVendors, setUsVendors] = useState<USVendor[]>([]);
-  const [usVendorProducts, setUsVendorProducts] = useState<VendorProduct[]>([]);
-  const [usProducts, setUsProducts] = useState<USProduct[]>([]);
-  const [signups, setSignups] = useState<Signup[]>([]);
-  const [signupsLoading, setSignupsLoading] = useState(false);
-  const [signupsSearchTerm, setSignupsSearchTerm] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [adminKey, setAdminKey] = useState<string | null>(null);
+  const [region, setRegion] = useState<'UK' | 'US'>('UK');
   const [activeTab, setActiveTab] = useState('vendors');
-  const [selectedVendorForProducts, setSelectedVendorForProducts] = useState('all');
-  const [productSearchTerm, setProductSearchTerm] = useState('');
-  const [productBrandFilter, setProductBrandFilter] = useState('all');
-  const [productStatusFilter, setProductStatusFilter] = useState('all');
-  
-  // Product matching state
-  const [productMatches, setProductMatches] = useState<{[key: string]: ProductMatch[]}>({});
-  const [productMappings, setProductMappings] = useState<ProductMapping[]>([]);
-  const [matchingLoading, setMatchingLoading] = useState(false);
-  const [selectedMappings, setSelectedMappings] = useState<{[key: string]: number}>({});
-  
-  // Pagination states
-  const [mainProductsPage, setMainProductsPage] = useState(1);
+  const [vendors, setVendors] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [vendorProducts, setVendorProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [sortBy, setSortBy] = useState('name');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const itemsPerPage = 50;
+  const [uploadResult, setUploadResult] = useState<any>(null);
+  const [uploading, setUploading] = useState(false);
+  const [selectedVendorFilter, setSelectedVendorFilter] = useState<string>('all');
   const [vendorProductsPage, setVendorProductsPage] = useState(1);
-  const [mainProductsTotalPages, setMainProductsTotalPages] = useState(1);
-  const [vendorProductsTotalPages, setVendorProductsTotalPages] = useState(1);
-  const [mainProductsPageSize, setMainProductsPageSize] = useState(20);
-  const [vendorProductsPageSize, setVendorProductsPageSize] = useState(20);
-  const [mainProductsTotalCount, setMainProductsTotalCount] = useState(0);
-  const [vendorProductsTotalCount, setVendorProductsTotalCount] = useState(0);
-  
-  // Search states
-  const [mainProductsSearchTerm, setMainProductsSearchTerm] = useState('');
-  const [vendorProductsSearchTerm, setVendorProductsSearchTerm] = useState('');
-  const [bulkAutolinkCount, setBulkAutolinkCount] = useState(0);
-  const [isProcessingBulkAutolink, setIsProcessingBulkAutolink] = useState(false);
-  const [isAddingVendor, setIsAddingVendor] = useState(false);
-  const [vendorFilter, setVendorFilter] = useState('all'); // all, active, inactive
-  const [sortBy, setSortBy] = useState('name'); // name, created_at, updated_at
-  const [sortOrder, setSortOrder] = useState('asc'); // asc, desc
-  const [showMappingInterface, setShowMappingInterface] = useState(false);
-  const [mappingResults, setMappingResults] = useState<any[]>([]);
-  const [isProcessingMapping, setIsProcessingMapping] = useState(false);
-  const [newVendor, setNewVendor] = useState({
-    name: '',
-    website: '',
-    contact_email: '',
-    contact_phone: '',
-    description: '',
-    is_active: true
-  });
+  const vendorProductsPerPage = 20;
+  const [vendorProductMappings, setVendorProductMappings] = useState<any[]>([]);
+  const [mappingsPage, setMappingsPage] = useState(1);
+  const [mappingsBrandFilter, setMappingsBrandFilter] = useState<string>('all');
+  const [mappingsStatusFilter, setMappingsStatusFilter] = useState<string>('all');
+  const [mappingsSearchTerm, setMappingsSearchTerm] = useState('');
+  const [mappingsSimilarityFilter, setMappingsSimilarityFilter] = useState<string>('all');
+  const [searchSuggestions, setSearchSuggestions] = useState<Map<string, any[]>>(new Map());
+  const [productsWithMatches, setProductsWithMatches] = useState<Set<string>>(new Set());
+  const [activeSearchRow, setActiveSearchRow] = useState<string | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const mappingsPerPage = 50;
+  const [signups, setSignups] = useState<any[]>([]);
+  const [signupsPage, setSignupsPage] = useState(1);
+  const [signupsTotalPages, setSignupsTotalPages] = useState(1);
+  const [signupsTotalCount, setSignupsTotalCount] = useState(0);
+  const [signupsSearch, setSignupsSearch] = useState('');
+  const [signupsSourceFilter, setSignupsSourceFilter] = useState('all');
+  const [signupsStatusFilter, setSignupsStatusFilter] = useState('all');
+  const signupsPerPage = 50;
 
-  // CSV Upload states
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [csvData, setCsvData] = useState<any[]>([]);
-  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
-  const [selectedVendor, setSelectedVendor] = useState<string>('');
-  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
-  const [csvPreview, setCsvPreview] = useState<any[]>([]);
-  const [isProcessingCsv, setIsProcessingCsv] = useState(false);
-  const [csvProgress, setCsvProgress] = useState(0);
-  const [importResults, setImportResults] = useState<any>(null);
-  const [showCsvPreview, setShowCsvPreview] = useState(false);
-  const [importHistory, setImportHistory] = useState<any[]>([]);
-  const [showImportHistory, setShowImportHistory] = useState(false);
-  
-  // Product CSV Upload states
-  const [productCsvFile, setProductCsvFile] = useState<File | null>(null);
-  const [productCsvData, setProductCsvData] = useState<any[]>([]);
-  const [productCsvHeaders, setProductCsvHeaders] = useState<string[]>([]);
-  const [productColumnMapping, setProductColumnMapping] = useState<Record<string, string>>({});
-  const [productCsvPreview, setProductCsvPreview] = useState<any[]>([]);
-  const [isProcessingProductCsv, setIsProcessingProductCsv] = useState(false);
-  const [productCsvProgress, setProductCsvProgress] = useState(0);
-  const [productImportResults, setProductImportResults] = useState<any>(null);
-  const [showProductCsvPreview, setShowProductCsvPreview] = useState(false);
+  // Unmapped Products state
+  const [unmappedProducts, setUnmappedProducts] = useState<any[]>([]);
+  const [unmappedPage, setUnmappedPage] = useState(1);
+  const [unmappedTotalPages, setUnmappedTotalPages] = useState(1);
+  const [unmappedTotalCount, setUnmappedTotalCount] = useState(0);
+  const [unmappedStatusFilter, setUnmappedStatusFilter] = useState('pending');
+  const [unmappedVendorFilter, setUnmappedVendorFilter] = useState('all');
+  const [unmappedSearch, setUnmappedSearch] = useState('');
+  const [unmappedVendors, setUnmappedVendors] = useState<string[]>([]);
+  const unmappedPerPage = 20;
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [showMapDialog, setShowMapDialog] = useState<any>(null);
+  const [mapSearchTerm, setMapSearchTerm] = useState('');
+  const [mapSearchResults, setMapSearchResults] = useState<any[]>([]);
+  const [mapSearchLoading, setMapSearchLoading] = useState(false);
 
-  // Stats
-  const [stats, setStats] = useState({
-    totalVendors: 0,
-    activeVendors: 0,
-    totalProducts: 0,
-    avgPrice: 0
-  });
-
-  // Check authentication
   useEffect(() => {
-    const checkAuth = () => {
-      const adminKey = localStorage.getItem('admin_key');
-      if (adminKey === '9503283252') {
-        setIsAuthenticated(true);
-      } else {
-        router.push('/admin/login');
-      }
-      setLoading(false);
-    };
-
-    checkAuth();
+    const key = localStorage.getItem('admin_key');
+    if (key !== '9503283252') {
+      router.push('/admin/login');
+      return;
+    }
+    setAdminKey(key);
   }, [router]);
 
-  // Fetch data when authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchData();
-      // Load import history from localStorage
-      const savedHistory = localStorage.getItem('import_history');
-      if (savedHistory) {
-        try {
-          setImportHistory(JSON.parse(savedHistory));
-        } catch (error) {
-          console.error('Failed to load import history:', error);
+    if (adminKey) {
+      loadVendors();
+      if (activeTab === 'vendor-products') {
+        loadVendorProducts();
+      }
+      if (activeTab === 'signups') {
+        loadSignups();
+      }
+    }
+  }, [adminKey, region, activeTab]);
+
+  useEffect(() => {
+    if (adminKey && activeTab === 'vendor-products') {
+      loadVendorProducts();
+    }
+  }, [adminKey, region, activeTab]);
+
+  useEffect(() => {
+    if (adminKey && activeTab === 'products') {
+      loadProducts();
+    }
+  }, [adminKey, region, activeTab, currentPage]);
+
+  // Reset vendor products page when filter changes
+  useEffect(() => {
+    setVendorProductsPage(1);
+  }, [selectedVendorFilter, searchTerm]);
+
+  // Load vendor product mappings when switching to mappings tab
+  useEffect(() => {
+    if (adminKey && activeTab === 'vendor-mappings') {
+      loadVendorProductMappings();
+    }
+  }, [adminKey, region, activeTab]);
+
+  // Reload signups when filters or page changes
+  useEffect(() => {
+    if (adminKey && activeTab === 'signups') {
+      loadSignups();
+    }
+  }, [adminKey, activeTab, signupsPage, signupsSearch, signupsSourceFilter, signupsStatusFilter]);
+
+  // Reset mappings page when filters change
+  useEffect(() => {
+    setMappingsPage(1);
+  }, [mappingsBrandFilter, mappingsStatusFilter, mappingsSearchTerm, mappingsSimilarityFilter, selectedVendorFilter]);
+
+  // Load unmapped products when switching to unmapped tab
+  useEffect(() => {
+    if (adminKey && activeTab === 'unmapped') {
+      loadUnmappedProducts();
+    }
+  }, [adminKey, activeTab, unmappedPage, unmappedStatusFilter, unmappedVendorFilter, unmappedSearch]);
+
+  // Reset unmapped products page when filters change
+  useEffect(() => {
+    setUnmappedPage(1);
+  }, [unmappedStatusFilter, unmappedVendorFilter, unmappedSearch]);
+
+  const loadVendors = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/vendors?region=${region}&page=1&limit=1000`);
+      const data = await response.json();
+      if (data.data) {
+        setVendors(data.data);
+        console.log(`Loaded ${data.data.length} vendors for ${region}`);
+        // Debug: Check if shipping_info and offers are in the data
+        const snusifer = data.data.find((v: any) => v.name === 'Snusifer');
+        if (snusifer) {
+          console.log('Snusifer data from API:', {
+            shipping_info: snusifer.shipping_info,
+            offer_type: snusifer.offer_type,
+            offer_value: snusifer.offer_value,
+            offer_description: snusifer.offer_description
+          });
         }
       }
-    }
-  }, [isAuthenticated]);
-
-  // Handle region changes
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchData();
-    }
-  }, [selectedRegion]);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      if (selectedRegion === 'UK') {
-        // Fetch UK vendors
-        const { data: vendorsData, error: vendorsError } = await supabase()
-          .from('vendors')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (vendorsError) throw vendorsError;
-
-        setVendors(vendorsData || []);
-
-        // Calculate stats
-        const activeVendors = vendorsData?.filter((v: any) => v.is_active).length || 0;
-
-        setStats({
-          totalVendors: vendorsData?.length || 0,
-          activeVendors,
-          totalProducts: 0, // Will be updated by individual fetch functions
-          avgPrice: 0
-        });
-
-        // Fetch initial data for both tabs
-        await fetchMainProducts();
-        await fetchVendorProducts();
-      } else {
-        // Fetch US vendors
-        const { data: usVendorsData, error: usVendorsError } = await supabase()
-          .from('us_vendors')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (usVendorsError) throw usVendorsError;
-
-        setUsVendors(usVendorsData || []);
-
-        // Calculate stats
-        const activeUsVendors = usVendorsData?.filter((v: any) => v.status === 'active').length || 0;
-
-        setStats({
-          totalVendors: usVendorsData?.length || 0,
-          activeVendors: activeUsVendors,
-          totalProducts: 0, // Will be updated by individual fetch functions
-          avgPrice: 0
-        });
-
-        // Fetch initial data for both tabs
-        await fetchUSMainProducts();
-        await fetchVendorProducts();
-      }
-
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to fetch data');
+      console.error('Error loading vendors:', error);
+      toast.error('Failed to load vendors');
+    } finally {
+      setLoading(false);
+    }
+    // Return a promise that resolves when loading is complete
+    return Promise.resolve();
+  };
+
+  const loadProducts = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        region,
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        ...(searchTerm && { search: searchTerm })
+      });
+      
+      const response = await fetch(`/api/admin/products?${params}`);
+      const data = await response.json();
+      if (data.data) {
+        setProducts(data.data);
+        setTotalCount(data.totalCount || 0);
+        setTotalPages(data.totalPages || 1);
+      }
+    } catch (error) {
+      console.error('Error loading products:', error);
+      toast.error('Failed to load products');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchMainProducts = async (page = 1, search = '', pageSize?: number) => {
+  const loadVendorProducts = async () => {
+    setLoading(true);
     try {
-      const limit = pageSize || mainProductsPageSize;
-      const offset = (page - 1) * limit;
-
-      let query = supabase()
-        .from('wp_products')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-
-      if (search) {
-        query = query.or(`name.ilike.%${search}%,brand.ilike.%${search}%,flavour.ilike.%${search}%`);
+      // Fetch ALL vendor products in batches (Supabase has 1000 row limit per query)
+      let allVendorProducts: any[] = [];
+      let page = 1;
+      const perPage = 1000;
+      let hasMore = true;
+      let totalCount = 0;
+      
+      while (hasMore) {
+        const params = new URLSearchParams({
+          region,
+          page: page.toString(),
+          limit: perPage.toString(),
+          ...(searchTerm && { search: searchTerm })
+        });
+        
+        const response = await fetch(`/api/admin/vendor-products?${params}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          console.error('API Error:', data.error);
+          hasMore = false;
+          break;
+        }
+        
+        if (data.data && data.data.length > 0) {
+          allVendorProducts = [...allVendorProducts, ...data.data];
+          totalCount = data.totalCount || allVendorProducts.length;
+          // Continue fetching if we got a full page and haven't reached total count
+          hasMore = data.data.length === perPage && allVendorProducts.length < totalCount;
+          page++;
+          console.log(`Fetched batch ${page - 1}: ${data.data.length} products (total so far: ${allVendorProducts.length}/${totalCount})`);
+        } else {
+          hasMore = false;
+        }
       }
-
-      const { data, count, error } = await query;
-
-      if (error) throw error;
-
-      setMainProducts(data || []);
-      setMainProductsTotalCount(count || 0);
-      setMainProductsTotalPages(Math.ceil((count || 0) / limit));
-      setMainProductsPage(page);
-
-      // Update stats
-      const avgPrice = data?.length > 0 
-        ? data.reduce((sum: any, p: any) => sum + (p.price || 0), 0) / data.length 
-        : 0;
-
-      setStats(prev => ({
-        ...prev,
-        totalProducts: count || 0,
-        avgPrice
-      }));
-
+      
+      setVendorProducts(allVendorProducts);
+      console.log(`✅ Loaded ${allVendorProducts.length} vendor products for ${region} in ${page - 1} batches`);
     } catch (error) {
-      console.error('Error fetching main products:', error);
-      toast.error('Failed to fetch main products');
+      console.error('Error loading vendor products:', error);
+      toast.error('Failed to load vendor products');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchVendorProducts = async (page = 1, search = '', vendorId = 'all', pageSize?: number) => {
+  const loadSignups = async () => {
+    setLoading(true);
     try {
-      const limit = pageSize || vendorProductsPageSize;
-      const offset = (page - 1) * limit;
+      const response = await fetch(`/api/admin/signups?page=${signupsPage}&limit=${signupsPerPage}&search=${signupsSearch}&source=${signupsSourceFilter}&status=${signupsStatusFilter}`);
+      const data = await response.json();
 
-      // Use correct table based on region
-      const tableName = selectedRegion === 'UK' ? 'vendor_products' : 'us_vendor_products_new';
-      const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
-      let query = supabase()
-        .from(tableName)
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-
-      if (vendorId !== 'all') {
-        // Handle both string and number vendor IDs
-        const vendorIdValue = typeof vendorId === 'string' ? vendorId : String(vendorId);
-        query = query.eq(vendorIdField, vendorIdValue);
+      if (data.error) {
+        toast.error('Failed to load signups');
+        return;
       }
 
-      if (search) {
-        query = query.or(`name.ilike.%${search}%,brand.ilike.%${search}%`);
-      }
-
-      const { data, count, error } = await query;
-
-      if (error) throw error;
-
-      // Set the correct state based on region
-      if (selectedRegion === 'UK') {
-        setVendorProducts(data || []);
-      } else {
-        setUsVendorProducts(data || []);
-      }
-      setVendorProductsTotalCount(count || 0);
-      setVendorProductsTotalPages(Math.ceil((count || 0) / limit));
-      setVendorProductsPage(page);
-
-      // Automatically find matches for all vendor products
-      if (data && data.length > 0) {
-        await findMatchesForVendorProducts(data);
-      }
-
+      setSignups(data.data || []);
+      setSignupsTotalCount(data.totalCount || 0);
+      setSignupsTotalPages(data.totalPages || 1);
     } catch (error) {
-      console.error('Error fetching vendor products:', error);
-      toast.error('Failed to fetch vendor products');
+      console.error('Error loading signups:', error);
+      toast.error('Failed to load signups');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // US-specific fetch functions
-  const fetchUSMainProducts = async (page = 1, search = '', pageSize?: number) => {
+  const loadUnmappedProducts = async () => {
+    setLoading(true);
     try {
-      const limit = pageSize || mainProductsPageSize;
-      const offset = (page - 1) * limit;
-
-      let query = supabase()
-        .from('us_products')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-
-      if (search) {
-        query = query.or(`product_title.ilike.%${search}%,brand.ilike.%${search}%,flavour.ilike.%${search}%`);
-      }
-
-      const { data, count, error } = await query;
-
-      if (error) throw error;
-
-      setUsProducts(data || []);
-      setMainProductsTotalCount(count || 0);
-      setMainProductsTotalPages(Math.ceil((count || 0) / limit));
-      setMainProductsPage(page);
-
-      // Update stats for US products
-      const avgPrice = data?.length > 0 
-        ? data.reduce((sum: any, p: any) => sum + (p.price || 0), 0) / data.length 
-        : 0;
-
-      setStats(prev => ({
-        ...prev,
-        totalProducts: count || 0,
-        avgPrice
-      }));
-
-    } catch (error) {
-      console.error('Error fetching US products:', error);
-      toast.error('Failed to fetch US products');
-    }
-  };
-
-  const fetchUSVendorProducts = async (page = 1, search = '', vendorId = 'all', pageSize?: number) => {
-    try {
-      const limit = pageSize || vendorProductsPageSize;
-      const offset = (page - 1) * limit;
-
-      let query = supabase()
-        .from('us_vendor_products')
-        .select(`
-          *,
-          us_products!inner(product_title, brand, flavour, strength, format, image_url),
-          us_vendors!inner(name)
-        `, { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-
-      if (vendorId !== 'all') {
-        // Handle both string and number vendor IDs
-        const vendorIdValue = typeof vendorId === 'string' ? vendorId : String(vendorId);
-        query = query.eq('us_vendor_id', vendorIdValue);
-      }
-
-      if (search) {
-        query = query.or(`us_products.product_title.ilike.%${search}%,us_products.brand.ilike.%${search}%`);
-      }
-
-      const { data, count, error } = await query;
-
-      if (error) throw error;
-
-      setUsVendorProducts(data || []);
-      setVendorProductsTotalCount(count || 0);
-      setVendorProductsTotalPages(Math.ceil((count || 0) / limit));
-      setVendorProductsPage(page);
-
-    } catch (error) {
-      console.error('Error fetching US vendor products:', error);
-      toast.error('Failed to fetch US vendor products');
-    }
-  };
-
-  const handleAddVendor = async () => {
-    try {
-      const { error } = await supabase()
-        .from('vendors')
-        .insert([newVendor]);
-
-      if (error) throw error;
-
-      toast.success('Vendor added successfully');
-      setNewVendor({
-        name: '',
-        website: '',
-        contact_email: '',
-        contact_phone: '',
-        description: '',
-        is_active: true
+      const params = new URLSearchParams({
+        adminKey: '9503283252',
+        page: unmappedPage.toString(),
+        limit: unmappedPerPage.toString(),
+        status: unmappedStatusFilter,
+        ...(unmappedVendorFilter !== 'all' && { vendor: unmappedVendorFilter }),
+        ...(unmappedSearch && { search: unmappedSearch })
       });
-      setIsAddingVendor(false);
-      fetchData();
+
+      const response = await fetch(`/api/admin/unmapped-products?${params}`);
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error('Failed to load unmapped products');
+        return;
+      }
+
+      setUnmappedProducts(data.products || []);
+      setUnmappedTotalCount(data.total || 0);
+      setUnmappedTotalPages(data.totalPages || 1);
+      setUnmappedVendors(data.vendors || []);
     } catch (error) {
-      console.error('Error adding vendor:', error);
-      toast.error('Failed to add vendor');
+      console.error('Error loading unmapped products:', error);
+      toast.error('Failed to load unmapped products');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteVendor = async (id: string | number) => {
-    if (!confirm('Are you sure you want to delete this vendor? This action cannot be undone and will also delete all associated vendor products and mappings.')) {
+  const handleUnmappedAction = async (id: number, action: 'reject' | 'map' | 'create', mappedProductId?: number, newProductData?: any) => {
+    setActionLoading(id);
+    try {
+      const response = await fetch(`/api/admin/unmapped-products?adminKey=9503283252`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action, mappedProductId, newProductData })
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success(data.message || 'Action completed');
+      loadUnmappedProducts(); // Reload the list
+      setShowMapDialog(null);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Failed to perform action');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const searchProductsForMapping = async (term: string) => {
+    if (!term || term.length < 2) {
+      setMapSearchResults([]);
       return;
     }
 
+    setMapSearchLoading(true);
     try {
-      // First delete all vendor products and mappings
-      const vendorTableName = selectedRegion === 'UK' ? 'vendor_products' : 'us_vendor_products_new';
-      const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
-      const { error: productsError } = await supabase()
-        .from(vendorTableName)
-        .delete()
-        .eq(vendorIdField, id);
+      const response = await fetch(`/api/admin/products?region=${region}&search=${encodeURIComponent(term)}&limit=10`);
+      const data = await response.json();
+      setMapSearchResults(data.data || []);
+    } catch (error) {
+      console.error('Error searching products:', error);
+    } finally {
+      setMapSearchLoading(false);
+    }
+  };
 
-      if (productsError) throw productsError;
+  const loadVendorProductMappings = async () => {
+    setLoading(true);
+    try {
+      // Fetch ALL vendor products in batches (Supabase has 1000 row limit per query)
+      let allVendorProducts: any[] = [];
+      let page = 1;
+      const perPage = 1000;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const response = await fetch(`/api/admin/vendor-products?region=${region}&page=${page}&limit=${perPage}`);
+        const data = await response.json();
+        
+        if (data.data && data.data.length > 0) {
+          allVendorProducts = [...allVendorProducts, ...data.data];
+          hasMore = data.data.length === perPage && allVendorProducts.length < data.totalCount;
+          page++;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      // Fetch existing mappings from vendor_product_mapping table in batches
+      let allMappings: any[] = [];
+      let mappingsPage = 1;
+      let mappingsHasMore = true;
+      
+      while (mappingsHasMore) {
+        const mappingsResponse = await fetch(`/api/vendor-product-mappings?region=${region}&page=${mappingsPage}&limit=${perPage}`);
+        const mappingsData = await mappingsResponse.json();
+        
+        if (mappingsData.error) {
+          console.error('Error fetching mappings:', mappingsData.error, mappingsData.details);
+          toast.error('Failed to load existing mappings');
+          mappingsHasMore = false;
+        } else if (mappingsData.data && mappingsData.data.length > 0) {
+          allMappings = [...allMappings, ...mappingsData.data];
+          mappingsHasMore = mappingsData.data.length === perPage && allMappings.length < (mappingsData.totalCount || 0);
+          mappingsPage++;
+        } else {
+          mappingsHasMore = false;
+        }
+      }
+      
+      if (allVendorProducts.length > 0) {
+        const mappingsArray = allMappings || [];
+        
+        // Create a lookup map: vendor_id -> vendor_product -> mapping
+        // This is more efficient and handles exact matches
+        const mappingsLookup = new Map<string, any>();
+        mappingsArray.forEach((m: any) => {
+          const vendorId = m[region === 'UK' ? 'vendor_id' : 'us_vendor_id'];
+          const key = `${vendorId}|||${m.vendor_product?.toLowerCase().trim()}`;
+          mappingsLookup.set(key, m);
+        });
+        
+        // Merge vendor products with their mappings
+        const vendorProductsWithMappings = allVendorProducts.map((vp: any) => {
+          // Get vendor ID from the correct field based on region
+          const vpVendorId = region === 'UK' ? vp.vendor_id : vp.us_vendor_id;
+          const lookupKey = `${vpVendorId}|||${vp.name?.toLowerCase().trim()}`;
+          
+          // Look up mapping using the optimized map
+          const existingMapping = mappingsLookup.get(lookupKey);
+          
+          // Get the mapped product details
+          const productTableKey = region === 'UK' ? 'wp_products' : 'us_products';
+          const mappedProduct = existingMapping?.[productTableKey];
+          
+          return {
+            ...vp,
+            mapping: existingMapping,
+            mapped_product: mappedProduct,
+            is_mapped: !!existingMapping // Boolean flag for easier filtering
+          };
+        });
+        
+        const mappedCount = vendorProductsWithMappings.filter((vp: any) => vp.is_mapped).length;
+        const unmappedCount = vendorProductsWithMappings.length - mappedCount;
+        
+        // Check for similarity matches for unmapped products (in background, non-blocking)
+        const unmappedForSimilarityCheck = vendorProductsWithMappings.filter((vp: any) => !vp.is_mapped);
+        if (unmappedForSimilarityCheck.length > 0) {
+          // Check similarity matches in background (don't await to avoid blocking UI)
+          checkSimilarityMatches(unmappedForSimilarityCheck).catch(err => {
+            console.error('Error in background similarity check:', err);
+          });
+        }
+        
+        // NOTE: Auto-mapping removed from reload to prevent re-mapping when user unmaps products
+        // Use the "Auto-Match All 100% Matches" button to manually trigger bulk auto-mapping
+        
+        setVendorProductMappings(vendorProductsWithMappings);
+      }
+    } catch (error) {
+      console.error('Error loading vendor product mappings:', error);
+      toast.error('Failed to load vendor product mappings');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      const mappingTableName = selectedRegion === 'UK' ? 'vendor_product_mapping' : 'wp_product_mapping';
-      const { error: mappingsError } = await supabase()
-        .from(mappingTableName)
-        .delete()
-        .eq('vendor_id', id);
+  const processCSVFile = async (file: File) => {
+    if (!file.name.endsWith('.csv')) {
+      toast.error('Please upload a CSV file');
+      return;
+    }
 
-      if (mappingsError) throw mappingsError;
+    // Get vendor ID from the vendor filter or require selection
+    const vendorIdToUse = selectedVendorFilter && selectedVendorFilter !== 'all' 
+      ? selectedVendorFilter 
+      : null;
 
-      // Then delete the vendor
-      const { error } = await supabase()
-        .from('vendors')
-        .delete()
-        .eq('id', id);
+    if (!vendorIdToUse) {
+      toast.error('Please select a vendor before uploading CSV');
+      return;
+    }
 
-      if (error) throw error;
+    setUploading(true);
+    setUploadResult(null);
 
-      toast.success('Vendor and all associated data deleted successfully');
-      fetchData();
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('vendor_id', vendorIdToUse);
+    formData.append('region', region);
+
+    try {
+      const response = await fetch('/api/admin/upload-csv', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setUploadResult(result);
+        const message = result.message || `Successfully processed ${result.processed} products`;
+        toast.success(message);
+        // Reload vendor products and mappings to reflect updates
+        loadVendorProducts();
+        if (activeTab === 'vendor-mappings') {
+          loadVendorProductMappings();
+        }
+      } else {
+        setUploadResult({ success: false, error: result.error || 'Upload failed' });
+        toast.error(result.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadResult({ success: false, error: 'Failed to upload file' });
+      toast.error('Failed to upload file');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await processCSVFile(file);
+    e.target.value = '';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (uploading || selectedVendorFilter === 'all') return;
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      await processCSVFile(file);
+    }
+  };
+
+  const handleDeleteVendorProduct = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this vendor product?')) return;
+
+    try {
+      const response = await fetch(`/api/admin/vendor-products?id=${id}&region=${region}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast.success('Vendor product deleted successfully');
+        loadVendorProducts();
+      } else {
+        toast.error('Failed to delete vendor product');
+      }
+    } catch (error) {
+      console.error('Error deleting vendor product:', error);
+      toast.error('Failed to delete vendor product');
+    }
+  };
+
+  const handleDeleteVendor = async (id: number | string) => {
+    if (!confirm('Are you sure you want to delete this vendor?')) return;
+
+    try {
+      const response = await fetch(`/api/admin/vendors?id=${id}&region=${region}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast.success('Vendor deleted successfully');
+        loadVendors();
+      } else {
+        toast.error('Failed to delete vendor');
+      }
     } catch (error) {
       console.error('Error deleting vendor:', error);
       toast.error('Failed to delete vendor');
     }
   };
 
-  const handleDeleteProduct = async (id: string | number) => {
-    if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
-      return;
-    }
-
+  const handleUpdateVendor = async (id: number | string, updates: any) => {
     try {
-      // Determine which table to delete from based on ID type
-      if (typeof id === 'number') {
-        // Main products table
-        const { error } = await supabase()
-          .from('wp_products')
-          .delete()
-          .eq('id', id);
-        
-        if (error) throw error;
-        
-        // Refresh main products
-        await fetchMainProducts(mainProductsPage, mainProductsSearchTerm, mainProductsPageSize);
-      } else {
-        // Vendor products table
-        const vendorTableName = selectedRegion === 'UK' ? 'vendor_products' : 'us_vendor_products_new';
-        const { error } = await supabase()
-          .from(vendorTableName)
-          .delete()
-          .eq('id', id);
-
-      if (error) throw error;
-        
-        // Refresh vendor products
-        await fetchVendorProducts(vendorProductsPage, vendorProductsSearchTerm, selectedVendorForProducts, vendorProductsPageSize);
-      }
-
-      toast.success('Product deleted successfully');
-    } catch (error) {
-      console.error('Error deleting product:', error);
-      toast.error('Failed to delete product');
-    }
-  };
-
-  // CSV Processing Functions
-  const parseCSV = (text: string): { headers: string[], data: any[] } => {
-    const lines = text.split('\n').filter(line => line.trim());
-    if (lines.length === 0) return { headers: [], data: [] };
-
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-    const data = lines.slice(1).map(line => {
-      const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-      const row: any = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index] || '';
-      });
-      return row;
-    });
-
-    return { headers, data };
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      toast.error('Please select a CSV file');
-      return;
-    }
-
-    setCsvFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const { headers, data } = parseCSV(text);
-      
-      setCsvHeaders(headers);
-      setCsvData(data);
-      setCsvPreview(data.slice(0, 5)); // Show first 5 rows
-      setShowCsvPreview(true);
-      
-      // Auto-map common columns for vendor products with flexible pack detection
-      const autoMapping: Record<string, string> = {};
-      headers.forEach((header, index) => {
-        const lowerHeader = header.toLowerCase().trim();
-        console.log(`Processing header: "${header}" (index: ${index}, lower: "${lowerHeader}")`);
-        
-        // Basic field mapping
-        if (lowerHeader.includes('name') || lowerHeader.includes('product')) {
-          autoMapping[`${header}-${index}`] = 'name';
-          console.log(`Mapped "${header}" to name`);
-        } else if (lowerHeader.includes('brand')) {
-          autoMapping[`${header}-${index}`] = 'brand';
-          console.log(`Mapped "${header}" to brand`);
-        } else if (lowerHeader.includes('url') || lowerHeader.includes('link') || lowerHeader.includes('page url')) {
-          autoMapping[`${header}-${index}`] = 'url';
-          console.log(`Mapped "${header}" to url`);
-        } else {
-          // Dynamic pack detection - look for any number followed by pack/can/unit (with plural support)
-          const packMatch = lowerHeader.match(/(\d+)\s*(pack|packs|can|cans|unit|units|pcs?|pieces?)/);
-          if (packMatch) {
-            const packSize = packMatch[1];
-            const packType = packMatch[2];
-            console.log(`Found pack match: "${header}" -> size: ${packSize}, type: ${packType}`);
-            
-            // Map to standard pack column names - support any pack size from 1-50
-            const size = parseInt(packSize);
-            if (size >= 1 && size <= 50) {
-              // Map to the exact standard size if it exists, otherwise to the closest
-              if (size === 1) {
-                autoMapping[`${header}-${index}`] = 'price_1pack';
-              } else if (size === 3) {
-                autoMapping[`${header}-${index}`] = 'price_3pack';
-              } else if (size === 5) {
-                autoMapping[`${header}-${index}`] = 'price_5pack';
-              } else if (size === 10) {
-                autoMapping[`${header}-${index}`] = 'price_10pack';
-              } else if (size === 20) {
-                autoMapping[`${header}-${index}`] = 'price_20pack';
-              } else if (size === 25) {
-                autoMapping[`${header}-${index}`] = 'price_25pack';
-              } else if (size === 30) {
-                autoMapping[`${header}-${index}`] = 'price_30pack';
-              } else if (size === 50) {
-                autoMapping[`${header}-${index}`] = 'price_50pack';
-              } else {
-                // Map to closest standard size for any other pack size 1-50
-                if (size <= 1) {
-                  autoMapping[`${header}-${index}`] = 'price_1pack';
-                } else if (size <= 3) {
-                  autoMapping[`${header}-${index}`] = 'price_3pack';
-                } else if (size <= 5) {
-                  autoMapping[`${header}-${index}`] = 'price_5pack';
-                } else if (size <= 10) {
-                  autoMapping[`${header}-${index}`] = 'price_10pack';
-                } else if (size <= 20) {
-                  autoMapping[`${header}-${index}`] = 'price_20pack';
-                } else if (size <= 25) {
-                  autoMapping[`${header}-${index}`] = 'price_25pack';
-                } else if (size <= 30) {
-                  autoMapping[`${header}-${index}`] = 'price_30pack';
-                } else {
-                  autoMapping[`${header}-${index}`] = 'price_50pack';
-                }
-              }
-            }
-          }
-          // Also check for price_ format
-          else if (lowerHeader.startsWith('price_') && lowerHeader.includes('pack')) {
-            autoMapping[`${header}-${index}`] = lowerHeader.replace('price_', 'price_');
-          }
-        }
-      });
-      
-      console.log('Auto-mapping result:', autoMapping);
-      console.log('Headers processed:', headers);
-      setColumnMapping(autoMapping);
-      
-      // Auto-process the CSV if all required fields are mapped
-      if (autoMapping[headers[0]] && autoMapping[headers[1]] && selectedVendor) {
-        console.log('Auto-processing CSV...');
-        setTimeout(() => {
-          processCsvImport();
-        }, 1000);
-      }
-    };
-    reader.readAsText(file);
-  };
-
-
-  // Helper function to get the correct column index for a mapped field
-  const getColumnIndex = (fieldName: string) => {
-    for (const [key, value] of Object.entries(columnMapping)) {
-      if (value === fieldName) {
-        // Extract index from key format "header-index"
-        const index = key.split('-').pop();
-        const result = index ? parseInt(index) : -1;
-        console.log(`getColumnIndex(${fieldName}) = ${result} (key: ${key}, value: ${value})`);
-        return result;
-      }
-    }
-    console.log(`getColumnIndex(${fieldName}) = -1 (not found in mapping)`);
-    console.log('Available mappings:', columnMapping);
-    return -1;
-  };
-
-  const processCsvImport = async () => {
-    if (!selectedVendor || !csvData.length) {
-      toast.error('Please select a vendor and ensure CSV data is loaded');
-      return;
-    }
-    
-    console.log('Processing CSV import for vendor:', selectedVendor);
-    console.log('Column mapping:', columnMapping);
-    console.log('CSV data sample:', csvData.slice(0, 2));
-    console.log('Name column index:', getColumnIndex('name'));
-    console.log('Brand column index:', getColumnIndex('brand'));
-    console.log('URL column index:', getColumnIndex('url'));
-
-    setIsProcessingCsv(true);
-    setCsvProgress(0);
-
-    const importStartTime = new Date().toISOString();
-    const selectedVendorData = vendors.find(v => v.id === parseInt(selectedVendor, 10));
-
-    try {
-      const results = {
-        success: 0,
-        errors: 0,
-        matches: 0,
-        newProducts: 0,
-        errors_list: [] as string[]
-      };
-
-      // Process each row
-      for (let i = 0; i < csvData.length; i++) {
-        const row = csvData[i];
-        setCsvProgress(Math.round((i / csvData.length) * 100));
-
-        try {
-          // Debug: Log the row data and extracted values
-          const nameIndex = getColumnIndex('name');
-          const brandIndex = getColumnIndex('brand');
-          const urlIndex = getColumnIndex('url');
-          
-          // Get the actual header names for the mapped fields
-          const nameHeader = Object.keys(columnMapping).find(key => columnMapping[key] === 'name')?.split('-').slice(0, -1).join('-');
-          const brandHeader = Object.keys(columnMapping).find(key => columnMapping[key] === 'brand')?.split('-').slice(0, -1).join('-');
-          const urlHeader = Object.keys(columnMapping).find(key => columnMapping[key] === 'url')?.split('-').slice(0, -1).join('-');
-          
-          console.log(`Row ${i + 1}:`, {
-            nameIndex,
-            brandIndex,
-            urlIndex,
-            nameHeader,
-            brandHeader,
-            urlHeader,
-            nameValue: nameHeader ? row[nameHeader] : 'NO HEADER FOUND',
-            brandValue: brandHeader ? row[brandHeader] : 'NO HEADER FOUND',
-            urlValue: urlHeader ? row[urlHeader] : 'NO HEADER FOUND',
-            fullRow: row,
-            rowKeys: Object.keys(row),
-            columnMapping: columnMapping
-          });
-          
-          // Check if name is actually missing
-          if (!nameHeader || !row[nameHeader] || row[nameHeader].trim() === '') {
-            console.error(`Row ${i + 1} has empty name:`, {
-              nameHeader,
-              nameValue: nameHeader ? row[nameHeader] : 'NO HEADER FOUND',
-              row: row,
-              availableKeys: Object.keys(row)
-            });
-          }
-          
-          // Debug the actual productData creation
-          const extractedName = nameHeader ? (row[nameHeader] || '') : '';
-          console.log(`Row ${i + 1} productData.name will be:`, {
-            extractedName,
-            isEmpty: extractedName === '',
-            isUndefined: extractedName === undefined,
-            isNull: extractedName === null
-          });
-          
-          // Map CSV columns to vendor product data with flexible pack handling
-          const productData: any = {
-            // Use different field names based on region
-            ...(selectedRegion === 'UK' ? {
-              vendor_id: selectedVendor,
-              name: nameHeader ? (row[nameHeader] || '') : '',
-              brand: '', // Brand not required
-              url: urlHeader ? (row[urlHeader] || '') : ''
-            } : {
-              us_vendor_id: selectedVendor,
-              name: nameHeader ? (row[nameHeader] || '') : '',
-              brand: '', // Brand not required
-              url: urlHeader ? (row[urlHeader] || '') : ''
-            })
-          };
-
-          // Add pack prices dynamically - only for packs that exist in the CSV
-          const standardPacks = ['price_1pack', 'price_3pack', 'price_5pack', 'price_10pack', 'price_20pack', 'price_25pack', 'price_30pack', 'price_50pack'];
-          standardPacks.forEach(pack => {
-            const packHeader = Object.keys(columnMapping).find(key => columnMapping[key] === pack)?.split('-').slice(0, -1).join('-');
-            // Only add the pack if it exists in the CSV mapping
-            if (packHeader) {
-              const priceValue = row[packHeader] || '';
-              // Convert price string to number (remove $ and parse)
-              const numericPrice = priceValue ? parseFloat(priceValue.replace(/[$,]/g, '')) : null;
-              productData[pack] = (numericPrice === null || isNaN(numericPrice)) ? null : numericPrice;
-            }
-            // If pack doesn't exist in CSV, don't add it to productData (will be NULL in DB)
-          });
-
-          // Handle custom pack sizes - map to closest standard size
-          Object.entries(columnMapping).forEach(([key, field]) => {
-            if (field === 'custom_pack') {
-              // Extract header name from key format "header-index"
-              const headerParts = key.split('-');
-              const header = headerParts.slice(0, -1).join('-');
-              
-              // Extract pack size from header (with plural support)
-              const packMatch = header.toLowerCase().match(/(\d+)\s*(pack|packs|can|cans|unit|units|pcs?|pieces?)/);
-              if (packMatch) {
-                const packSize = parseInt(packMatch[1]);
-                const priceValue = row[header] || '';
-                // Convert price string to number (remove $ and parse)
-                const numericPrice = priceValue ? parseFloat(priceValue.replace(/[$,]/g, '')) : null;
-                const finalPrice = (numericPrice === null || isNaN(numericPrice)) ? null : numericPrice;
-                
-                // Map to closest standard pack size
-                if (packSize <= 1) {
-                  productData.price_1pack = finalPrice;
-                } else if (packSize <= 3) {
-                  productData.price_3pack = finalPrice;
-                } else if (packSize <= 5) {
-                  productData.price_5pack = finalPrice;
-                } else if (packSize <= 10) {
-                  productData.price_10pack = finalPrice;
-                } else if (packSize <= 20) {
-                  productData.price_20pack = finalPrice;
-                } else if (packSize <= 25) {
-                  productData.price_25pack = finalPrice;
-                } else if (packSize <= 30) {
-                  productData.price_30pack = finalPrice;
-                } else {
-                  productData.price_50pack = finalPrice;
-                }
-              }
-            }
-          });
-
-          if (!productData.name) {
-            results.errors++;
-            results.errors_list.push(`Row ${i + 1}: Missing product name`);
-            continue;
-          }
-
-          // Insert product - use correct table based on region
-          const tableName = selectedRegion === 'UK' ? 'vendor_products' : 'us_vendor_products_new';
-          
-          // Debug: Log the data being inserted
-          console.log(`Inserting product data for row ${i + 1}:`, {
-            tableName,
-            productData,
-            selectedVendor,
-            vendorIdType: typeof selectedVendor
-          });
-          
-          const { error } = await supabase()
-            .from(tableName)
-            .insert([productData]);
-
-          if (error) {
-            console.error(`Database insert error for row ${i + 1}:`, error);
-            throw error;
-          }
-
-          results.success++;
-          results.newProducts++;
-
-        } catch (error) {
-          results.errors++;
-          results.errors_list.push(`Row ${i + 1}: ${error instanceof Error ? error.message : String(error)}`);
-        }
-      }
-
-      setImportResults(results);
-      setCsvProgress(100);
-      
-      // Save import history
-      const importRecord = {
-        id: Date.now().toString(),
-        timestamp: importStartTime,
-        vendor_id: selectedVendor,
-        vendor_name: selectedVendorData?.name || 'Unknown Vendor',
-        filename: csvFile?.name || 'Unknown File',
-        total_rows: csvData.length,
-        success_count: results.success,
-        error_count: results.errors,
-        match_count: results.matches,
-        new_product_count: results.newProducts,
-        status: results.errors > 0 ? 'partial' : 'success',
-        errors: results.errors_list.slice(0, 10) // Keep only first 10 errors
-      };
-
-      // Update import history
-      setImportHistory(prev => [importRecord, ...prev.slice(0, 49)]); // Keep last 50 imports
-      
-      // Save to localStorage for persistence
-      localStorage.setItem('import_history', JSON.stringify([importRecord, ...importHistory.slice(0, 49)]));
-      
-      if (results.success > 0) {
-        toast.success(`Successfully imported ${results.success} products`);
-        fetchData(); // Refresh data
-        
-        // Also refresh vendor products for the selected vendor
-        await fetchVendorProducts(1, '', selectedVendor, vendorProductsPageSize);
-        
-        // Switch to vendor products tab and select the vendor
-        setActiveTab('vendor-products');
-        setSelectedVendorForProducts(selectedVendor);
-      }
-
-    } catch (error) {
-      console.error('CSV import error:', error);
-      toast.error('Failed to import CSV data');
-    } finally {
-      setIsProcessingCsv(false);
-    }
-  };
-
-  const resetCsvUpload = () => {
-    setCsvFile(null);
-    setCsvData([]);
-    setCsvHeaders([]);
-    setSelectedVendor('');
-    setColumnMapping({});
-    setCsvPreview([]);
-    setShowCsvPreview(false);
-    setImportResults(null);
-    setCsvProgress(0);
-  };
-
-  // Product CSV Upload Functions
-  const handleProductFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      toast.error('Please select a CSV file');
-      return;
-    }
-
-    setProductCsvFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const { headers, data } = parseCSV(text);
-      
-      setProductCsvHeaders(headers);
-      setProductCsvData(data);
-      setProductCsvPreview(data.slice(0, 5)); // Show first 5 rows
-      setShowProductCsvPreview(true);
-      
-      // Auto-map common columns for products
-      const autoMapping: Record<string, string> = {};
-      headers.forEach(header => {
-        const lowerHeader = header.toLowerCase();
-        if (lowerHeader.includes('name') || lowerHeader.includes('product')) {
-          autoMapping[header] = 'name';
-        } else if (lowerHeader.includes('brand')) {
-          autoMapping[header] = 'brand';
-        } else if (lowerHeader.includes('price')) {
-          autoMapping[header] = 'price';
-        } else if (lowerHeader.includes('flavour') || lowerHeader.includes('flavor')) {
-          autoMapping[header] = 'flavour';
-        } else if (lowerHeader.includes('strength')) {
-          autoMapping[header] = 'strength_group';
-        } else if (lowerHeader.includes('format')) {
-          autoMapping[header] = 'format';
-        } else if (lowerHeader.includes('description')) {
-          autoMapping[header] = 'description';
-        } else if (lowerHeader.includes('image') || lowerHeader.includes('photo')) {
-          autoMapping[header] = 'image_url';
-        } else if (lowerHeader.includes('url') || lowerHeader.includes('link')) {
-          autoMapping[header] = 'page_url';
-        }
-      });
-      setProductColumnMapping(autoMapping);
-    };
-    reader.readAsText(file);
-  };
-
-  const processProductCsvImport = async () => {
-    if (!productCsvData.length) {
-      toast.error('Please ensure CSV data is loaded');
-      return;
-    }
-
-    setIsProcessingProductCsv(true);
-    setProductCsvProgress(0);
-
-    try {
-      const results = {
-        success: 0,
-        errors: 0,
-        errors_list: [] as string[]
-      };
-
-      // Process each row
-      for (let i = 0; i < productCsvData.length; i++) {
-        const row = productCsvData[i];
-        setProductCsvProgress(Math.round((i / productCsvData.length) * 100));
-
-        try {
-          // Map CSV columns to product data
-          const productData = {
-            name: row[productColumnMapping.name] || '',
-            brand: row[productColumnMapping.brand] || '',
-            price: parseFloat(row[productColumnMapping.price] || '0'),
-            flavour: row[productColumnMapping.flavour] || null,
-            strength_group: row[productColumnMapping.strength_group] || null,
-            format: row[productColumnMapping.format] || null,
-            description: row[productColumnMapping.description] || null,
-            image_url: row[productColumnMapping.image_url] || null,
-            page_url: row[productColumnMapping.page_url] || null
-          };
-
-          if (!productData.name) {
-            results.errors++;
-            results.errors_list.push(`Row ${i + 1}: Missing product name`);
-            continue;
-          }
-
-          // Insert product
-          const { error } = await supabase()
-            .from('wp_products')
-            .insert([productData]);
-
-          if (error) throw error;
-
-          results.success++;
-
-        } catch (error) {
-          results.errors++;
-          results.errors_list.push(`Row ${i + 1}: ${error instanceof Error ? error.message : String(error)}`);
-        }
-      }
-
-      setProductImportResults(results);
-      setProductCsvProgress(100);
-      
-      if (results.success > 0) {
-        toast.success(`Successfully imported ${results.success} products`);
-        fetchData(); // Refresh data
-      }
-
-    } catch (error) {
-      console.error('Product CSV import error:', error);
-      toast.error('Failed to import product CSV data');
-    } finally {
-      setIsProcessingProductCsv(false);
-    }
-  };
-
-  const resetProductCsvUpload = () => {
-    setProductCsvFile(null);
-    setProductCsvData([]);
-    setProductCsvHeaders([]);
-    setProductColumnMapping({});
-    setProductCsvPreview([]);
-    setShowProductCsvPreview(false);
-    setProductImportResults(null);
-    setProductCsvProgress(0);
-  };
-
-  // Product mapping functions (from vendor-profiles)
-  const calculateSimilarity = (str1: string, str2: string): number => {
-    // Normalize strings for comparison
-    const normalizeString = (str: string | null | undefined) => {
-      if (!str || typeof str !== 'string') {
-        return '';
-      }
-      return str
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, ' ') // Normalize whitespace
-        .trim();
-    };
-    
-    const s1 = normalizeString(str1);
-    const s2 = normalizeString(str2);
-    
-    // Check for exact match first
-    if (s1 === s2) {
-      return 0.99; // 99% match for exact matches
-    }
-    
-    // Extract brand and flavor for nicotine pouches
-    const parts1 = extractBrandAndFlavor(s1);
-    const parts2 = extractBrandAndFlavor(s2);
-    
-    // Calculate multiple similarity scores
-    const scores: { [key: string]: number } = {};
-    
-    // 1. Basic string similarity (20% weight)
-    const levenshtein = levenshteinDistance(s1, s2);
-    const maxLength = Math.max(s1.length, s2.length);
-    scores.basic = 1 - (levenshtein / maxLength);
-    
-    // 2. Brand matching (50% weight) - most important for nicotine pouches
-    let brandScore = 0;
-    if (parts1.brand && parts2.brand) {
-      if (parts1.brand === parts2.brand) {
-        brandScore = 1.0; // Exact brand match
-      } else if (parts2.brand.includes(parts1.brand) || parts1.brand.includes(parts2.brand)) {
-        brandScore = 0.8; // Partial brand match
-      }
-    }
-    scores.brand = brandScore;
-    
-    // 3. Flavor matching (30% weight)
-    let flavorScore = 0;
-    if (parts1.flavor && parts2.flavor) {
-      flavorScore = calculateFlavorSimilarity(parts1.flavor, parts2.flavor);
-    }
-    scores.flavor = flavorScore;
-    
-    // 4. Combined weighted score
-    const combinedScore = (scores.basic * 0.2) + (scores.brand * 0.5) + (scores.flavor * 0.3);
-    
-    return combinedScore;
-  };
-
-  const extractBrandAndFlavor = (productName: string): { brand: string; flavor: string } => {
-    const name = productName.trim();
-    const parts = { brand: '', flavor: '' };
-    
-    // Common nicotine pouch patterns
-    const patterns = [
-      // Pattern: "4NX Arctic Mint" -> brand: "4NX", flavor: "Arctic Mint"
-      /^([A-Z0-9]+)\s+(.+)$/,
-      // Pattern: "77 Apple & Mint" -> brand: "77", flavor: "Apple & Mint"
-      /^(\d+)\s+(.+)$/,
-      // Pattern: "Velo Ice Cool" -> brand: "Velo", flavor: "Ice Cool"
-      /^([A-Za-z]+)\s+(.+)$/
-    ];
-    
-    for (const pattern of patterns) {
-      const match = name.match(pattern);
-      if (match) {
-        parts.brand = match[1].trim();
-        parts.flavor = match[2].trim();
-        break;
-      }
-    }
-    
-    // If no pattern matched, try to split on common separators
-    if (!parts.brand) {
-      const separators = [' - ', ' | ', ' / ', ' & '];
-      for (const sep of separators) {
-        if (name.includes(sep)) {
-          const split = name.split(sep, 2);
-          parts.brand = split[0].trim();
-          parts.flavor = split[1].trim();
-          break;
-        }
-      }
-    }
-    
-    return parts;
-  };
-
-  const calculateFlavorSimilarity = (flavor1: string, flavor2: string): number => {
-    const f1 = flavor1.toLowerCase();
-    const f2 = flavor2.toLowerCase();
-    
-    // Exact match
-    if (f1 === f2) return 1.0;
-    
-    // Common flavor variations mapping for nicotine pouches
-    const variations: { [key: string]: string[] } = {
-      'mint': ['mint', 'minty', 'fresh mint', 'cool mint'],
-      'arctic': ['arctic', 'ice', 'icy', 'cool', 'frost'],
-      'berry': ['berry', 'berries', 'forest fruits', 'mixed berries'],
-      'apple': ['apple', 'green apple', 'red apple'],
-      'cherry': ['cherry', 'cherries', 'sour cherry'],
-      'vanilla': ['vanilla', 'cream', 'sweet'],
-      'cola': ['cola', 'coke', 'cola flavor'],
-      'peach': ['peach', 'peaches', 'peachy'],
-      'raspberry': ['raspberry', 'raspberries'],
-      'tropical': ['tropical', 'tropical fruits', 'exotic'],
-      'energy': ['energy', 'energizing', 'boost'],
-      'fire': ['fire', 'spicy', 'hot', 'burning'],
-      'citrus': ['citrus', 'lemon', 'lime', 'orange'],
-      'coffee': ['coffee', 'espresso', 'cappuccino'],
-      'chocolate': ['chocolate', 'cocoa', 'mocha'],
-      'strawberry': ['strawberry', 'strawberries'],
-      'grape': ['grape', 'grapes'],
-      'watermelon': ['watermelon', 'water melon'],
-      'pineapple': ['pineapple', 'pine apple'],
-      'coconut': ['coconut', 'coco'],
-      'cinnamon': ['cinnamon', 'cinnamon spice'],
-      'licorice': ['licorice', 'liquorice'],
-      'menthol': ['menthol', 'mentholated'],
-      'eucalyptus': ['eucalyptus', 'eucaliptus']
-    };
-    
-    // Check if flavors are in the same variation group
-    for (const [group, flavors] of Object.entries(variations)) {
-      const f1InGroup = flavors.includes(f1);
-      const f2InGroup = flavors.includes(f2);
-      
-      if (f1InGroup && f2InGroup) {
-        return 0.9; // High similarity for same flavor group
-      }
-    }
-    
-    // Check for partial matches
-    if (f1.includes(f2) || f2.includes(f1)) {
-      return 0.7; // Medium similarity for partial matches
-    }
-    
-    // Use Levenshtein distance for other cases
-    const levenshtein = levenshteinDistance(f1, f2);
-    const maxLength = Math.max(f1.length, f2.length);
-    return 1 - (levenshtein / maxLength);
-  };
-
-  const levenshteinDistance = (str1: string, str2: string): number => {
-    const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
-    
-    for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
-    for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
-    
-    for (let j = 1; j <= str2.length; j++) {
-      for (let i = 1; i <= str1.length; i++) {
-        const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
-        matrix[j][i] = Math.min(
-          matrix[j][i - 1] + 1,
-          matrix[j - 1][i] + 1,
-          matrix[j - 1][i - 1] + indicator
-        );
-      }
-    }
-    
-    return matrix[str2.length][str1.length];
-  };
-
-  const findMatchesForVendorProducts = async (vendorProducts: any[]) => {
-    try {
-      // Get all existing products from Supabase
-      const { data: existingProducts, error } = await supabase()
-        .from('wp_products')
-        .select('*');
-
-      if (error) throw error;
-
-      const matches: { [key: string]: ProductMatch[] } = {};
-      
-      for (const vendorProduct of vendorProducts) {
-        const productName = vendorProduct.name || 'Unknown Product';
-        const potentialMatches: ProductMatch[] = [];
-        
-        for (const existingProduct of existingProducts || []) {
-          const existingProductName = selectedRegion === 'UK' ? existingProduct.name : existingProduct.product_title;
-          if (!existingProductName) continue; // Skip products with no name
-          const similarity = calculateSimilarity(productName, existingProductName);
-          if (similarity >= 0.75) { // 75% similarity threshold
-            potentialMatches.push({
-              id: existingProduct.id,
-              name: existingProductName,
-              brand: existingProduct.brand || 'Unknown',
-              flavour: existingProduct.flavour,
-              similarity: Math.round(similarity * 100)
-            });
-          }
-        }
-        
-        // Sort by similarity
-        potentialMatches.sort((a, b) => b.similarity - a.similarity);
-        
-        // Store matches for this vendor product
-        matches[productName] = potentialMatches.slice(0, 5); // Top 5 matches
-      }
-      
-      setProductMatches(matches);
-      
-    } catch (error) {
-      console.error('Error finding product matches:', error);
-    }
-  };
-
-  const findProductMatchesForMapping = async (vendorProducts: any[], columnMapping: Record<string, string>) => {
-    setIsProcessingMapping(true);
-    try {
-      // Get all existing products from Supabase
-      const { data: existingProducts, error } = await supabase()
-        .from('wp_products')
-        .select('*');
-
-      if (error) throw error;
-
-      const matches = [];
-      
-      for (const vendorProduct of vendorProducts) {
-        // Extract product name using column mapping
-        const productName = columnMapping.name ? vendorProduct[columnMapping.name] : vendorProduct.name || vendorProduct.product_name || 'Unknown Product';
-        const potentialMatches = [];
-        
-        for (const existingProduct of existingProducts || []) {
-          const existingProductName = selectedRegion === 'UK' ? existingProduct.name : existingProduct.product_title;
-          if (!existingProductName) continue; // Skip products with no name
-          const similarity = calculateSimilarity(productName, existingProductName);
-          if (similarity >= 0.75) { // 75% similarity threshold (increased for more accurate matches)
-            potentialMatches.push({
-              id: existingProduct.id,
-              name: existingProductName,
-              brand: existingProduct.brand || 'Unknown',
-              flavour: existingProduct.flavour,
-              similarity: Math.round(similarity * 100)
-            });
-          }
-        }
-        
-        // Sort by similarity
-        potentialMatches.sort((a, b) => b.similarity - a.similarity);
-        
-        matches.push({
-          vendor_product: productName,
-          potential_matches: potentialMatches.slice(0, 5) // Top 5 matches
-        });
-      }
-      
-      setMappingResults(matches);
-      setShowMappingInterface(true);
-      
-    } catch (error) {
-      console.error('Error finding product matches:', error);
-      toast.error('Failed to find product matches');
-    } finally {
-      setIsProcessingMapping(false);
-    }
-  };
-
-  const confirmMapping = (vendorProduct: string, productId: string, productName: string) => {
-    setProductMappings(prev => ({
-      ...prev,
-      [vendorProduct]: productId
-    }));
-    toast.success(`Mapped "${vendorProduct}" to "${productName}"`);
-  };
-
-  const saveMappings = async () => {
-    try {
-      const mappingTableName = selectedRegion === 'UK' ? 'vendor_product_mapping' : 'us_vendor_product_mapping';
-      const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
-      
-      const mappingsToSave = Object.entries(productMappings).map(([vendorProduct, productId]) => ({
-        vendor_product: vendorProduct,
-        product_id: productId,
-        [vendorIdField]: selectedVendor,
-        created_at: new Date().toISOString()
-      }));
-
-      const { error } = await supabase()
-        .from(mappingTableName)
-        .insert(mappingsToSave);
-
-      if (error) throw error;
-
-      toast.success(`Successfully saved ${mappingsToSave.length} product mappings`);
-      setShowMappingInterface(false);
-      setProductMappings([]);
-      setMappingResults([]);
-      
-    } catch (error) {
-      console.error('Error saving mappings:', error);
-      toast.error('Failed to save mappings');
-    }
-  };
-
-  // Bulk autolink functionality
-  const countExactMatches = async (vendorId: string | number) => {
-    try {
-      console.log('Counting exact matches for vendor:', vendorId);
-      
-      // Use correct table based on region
-      const vendorTableName = selectedRegion === 'UK' ? 'vendor_products' : 'us_vendor_products_new';
-      const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
-      const { data: vendorProducts, error: vendorError } = await supabase()
-        .from(vendorTableName)
-        .select('name')
-        .eq(vendorIdField, vendorId);
-
-      if (vendorError) {
-        console.error('Error fetching vendor products for count:', vendorError);
-        throw vendorError;
-      }
-
-      // Use correct products table based on region
-      const productsTableName = selectedRegion === 'UK' ? 'wp_products' : 'us_products';
-      const productNameField = selectedRegion === 'UK' ? 'name' : 'product_title';
-      console.log('Fetching products from table:', productsTableName, 'for region:', selectedRegion);
-      
-      const { data: existingProducts, error: productsError } = await supabase()
-        .from(productsTableName)
-        .select(productNameField);
-
-      if (productsError) {
-        console.error('Error fetching existing products for count:', productsError);
-        console.error('Table name:', productsTableName);
-        console.error('Region:', selectedRegion);
-        throw productsError;
-      }
-      
-      console.log('Successfully fetched products:', existingProducts?.length || 0);
-
-      // Get existing mappings for this vendor
-      const mappingTableName = selectedRegion === 'UK' ? 'vendor_product_mapping' : 'us_vendor_product_mapping';
-      const mappingVendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
-      const { data: existingMappings, error: mappingsError } = await supabase()
-        .from(mappingTableName)
-        .select('vendor_product')
-        .eq(mappingVendorIdField, vendorId);
-
-      if (mappingsError) {
-        console.error('Error fetching existing mappings for count:', mappingsError);
-        throw mappingsError;
-      }
-
-      console.log('Vendor products for count:', vendorProducts?.length || 0);
-      console.log('Existing products for count:', existingProducts?.length || 0);
-      console.log('Existing mappings for count:', existingMappings?.length || 0);
-
-      let exactMatches = 0;
-      const mappedProducts = new Set();
-      
-      // Create a set of already mapped vendor product names
-      existingMappings?.forEach((mapping: any) => {
-        mappedProducts.add(mapping.vendor_product.toLowerCase());
-      });
-
-      vendorProducts?.forEach((vendorProduct: any) => {
-        const vendorName = vendorProduct.name;
-        
-        // Skip if already mapped
-        if (mappedProducts.has(vendorName.toLowerCase())) {
-          return;
-        }
-        
-        // Use our advanced matching algorithm to find the best match
-        let bestSimilarity = 0;
-        
-        for (const existingProduct of existingProducts || []) {
-          const existingProductName = selectedRegion === 'UK' ? existingProduct.name : existingProduct.product_title;
-          if (!existingProductName) continue; // Skip products with no name
-          const similarity = calculateSimilarity(vendorName, existingProductName);
-          if (similarity > bestSimilarity) {
-            bestSimilarity = similarity;
-          }
-        }
-        
-        // Only count if similarity is 95% or higher
-        if (bestSimilarity >= 0.95) {
-          exactMatches++;
-        }
-      });
-
-      console.log('Unmapped exact matches found:', exactMatches);
-      return exactMatches;
-    } catch (error) {
-      console.error('Error counting exact matches:', error);
-      return 0;
-    }
-  };
-
-  const bulkAutolinkExactMatches = async (vendorId: string) => {
-    setIsProcessingBulkAutolink(true);
-    try {
-      console.log('Starting bulk autolink for vendor:', vendorId);
-      
-      const vendorTableName = selectedRegion === 'UK' ? 'vendor_products' : 'us_vendor_products_new';
-      const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
-      const { data: vendorProducts, error: vendorError } = await supabase()
-        .from(vendorTableName)
-        .select('*')
-        .eq(vendorIdField, typeof vendorId === 'string' ? vendorId : String(vendorId));
-
-      if (vendorError) {
-        console.error('Error fetching vendor products:', vendorError);
-        throw vendorError;
-      }
-
-      console.log('Found vendor products:', vendorProducts?.length || 0);
-
-      const productsTableName = selectedRegion === 'UK' ? 'wp_products' : 'us_products';
-      const { data: existingProducts, error: productsError } = await supabase()
-        .from(productsTableName)
-        .select('*');
-
-      if (productsError) {
-        console.error('Error fetching existing products:', productsError);
-        throw productsError;
-      }
-
-      console.log('Found existing products:', existingProducts?.length || 0);
-
-      let linkedCount = 0;
-      const mappingsToSave = [];
-
-      for (const vendorProduct of vendorProducts || []) {
-        const vendorName = vendorProduct.name;
-        
-        // Use our advanced matching algorithm to find the best match
-        let bestMatch = null;
-        let bestSimilarity = 0;
-        
-        for (const existingProduct of existingProducts || []) {
-          const existingProductName = selectedRegion === 'UK' ? existingProduct.name : existingProduct.product_title;
-          if (!existingProductName) continue; // Skip products with no name
-          const similarity = calculateSimilarity(vendorName, existingProductName);
-          if (similarity > bestSimilarity) {
-            bestSimilarity = similarity;
-            bestMatch = existingProduct;
-          }
-        }
-        
-        // Only consider it an exact match if similarity is 95% or higher
-        if (bestMatch && bestSimilarity >= 0.95) {
-          mappingsToSave.push({
-            vendor_product: vendorProduct.name,
-            product_id: bestMatch.id,
-            vendor_id: typeof vendorId === 'string' ? vendorId : String(vendorId)
-          });
-          linkedCount++;
-        }
-      }
-
-      console.log('Found exact matches:', linkedCount);
-      console.log('Mappings to save:', mappingsToSave);
-
-      if (mappingsToSave.length > 0) {
-        const mappingTableName = selectedRegion === 'UK' ? 'vendor_product_mapping' : 'us_vendor_product_mapping';
-        const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
-        
-        // Update mappings to use correct field name
-        const formattedMappings = mappingsToSave.map(mapping => {
-          const formatted = {
-            vendor_product: mapping.vendor_product,
-            product_id: mapping.product_id,
-            [vendorIdField]: mapping.vendor_id
-          };
-          return formatted;
-        });
-        
-        console.log('Inserting mappings:', {
-          tableName: mappingTableName,
-          vendorIdField: vendorIdField,
-          mappings: formattedMappings.slice(0, 3) // Show first 3 for debugging
-        });
-        
-        const { error: mappingError } = await supabase()
-          .from(mappingTableName)
-          .insert(formattedMappings);
-
-        if (mappingError) {
-          console.error('Error inserting mappings:', mappingError);
-          throw mappingError;
-        }
-      }
-
-      toast.success(`Successfully linked ${linkedCount} exact matches`);
-      setBulkAutolinkCount(0);
-      fetchData();
-      
-      // Reload mappings for the current vendor
-      if (selectedVendorForProducts !== 'all') {
-        await loadProductMappings(selectedVendorForProducts);
-      }
-      
-    } catch (error) {
-      console.error('Error in bulk autolink:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      toast.error(`Failed to perform bulk autolink: ${errorMessage}`);
-    } finally {
-      setIsProcessingBulkAutolink(false);
-    }
-  };
-
-  // Update bulk autolink count when vendor changes
-  useEffect(() => {
-    if (selectedVendorForProducts !== 'all') {
-      countExactMatches(selectedVendorForProducts).then(setBulkAutolinkCount);
-      loadProductMappings(selectedVendorForProducts);
-    } else {
-      setBulkAutolinkCount(0);
-      setProductMappings([]);
-      setSelectedMappings({});
-    }
-  }, [selectedVendorForProducts]);
-
-  // Fetch all vendor products when status filter changes (for proper filtering)
-  useEffect(() => {
-    if (productStatusFilter !== 'all' && selectedVendorForProducts !== 'all') {
-      fetchAllVendorProducts(selectedVendorForProducts);
-    }
-  }, [productStatusFilter, selectedVendorForProducts]);
-
-  // Fetch signups when signups tab is active
-  useEffect(() => {
-    if (activeTab === 'signups' && isAuthenticated) {
-      fetchSignups(signupsSearchTerm);
-    }
-  }, [activeTab, isAuthenticated, signupsSearchTerm]);
-
-  // Type guards for products
-  const isUKProduct = (product: Product | USProduct): product is Product => {
-    return 'name' in product;
-  };
-
-  const isUSProduct = (product: Product | USProduct): product is USProduct => {
-    return 'product_title' in product;
-  };
-
-  const isUKVendorProduct = (product: VendorProduct | USVendorProduct): product is VendorProduct => {
-    return 'name' in product;
-  };
-
-  const isUSVendorProduct = (product: VendorProduct | USVendorProduct): product is USVendorProduct => {
-    return 'us_products' in product;
-  };
-
-  // Filter and sort vendors based on selected region
-  const currentVendors = selectedRegion === 'UK' ? vendors : usVendors;
-  console.log('Current region:', selectedRegion);
-  console.log('Current vendors:', currentVendors.length, currentVendors);
-  const currentProductCount = selectedRegion === 'UK' ? mainProductsTotalCount : (usProducts.length > 0 ? mainProductsTotalCount : 0);
-  const filteredVendors = currentVendors
-    .filter(vendor => {
-      // Search filter
-      if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          vendor.name.toLowerCase().includes(searchLower) ||
-          vendor.contact_email?.toLowerCase().includes(searchLower) ||
-          vendor.website?.toLowerCase().includes(searchLower)
-        );
-      }
-      return true;
-    })
-    .filter(vendor => {
-      // Status filter
-      if (vendorFilter === 'active') {
-        return selectedRegion === 'US' ? (vendor as USVendor).status === 'active' : (vendor as Vendor).is_active;
-      }
-      if (vendorFilter === 'inactive') {
-        return selectedRegion === 'US' ? (vendor as USVendor).status !== 'active' : !(vendor as Vendor).is_active;
-      }
-      return true;
-    })
-    .sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (sortBy) {
-        case 'name':
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-          break;
-        case 'created_at':
-          aValue = new Date(a.created_at).getTime();
-          bValue = new Date(b.created_at).getTime();
-          break;
-        case 'updated_at':
-          aValue = new Date(a.updated_at || a.created_at).getTime();
-          bValue = new Date(b.updated_at || b.created_at).getTime();
-          break;
-        default:
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-      }
-      
-      if (sortOrder === 'asc') {
-        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-      } else {
-        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-      }
-    });
-
-
-  // Search handlers
-  const handleMainProductsSearch = async (searchTerm: string) => {
-    setMainProductsSearchTerm(searchTerm);
-    await fetchMainProducts(1, searchTerm, mainProductsPageSize);
-  };
-
-  const handleVendorProductsSearch = async (searchTerm: string) => {
-    setVendorProductsSearchTerm(searchTerm);
-    await fetchVendorProducts(1, searchTerm, selectedVendorForProducts, vendorProductsPageSize);
-  };
-
-  // Pagination handlers
-  const handleMainProductsPageChange = async (page: number) => {
-    await fetchMainProducts(page, mainProductsSearchTerm, mainProductsPageSize);
-  };
-
-  const handleVendorProductsPageChange = async (page: number) => {
-    await fetchVendorProducts(page, vendorProductsSearchTerm, selectedVendorForProducts, vendorProductsPageSize);
-  };
-
-  const handleMainProductsPageSizeChange = async (pageSize: number) => {
-    setMainProductsPageSize(pageSize);
-    setMainProductsPage(1);
-    await fetchMainProducts(1, mainProductsSearchTerm, pageSize);
-  };
-
-  const handleVendorProductsPageSizeChange = async (pageSize: number) => {
-    setVendorProductsPageSize(pageSize);
-    setVendorProductsPage(1);
-    await fetchVendorProducts(1, vendorProductsSearchTerm, selectedVendorForProducts, pageSize);
-  };
-
-  // Vendor filter handler
-  const handleVendorFilterChange = async (vendorId: string) => {
-    setSelectedVendorForProducts(vendorId);
-    await fetchVendorProducts(1, vendorProductsSearchTerm, vendorId, vendorProductsPageSize);
-    
-    // Load product mappings for this vendor
-    if (vendorId !== 'all') {
-      await loadProductMappings(typeof vendorId === 'string' ? vendorId : String(vendorId));
-      // Also fetch all vendor products for filtering
-      await fetchAllVendorProducts(vendorId);
-    } else {
-      setAllVendorProducts([]);
-    }
-  };
-
-  // Product matching functions
-  const loadProductMappings = async (vendorId: string | number) => {
-    try {
-      console.log('Loading product mappings for vendor ID:', vendorId);
-      
-      // Use correct mapping table based on region
-      const mappingTableName = selectedRegion === 'UK' ? 'vendor_product_mapping' : 'us_vendor_product_mapping';
-      const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
-      const { data, error } = await supabase()
-        .from(mappingTableName)
-        .select('*')
-        .eq(vendorIdField, vendorId);
-
-      if (error) throw error;
-      
-      const mappings: ProductMapping[] = data || [];
-      console.log('Loaded mappings for vendor', vendorId, ':', mappings.length, 'mappings');
-      console.log('Sample mappings:', mappings.slice(0, 3));
-      setProductMappings(mappings);
-      
-      // Create selected mappings lookup
-      const mappingLookup: {[key: string]: number} = {};
-      mappings.forEach(mapping => {
-        mappingLookup[mapping.vendor_product] = mapping.product_id;
-      });
-      setSelectedMappings(mappingLookup);
-      console.log('Set selected mappings lookup:', Object.keys(mappingLookup).length, 'entries');
-
-      // Also load main products if not already loaded (needed for mapping status)
-      if (mainProducts.length === 0) {
-        const productsTableName = selectedRegion === 'UK' ? 'wp_products' : 'us_products';
-        const { data: productsData, error: productsError } = await supabase()
-          .from(productsTableName)
-          .select('*');
-
-        if (!productsError && productsData) {
-          setMainProducts(productsData);
-          console.log('Loaded main products:', productsData.length);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading product mappings:', error);
-    }
-  };
-
-  const findProductMatches = async (vendorProductName: string) => {
-    if (productMatches[vendorProductName]) {
-      return productMatches[vendorProductName];
-    }
-
-    setMatchingLoading(true);
-    try {
-      const response = await fetch('/api/vendor-product-matching', {
-        method: 'POST',
+      console.log('Updating vendor:', id, updates);
+      const response = await fetch('/api/admin/vendors', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          vendor_product_name: vendorProductName,
-          threshold: 0.75
-        })
+          id,
+          region,
+          ...updates
+        }),
       });
 
       if (response.ok) {
+        const responseData = await response.json();
+        console.log('Vendor update response:', responseData);
+        toast.success('Vendor updated successfully');
+        // Reload vendors but don't wait for it to complete
+        loadVendors().catch(err => console.error('Error reloading vendors:', err));
+        return true;
+      } else {
         const data = await response.json();
-        const matches = data.matches || [];
-        
-        setProductMatches(prev => ({
-          ...prev,
-          [vendorProductName]: matches
-        }));
-        
-        return matches;
+        console.error('Vendor update failed:', data);
+        toast.error(data.error || 'Failed to update vendor');
+        return false;
       }
     } catch (error) {
-      console.error('Error finding product matches:', error);
-    } finally {
-      setMatchingLoading(false);
+      console.error('Error updating vendor:', error);
+      toast.error('Failed to update vendor');
+      return false;
     }
-    
-    return [];
   };
 
-  const handleConfirmMatch = async (vendorProductName: string, productId: number) => {
-    if (selectedVendorForProducts === 'all') return;
-
+  const handleCreateMapping = async (vendorProductName: string, productId: number, vendorId: number | string) => {
     try {
+      console.log('🔗 Creating mapping:', { vendorProductName, productId, vendorId, region });
+      
+      // Show loading state immediately
+      toast.loading('Creating mapping...', { id: 'mapping-status' });
+      
       const response = await fetch('/api/vendor-product-mappings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           vendor_product: vendorProductName,
           product_id: productId,
-          vendor_id: selectedVendorForProducts,
-          region: selectedRegion
-        })
+          vendor_id: vendorId,
+          region
+        }),
       });
 
-      if (response.ok) {
-        setSelectedMappings(prev => ({
-          ...prev,
-          [vendorProductName]: productId
-        }));
+      const data = await response.json();
+      const statusCode = response.status;
+
+      // Update UI immediately based on response
+      if (statusCode === 201 || response.ok) {
+        console.log('✅ Mapping created successfully:', data);
         
-        // Add to local mappings
-        const newMapping: ProductMapping = {
-          vendor_product: vendorProductName,
-          product_id: productId,
-          vendor_id: selectedVendorForProducts
-        };
-        setProductMappings(prev => [...prev, newMapping]);
+        // Fetch product name for display
+        const productTableName = region === 'UK' ? 'wp_products' : 'us_products';
+        const productNameField = region === 'UK' ? 'name' : 'product_title';
         
-        // Reload mappings from database to ensure consistency
-        await loadProductMappings(selectedVendorForProducts);
+        // Try to get product name from response
+        let productName = data.data?.[productTableName]?.name || data.data?.[productTableName]?.[productNameField] || 'Mapped Product';
         
-        toast.success('Product mapping created successfully!');
+        // Update local state immediately - NO RELOAD
+        setVendorProductMappings(prev => {
+          const updated = prev.map(vp => {
+            const vpVendorId = region === 'UK' ? vp.vendor_id : vp.us_vendor_id;
+            const matchesVendor = vpVendorId === vendorId || vpVendorId?.toString() === vendorId?.toString();
+            const matchesName = vp.name?.toLowerCase().trim() === vendorProductName.toLowerCase().trim();
+            
+            if (matchesVendor && matchesName) {
+              console.log('🔄 Updating state immediately for:', vp.name, '→ is_mapped: true');
+              return {
+                ...vp,
+                is_mapped: true,
+                mapping: { id: data.data?.id, product_id: productId, vendor_product: vendorProductName },
+                mapped_product: { 
+                  id: productId, 
+                  name: productName,
+                  ...(data.data?.[productTableName] || {})
+                }
+              };
+            }
+            return vp;
+          });
+          console.log('✅ State updated immediately - NO RELOAD. Updated count:', updated.filter(vp => vp.is_mapped).length);
+          return updated;
+        });
+        
+        toast.success(`✅ SUCCESS: Mapping created! Status: ${statusCode}`, { id: 'mapping-status', duration: 5000 });
+      } else if (statusCode === 409) {
+        console.log('ℹ️ Mapping already exists:', data);
+        
+        // Fetch product name for display
+        const productTableName = region === 'UK' ? 'wp_products' : 'us_products';
+        const productNameField = region === 'UK' ? 'name' : 'product_title';
+        let productName = 'Product';
+        
+        // Get product ID from existing mapping
+        const existingProductId = data.data?.product_id || productId;
+        productName = 'Mapped Product'; // Placeholder, will be updated on next page load
+        
+        // Update local state immediately - NO RELOAD
+        setVendorProductMappings(prev => {
+          const updated = prev.map(vp => {
+            const vpVendorId = region === 'UK' ? vp.vendor_id : vp.us_vendor_id;
+            const matchesVendor = vpVendorId === vendorId || vpVendorId?.toString() === vendorId?.toString();
+            const matchesName = vp.name?.toLowerCase().trim() === vendorProductName.toLowerCase().trim();
+            
+            if (matchesVendor && matchesName) {
+              console.log('🔄 Updating state immediately (409) for:', vp.name, '→ is_mapped: true');
+              return {
+                ...vp,
+                is_mapped: true,
+                mapping: data.data || { id: 'existing', product_id: productId },
+                mapped_product: { id: productId, name: productName }
+              };
+            }
+            return vp;
+          });
+          console.log('✅ State updated immediately (409) - NO RELOAD. Updated count:', updated.filter(vp => vp.is_mapped).length);
+          return updated;
+        });
+        
+        toast.success(`✅ SUCCESS: Mapping already exists! Status: ${statusCode}`, { id: 'mapping-status', duration: 5000 });
       } else {
-        toast.error('Failed to create product mapping');
+        const errorMsg = data.error || data.details || 'Unknown error';
+        const errorDetails = data.details ? ` Details: ${data.details}` : '';
+        
+        console.error('❌ Mapping failed:', { status: statusCode, error: errorMsg, data });
+        toast.error(`❌ FAILED: ${errorMsg}${errorDetails} (Status: ${statusCode})`, { 
+          id: 'mapping-status', 
+          duration: 8000 
+        });
       }
-    } catch (error) {
-      console.error('Error creating mapping:', error);
-      toast.error('Error creating product mapping');
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Network error or server unavailable';
+      console.error('❌ Error creating mapping:', error);
+      toast.error(`❌ FAILED: ${errorMessage}`, { 
+        id: 'mapping-status', 
+        duration: 8000 
+      });
     }
   };
 
-  const getMappingStatus = (vendorProductName: string) => {
-    // First check if we have a saved mapping - use case-insensitive comparison
-    const mapping = productMappings.find(m => 
-      m.vendor_product.toLowerCase() === vendorProductName.toLowerCase()
-    );
-    if (mapping) {
-      console.log('Found saved mapping for:', vendorProductName, 'Maps to:', mapping.vendor_product, 'Product ID:', mapping.product_id);
-      return { status: 'mapped', productId: mapping.product_id };
+  // Calculate string similarity percentage (0-100)
+  const calculateSimilarity = (str1: string, str2: string): number => {
+    if (!str1 || !str2) return 0;
+    
+    const s1 = str1.toLowerCase().trim();
+    const s2 = str2.toLowerCase().trim();
+    
+    if (s1 === s2) return 100;
+    if (s1.length === 0 || s2.length === 0) return 0;
+    
+    // Test: Log a sample calculation for debugging
+    if (s1.includes('lundgrens') || s2.includes('lundgrens')) {
+      console.log(`🧪 Testing similarity: "${s1}" vs "${s2}"`);
     }
     
-    // Check if we have a selected mapping (from dropdown selection)
-    const selectedMapping = selectedMappings[vendorProductName];
-    if (selectedMapping) {
-      return { status: 'selected', productId: selectedMapping };
+    // Levenshtein distance algorithm
+    const matrix: number[][] = [];
+    for (let i = 0; i <= s2.length; i++) {
+      matrix[i] = [i];
+    }
+    for (let j = 0; j <= s1.length; j++) {
+      matrix[0][j] = j;
     }
     
-    // Check for exact match using our advanced algorithm
-    let bestMatch = null;
-    let bestSimilarity = 0;
-    
-    for (const mainProduct of mainProducts) {
-      const similarity = calculateSimilarity(vendorProductName, mainProduct.name);
-      if (similarity > bestSimilarity) {
-        bestSimilarity = similarity;
-        bestMatch = mainProduct;
+    for (let i = 1; i <= s2.length; i++) {
+      for (let j = 1; j <= s1.length; j++) {
+        if (s2.charAt(i - 1) === s1.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1, // substitution
+            matrix[i][j - 1] + 1,     // insertion
+            matrix[i - 1][j] + 1      // deletion
+          );
+        }
       }
     }
     
-    // If we found a very good match (95%+), consider it found
-    if (bestMatch && bestSimilarity >= 0.95) {
-      return { status: 'found', productId: bestMatch.id };
-    }
+    const distance = matrix[s2.length][s1.length];
+    const maxLength = Math.max(s1.length, s2.length);
+    const similarity = ((maxLength - distance) / maxLength) * 100;
     
-    // Check for similar matches from our automatic matching
-    const matches = productMatches[vendorProductName];
-    if (matches && matches.length > 0) {
-      return { status: 'similar', productId: null };
-    }
-    
-    return { status: 'none', productId: null };
+    return Math.round(similarity * 100) / 100; // Round to 2 decimal places
   };
 
-  // State for all vendor products (for filtering)
-  const [allVendorProducts, setAllVendorProducts] = useState<VendorProduct[]>([]);
-
-  // Fetch all vendor products for filtering (not paginated)
-  const fetchSignups = async (search = '') => {
+  const autoMatchAll100Percent = async () => {
     try {
-      setSignupsLoading(true);
+      setLoading(true);
+      toast.info('Starting bulk auto-match for 100% matches...', { id: 'auto-match-status' });
       
-      let query = supabase()
-        .from('signups')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (search) {
-        query = query.ilike('email', `%${search}%`);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      setSignups(data || []);
-    } catch (error) {
-      console.error('Error fetching signups:', error);
-      toast.error('Failed to fetch signups');
-    } finally {
-      setSignupsLoading(false);
-    }
-  };
-
-  const exportSignupsToCSV = () => {
-    const csvContent = [
-      ['Email', 'Source', 'Created At', 'Status', 'Confirmed At', 'Unsubscribed At'],
-      ...signups.map(signup => [
-        signup.email,
-        signup.source,
-        new Date(signup.created_at).toLocaleDateString(),
-        signup.is_active ? 'Active' : 'Inactive',
-        signup.confirmed_at ? new Date(signup.confirmed_at).toLocaleDateString() : '',
-        signup.unsubscribed_at ? new Date(signup.unsubscribed_at).toLocaleDateString() : ''
-      ])
-    ].map(row => row.join(',')).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `signups-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const fetchAllVendorProducts = async (vendorId: string) => {
-    try {
-      if (vendorId === 'all') {
-        setAllVendorProducts([]);
+      // Get all unmapped vendor products
+      const unmappedProducts = vendorProductMappings.filter((vp: any) => !vp.is_mapped);
+      
+      if (unmappedProducts.length === 0) {
+        toast.info('No unmapped products to match', { id: 'auto-match-status' });
+        setLoading(false);
         return;
       }
-
-      const vendorTableName = selectedRegion === 'UK' ? 'vendor_products' : 'us_vendor_products_new';
-      const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
-      const { data, error } = await supabase()
-        .from(vendorTableName)
-        .select('*')
-        .eq(vendorIdField, vendorId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setAllVendorProducts(data || []);
+      
+      console.log(`🚀 Starting bulk auto-match for ${unmappedProducts.length} unmapped vendor products...`);
+      
+      // Fetch all products from database in batches
+      let allProducts: any[] = [];
+      let page = 1;
+      const perPage = 1000;
+      let hasMore = true;
+      
+      toast.loading(`Fetching all products from database...`, { id: 'auto-match-status' });
+      
+      while (hasMore) {
+        const response = await fetch(`/api/admin/products?region=${region}&page=${page}&limit=${perPage}`);
+        const data = await response.json();
+        
+        if (data.data && data.data.length > 0) {
+          allProducts = [...allProducts, ...data.data];
+          hasMore = data.data.length === perPage && allProducts.length < (data.totalCount || 0);
+          page++;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      console.log(`✅ Fetched ${allProducts.length} products from database`);
+      
+      // Get the correct product name field based on region
+      const productNameField = region === 'UK' ? 'name' : 'product_title';
+      
+      // Create a map of products by normalized name for quick lookup
+      const productsMap = new Map<string, any>();
+      allProducts.forEach((product: any) => {
+        const productName = product[productNameField] || product.name || '';
+        if (productName) {
+          const normalizedName = productName.toLowerCase().trim();
+          // Store both the normalized key and the product
+          productsMap.set(normalizedName, product);
+        }
+      });
+      
+      // Find 100% matches and create mappings
+      const mappingsToCreate: any[] = [];
+      let checkedCount = 0;
+      
+      toast.loading(`Checking ${unmappedProducts.length} vendor products for 100% matches...`, { id: 'auto-match-status' });
+      
+      for (const vp of unmappedProducts) {
+        checkedCount++;
+        
+        if (!vp.name) continue;
+        
+        const vpVendorId = region === 'UK' ? vp.vendor_id : vp.us_vendor_id;
+        const normalizedVpName = vp.name.toLowerCase().trim();
+        
+        // First try exact name match (fastest)
+        const exactMatch = productsMap.get(normalizedVpName);
+        
+        if (exactMatch) {
+          mappingsToCreate.push({
+            vendor_product: vp.name,
+            product_id: exactMatch.id,
+            vendor_id: vpVendorId,
+            region
+          });
+          console.log(`✅ Found exact match: "${vp.name}" → "${exactMatch[productNameField] || exactMatch.name}"`);
+        } else {
+          // If no exact match, calculate similarity for all products
+          let bestMatch: any = null;
+          let bestSimilarity = 0;
+          
+          for (const product of allProducts) {
+            const productName = product[productNameField] || product.name || '';
+            if (!productName) continue;
+            
+            const similarity = calculateSimilarity(vp.name, productName);
+            
+            if (similarity === 100 || similarity >= 99.9) {
+              bestMatch = product;
+              bestSimilarity = similarity;
+              break; // Found 100% match, no need to continue
+            }
+          }
+          
+          if (bestMatch && bestSimilarity >= 99.9) {
+            mappingsToCreate.push({
+              vendor_product: vp.name,
+              product_id: bestMatch.id,
+              vendor_id: vpVendorId,
+              region
+            });
+            console.log(`✅ Found 100% match: "${vp.name}" → "${bestMatch[productNameField] || bestMatch.name}" (${bestSimilarity}%)`);
+          }
+        }
+        
+        // Update progress every 100 products
+        if (checkedCount % 100 === 0) {
+          toast.loading(`Checked ${checkedCount}/${unmappedProducts.length} products, found ${mappingsToCreate.length} matches...`, { id: 'auto-match-status' });
+        }
+      }
+      
+      console.log(`🎯 Found ${mappingsToCreate.length} products with 100% matches out of ${unmappedProducts.length} checked`);
+      
+      if (mappingsToCreate.length === 0) {
+        toast.info('No 100% matches found', { id: 'auto-match-status' });
+        setLoading(false);
+        return;
+      }
+      
+      // Create all mappings in parallel batches
+      toast.loading(`Creating ${mappingsToCreate.length} mappings...`, { id: 'auto-match-status' });
+      
+      const batchSize = 50;
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (let i = 0; i < mappingsToCreate.length; i += batchSize) {
+        const batch = mappingsToCreate.slice(i, i + batchSize);
+        
+        const mappingPromises = batch.map(mapping => 
+          fetch('/api/vendor-product-mappings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(mapping),
+          })
+            .then(async (res) => {
+              const data = await res.json();
+              if (res.ok || res.status === 201) {
+                return true;
+              } else if (res.status === 409) {
+                // Already exists, count as success
+                return true;
+              } else {
+                console.error(`Failed to map "${mapping.vendor_product}":`, data);
+                return false;
+              }
+            })
+            .catch((error) => {
+              console.error(`Error mapping "${mapping.vendor_product}":`, error);
+              return false;
+            })
+        );
+        
+        const results = await Promise.all(mappingPromises);
+        successCount += results.filter(r => r === true).length;
+        errorCount += results.filter(r => r === false).length;
+        
+        // Update progress
+        const processed = Math.min(i + batchSize, mappingsToCreate.length);
+        toast.loading(`Created ${processed}/${mappingsToCreate.length} mappings...`, { id: 'auto-match-status' });
+      }
+      
+      console.log(`✅ Auto-match complete: ${successCount} successful, ${errorCount} failed`);
+      
+      toast.success(`🎯 Auto-matched ${successCount} products with 100% matches!`, { id: 'auto-match-status', duration: 5000 });
+      
+      // Reload mappings to reflect new auto-mappings
+      await loadVendorProductMappings();
+      
     } catch (error) {
-      console.error('Error fetching all vendor products:', error);
+      console.error('❌ Error in bulk auto-match:', error);
+      toast.error('Failed to auto-match products', { id: 'auto-match-status' });
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Filter vendor products based on search, brand, and status filters
-  const currentVendorProducts = selectedRegion === 'UK' ? vendorProducts : usVendorProducts;
-  const filteredVendorProducts = (productStatusFilter !== 'all' ? allVendorProducts : currentVendorProducts).filter(product => {
-    // Debug logging for status filter
-    if (productStatusFilter === 'mapped') {
-      console.log('Filtering for mapped products. Total mappings loaded:', productMappings.length);
-      console.log('Sample mappings:', productMappings.slice(0, 3).map(m => m.vendor_product));
-    }
-    // Search filter
-    if (vendorProductsSearchTerm) {
-      const searchTerm = vendorProductsSearchTerm.toLowerCase();
-      const productName = isUKVendorProduct(product) ? product.name : (product as any).us_products?.product_title || '';
-      const productBrand = isUKVendorProduct(product) ? product.brand : (product as any).us_products?.brand || '';
-      if (!productName.toLowerCase().includes(searchTerm) && 
-          !productBrand.toLowerCase().includes(searchTerm)) {
-        return false;
-      }
-    }
-
-    // Brand filter
-    if (productBrandFilter !== 'all' && product.brand !== productBrandFilter) {
-      return false;
-    }
-
-    // Status filter
-    if (productStatusFilter !== 'all') {
-      const productName = isUKVendorProduct(product) ? product.name : (product as any).us_products?.product_title || '';
-      const mappingStatus = getMappingStatus(productName);
+  const checkSimilarityMatches = async (vendorProducts: any[]) => {
+    try {
+      console.log(`🔍 Starting similarity check for ${vendorProducts.length} vendor products...`);
       
-      // Map status values to filter values
-      let statusForFilter = mappingStatus.status;
-      if (mappingStatus.status === 'selected') {
-        statusForFilter = 'mapped'; // Selected items should show as mapped
+      if (vendorProducts.length === 0) {
+        console.warn('⚠️ No vendor products to check');
+        return;
       }
       
-      if (statusForFilter !== productStatusFilter) {
-        return false;
+      // Show sample vendor products being checked
+      console.log(`📋 Sample vendor products to check:`, vendorProducts.slice(0, 5).map((vp: any) => vp.name));
+      
+      // Fetch all products once (from wp_products or us_products)
+      let allProducts: any[] = [];
+      let page = 1;
+      const perPage = 1000;
+      let hasMore = true;
+      let totalCount = 0;
+      
+      while (hasMore) {
+        const response = await fetch(`/api/admin/products?region=${region}&page=${page}&limit=${perPage}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          console.error('❌ API Error:', data.error);
+          break;
+        }
+        
+        if (data.data && data.data.length > 0) {
+          allProducts = [...allProducts, ...data.data];
+          totalCount = data.totalCount || allProducts.length;
+          hasMore = data.data.length === perPage && allProducts.length < totalCount;
+          page++;
+          console.log(`📦 Fetched batch ${page - 1}: ${data.data.length} products (total so far: ${allProducts.length}/${totalCount})`);
+        } else {
+          hasMore = false;
+        }
       }
+      
+      if (allProducts.length === 0) {
+        console.error('❌ No products fetched from database!');
+        toast.error('Failed to fetch products for similarity check');
+        return;
+      }
+      
+      console.log(`✅ Fetched ${allProducts.length} products from ${region} region (${region === 'UK' ? 'wp_products' : 'us_products'})`);
+      
+      // Get the correct product name field based on region
+      const productNameField = region === 'UK' ? 'name' : 'product_title';
+      console.log(`📝 Sample products from database:`, allProducts.slice(0, 5).map((p: any) => p[productNameField] || p.name || 'N/A'));
+      
+      // Check each vendor product for similarity matches
+      const productsWithMatchesSet = new Set<string>();
+      let totalMatchesFound = 0;
+      let checkedCount = 0;
+      
+      for (const vp of vendorProducts) {
+        if (!vp.name || !vp.id) {
+          console.warn(`⚠️ Skipping vendor product with missing name or id:`, vp);
+          continue;
+        }
+        
+        checkedCount++;
+        
+        // Calculate similarity for all products
+        const matches = allProducts
+          .map((product: any) => {
+            // Get product name from correct field (name for UK, product_title for US)
+            const productName = product[productNameField] || product.name;
+            if (!productName) return null;
+            
+            const similarity = calculateSimilarity(vp.name.trim(), productName.trim());
+            return {
+              ...product,
+              productName, // Store the actual name used
+              similarity
+            };
+          })
+          .filter((p: any) => p !== null && p.similarity >= 85)
+          .sort((a: any, b: any) => b.similarity - a.similarity);
+        
+        if (matches.length > 0) {
+          // Ensure ID is converted to string for consistent Set lookup
+          const vpId = String(vp.id);
+          productsWithMatchesSet.add(vpId);
+          totalMatchesFound += matches.length;
+          // Log matches for debugging
+          console.log(`✅ Match found for vendor product "${vp.name}":`, matches.slice(0, 3).map((m: any) => `${m.productName || m.name} (${m.similarity}%)`));
+        }
+        
+        // Log progress every 100 products
+        if (checkedCount % 100 === 0) {
+          console.log(`⏳ Progress: Checked ${checkedCount}/${vendorProducts.length} vendor products, found ${productsWithMatchesSet.size} with matches`);
+        }
+      }
+      
+      setProductsWithMatches(productsWithMatchesSet);
+      console.log(`✅ Similarity check complete!`);
+      console.log(`   - Checked: ${checkedCount} vendor products`);
+      console.log(`   - Products with matches: ${productsWithMatchesSet.size}`);
+      console.log(`   - Total matches found: ${totalMatchesFound}`);
+      
+      if (productsWithMatchesSet.size === 0) {
+        console.warn(`⚠️ No similarity matches found (85%+ threshold)`);
+        console.warn(`   Sample vendor products:`, vendorProducts.slice(0, 3).map((vp: any) => vp.name));
+        const productNameField = region === 'UK' ? 'name' : 'product_title';
+        console.warn(`   Sample database products:`, allProducts.slice(0, 3).map((p: any) => p[productNameField] || p.name || 'N/A'));
+        
+        // Test a specific comparison
+        if (vendorProducts.length > 0 && allProducts.length > 0) {
+          const testVp = vendorProducts[0];
+          const testProduct = allProducts[0];
+          const testProductName = testProduct[productNameField] || testProduct.name;
+          const testSimilarity = calculateSimilarity(testVp.name, testProductName);
+          console.log(`🧪 Test comparison: "${testVp.name}" vs "${testProductName}" = ${testSimilarity}%`);
+        }
+      } else {
+        toast.success(`Found ${productsWithMatchesSet.size} products with 85%+ similarity matches!`);
+      }
+    } catch (error) {
+      console.error('❌ Error checking similarity matches:', error);
+      toast.error('Failed to check similarity matches');
+    }
+  };
+
+  const handleSearchSuggestions = async (searchValue: string, rowId: string, isManualSearch: boolean = false) => {
+    if (!searchValue || searchValue.trim().length === 0) {
+      return;
     }
     
-    return true;
-  });
+    setSearchLoading(true);
+    // Use lower threshold (50%) for manual searches, 85% for auto-searches
+    const minSimilarity = isManualSearch ? 50 : 85;
+    const results = await searchSimilarProducts(searchValue, minSimilarity);
+    setSearchLoading(false);
+    
+    // Find the vendor product to get vendor ID
+    const vendorProduct = vendorProductMappings.find((vp: any) => String(vp.id) === String(rowId));
+    if (!vendorProduct) {
+      console.error('Vendor product not found for rowId:', rowId);
+      return;
+    }
+    
+    const vendorIdToFind = region === 'UK' ? vendorProduct.vendor_id : vendorProduct.us_vendor_id;
+    
+    // AUTO-MAP 100% matches immediately
+    const exactMatches = results.filter((r: any) => r.similarity === 100 || r.similarity >= 99.9);
+    if (exactMatches.length > 0) {
+      const bestMatch = exactMatches[0]; // Use the first 100% match
+      console.log('🎯 Found 100% match, auto-mapping immediately:', {
+        vendorProduct: vendorProduct.name,
+        productId: bestMatch.id,
+        productName: bestMatch.name,
+        similarity: bestMatch.similarity
+      });
+      
+      // Auto-map immediately
+      await handleCreateMapping(vendorProduct.name, bestMatch.id, vendorIdToFind);
+      
+      // Don't show suggestions for exact matches - they're already mapped
+      return;
+    }
+    
+    setSearchSuggestions(prev => {
+      const newMap = new Map(prev);
+      newMap.set(rowId, results);
+      return newMap;
+    });
+    
+    // Update productsWithMatches if results found with 85%+
+    const highSimilarityResults = results.filter((r: any) => r.similarity >= 85);
+    if (highSimilarityResults.length > 0) {
+      setProductsWithMatches(prev => new Set([...Array.from(prev), String(rowId)]));
+    }
+  };
 
-  // Count of filtered products
-  const filteredVendorProductsCount = filteredVendorProducts.length;
+  const searchSimilarProducts = async (vendorProductName: string, minSimilarity: number = 85) => {
+    try {
+      if (!vendorProductName || vendorProductName.trim().length === 0) {
+        return [];
+      }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-muted border-t-foreground"></div>
-      </div>
-    );
-  }
+      // Fetch all products in batches to calculate similarity
+      let allProducts: any[] = [];
+      let page = 1;
+      const perPage = 1000;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const response = await fetch(`/api/admin/products?region=${region}&page=${page}&limit=${perPage}`);
+        const data = await response.json();
+        
+        if (data.data && data.data.length > 0) {
+          allProducts = [...allProducts, ...data.data];
+          hasMore = data.data.length === perPage && allProducts.length < (data.totalCount || 0);
+          page++;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      console.log(`🔍 Searching ${allProducts.length} products for matches to "${vendorProductName}"`);
+      
+      // Get the correct product name field based on region
+      const productNameField = region === 'UK' ? 'name' : 'product_title';
+      
+      // Calculate similarity for each product
+      const productsWithSimilarity = allProducts.map((product: any) => {
+        const productName = product[productNameField] || product.name || '';
+        const similarity = calculateSimilarity(vendorProductName, productName);
+        return {
+          ...product,
+          name: productName, // Ensure name field is set for display
+          similarity
+        };
+      });
+      
+      // Filter by similarity threshold and sort by similarity (highest first)
+      const matches = productsWithSimilarity
+        .filter((p: any) => p.similarity >= minSimilarity)
+        .sort((a: any, b: any) => b.similarity - a.similarity)
+        .slice(0, 20); // Show top 20 matches for manual searches
+      
+      console.log(`✅ Found ${matches.length} products with ${minSimilarity}%+ similarity:`, matches.slice(0, 5).map((m: any) => `${m.name} (${m.similarity}%)`));
+      
+      return matches;
+    } catch (error) {
+      console.error('Error searching products:', error);
+      return [];
+    }
+  };
 
-  if (!isAuthenticated) {
+  if (!adminKey) {
     return null;
   }
 
+  const activeVendors = vendors.filter((v) => region === 'UK' ? v.is_active : v.status === 'active');
+  const inactiveVendors = vendors.filter((v) => region === 'UK' ? !v.is_active : v.status !== 'active');
+  const vendorsWithWebsites = vendors.filter((v) => v.website);
+
+  const filteredVendors = vendors.filter((v) => {
+    const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || 
+      (filterStatus === 'active' && (region === 'UK' ? v.is_active : v.status === 'active')) ||
+      (filterStatus === 'inactive' && (region === 'UK' ? !v.is_active : v.status !== 'active'));
+    return matchesSearch && matchesStatus;
+  });
+
   return (
-    <AdminThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
-      <div className="min-h-screen bg-background">
-      <div className="flex h-screen">
+    <AdminThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+      <div className="flex min-h-screen bg-slate-950">
         {/* Sidebar */}
-        <div className="w-80 border-r border-border bg-background/50 p-6 overflow-y-auto">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium text-muted-foreground">Manage vendors and products</h2>
-              <ThemeToggle />
+        <div className="group w-20 hover:w-72 bg-slate-900 border-r border-slate-800 p-4 hover:p-6 flex flex-col transition-all duration-300 ease-in-out overflow-hidden">
+          <div className="flex items-center justify-center group-hover:justify-between mb-8">
+            <h2 className="text-sm font-medium text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Manage vendors and products</h2>
+            <button className="h-8 w-8 flex-shrink-0 rounded-lg hover:bg-slate-800/50 transition-all duration-300 flex items-center justify-center text-xl" title="Toggle theme">
+              <span className="sr-only">Toggle theme</span>
+              🌙
+            </button>
+          </div>
+
+          {/* Region Selector */}
+          <div className="mb-8">
+            <p className="text-xs text-slate-500 mb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Region</p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => setRegion('UK')}
+                className={`flex items-center justify-start overflow-hidden p-2 group-hover:px-3 group-hover:py-2 rounded-lg transition-all duration-300 ${
+                  region === 'UK' 
+                    ? 'bg-transparent group-hover:bg-primary text-primary-foreground' 
+                    : 'bg-transparent group-hover:bg-slate-800 group-hover:border group-hover:border-slate-700'
+                }`}
+                title="United Kingdom"
+              >
+                <span className="text-2xl flex-shrink-0 ml-[45%] group-hover:ml-0 transition-all duration-300">🇬🇧</span>
+                <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap text-sm">United Kingdom</span>
+              </button>
+              <button
+                onClick={() => setRegion('US')}
+                className={`flex items-center justify-start overflow-hidden p-2 group-hover:px-3 group-hover:py-2 rounded-lg transition-all duration-300 ${
+                  region === 'US' 
+                    ? 'bg-transparent group-hover:bg-primary text-primary-foreground' 
+                    : 'bg-transparent group-hover:bg-slate-800 group-hover:border group-hover:border-slate-700'
+                }`}
+                title="United States"
+              >
+                <span className="text-2xl flex-shrink-0 ml-[45%] group-hover:ml-0 transition-all duration-300">🇺🇸</span>
+                <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap text-sm">United States</span>
+              </button>
             </div>
-            
-            {/* Region Selector */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Region</Label>
-              <div className="flex space-x-2">
-                <Button
-                  variant={selectedRegion === 'UK' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    setSelectedRegion('UK');
-                    fetchData();
-                  }}
-                  className="flex-1"
-                >
-                  🇬🇧 United Kingdom
-                </Button>
-                <Button
-                  variant={selectedRegion === 'US' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    setSelectedRegion('US');
-                    fetchData();
-                  }}
-                  className="flex-1"
-                >
-                  🇺🇸 United States
-                </Button>
-              </div>
-            </div>
-              
-              {/* Stats Cards */}
-              <div className="grid grid-cols-2 gap-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-2xl font-bold">{stats.totalVendors}</p>
-                        <p className="text-xs text-muted-foreground">Total Vendors</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+          </div>
 
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-2">
-                      <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-2xl font-bold">{stats.activeVendors}</p>
-                        <p className="text-xs text-muted-foreground">Active Vendors</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-2">
-                      <Package className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-2xl font-bold">{stats.totalProducts}</p>
-                        <p className="text-xs text-muted-foreground">Total Products</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-2">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-2xl font-bold">£{stats.avgPrice.toFixed(2)}</p>
-                        <p className="text-xs text-muted-foreground">Avg. Price</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Vendor Management Controls */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Vendor Management</h3>
-                  <div className="space-y-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                      <Input
-                        placeholder="Search vendors..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                    <Button onClick={() => setIsAddingVendor(true)} className="w-full">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Vendor
-                    </Button>
+          {/* Stats Cards */}
+          <div className="space-y-4 mb-8">
+            <div className="bg-transparent group-hover:bg-slate-800/50 border border-transparent group-hover:border-slate-700 p-2 group-hover:p-4 rounded-lg cursor-pointer transition-all duration-300" title={`${vendors.length} Total Vendors`}>
+              <div className="flex items-center justify-center group-hover:justify-between gap-3">
+                <div className="min-w-0 flex-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <p className="text-2xl font-bold text-white">{vendors.length}</p>
+                  <p className="text-xs text-slate-400 whitespace-nowrap">Total Vendors</p>
                 </div>
+                <Users className="h-6 w-6 text-slate-400 flex-shrink-0" />
               </div>
             </div>
+
+            <div className="bg-transparent group-hover:bg-slate-800/50 border border-transparent group-hover:border-slate-700 p-2 group-hover:p-4 rounded-lg cursor-pointer transition-all duration-300" title={`${activeVendors.length} Active Vendors`}>
+              <div className="flex items-center justify-center group-hover:justify-between gap-3">
+                <div className="min-w-0 flex-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <p className="text-2xl font-bold text-white">{activeVendors.length}</p>
+                  <p className="text-xs text-slate-400 whitespace-nowrap">Active Vendors</p>
+                </div>
+                <CheckCircle className="h-6 w-6 text-green-400 flex-shrink-0" />
+              </div>
+            </div>
+
+            <div className="bg-transparent group-hover:bg-slate-800/50 border border-transparent group-hover:border-slate-700 p-2 group-hover:p-4 rounded-lg cursor-pointer transition-all duration-300" title={`${totalCount || products.length} Total Products`}>
+              <div className="flex items-center justify-center group-hover:justify-between gap-3">
+                <div className="min-w-0 flex-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <p className="text-2xl font-bold text-white">{totalCount || products.length}</p>
+                  <p className="text-xs text-slate-400 whitespace-nowrap">Total Products</p>
+                </div>
+                <Package className="h-6 w-6 text-slate-400 flex-shrink-0" />
+              </div>
+            </div>
+
+            <div className="bg-transparent group-hover:bg-slate-800/50 border border-transparent group-hover:border-slate-700 p-2 group-hover:p-4 rounded-lg cursor-pointer transition-all duration-300" title="£0.00 Avg. Price">
+              <div className="flex items-center justify-center group-hover:justify-between gap-3">
+                <div className="min-w-0 flex-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <p className="text-2xl font-bold text-white">£0.00</p>
+                  <p className="text-xs text-slate-400 whitespace-nowrap">Avg. Price</p>
+                </div>
+                <span className="text-slate-400 text-2xl flex-shrink-0">💷</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Vendor Management */}
+          <div className="flex-1">
+            <p className="text-xs text-slate-500 mb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Vendor Management</p>
+            <div className="relative mb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search vendors..."
+                className="pl-9 bg-slate-800 border-slate-700 text-sm"
+              />
+            </div>
+            <button
+              className="w-full flex items-center justify-center overflow-hidden p-2 group-hover:px-3 group-hover:py-2 rounded-lg bg-transparent group-hover:bg-slate-800 group-hover:border group-hover:border-slate-700 transition-all duration-300 text-slate-300"
+              title="Add Vendor"
+            >
+              <Plus className="h-5 w-5 flex-shrink-0" />
+              <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap text-sm">Add Vendor</span>
+            </button>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-            <div className="h-full">
-              {/* Header */}
-              <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="flex h-14 items-center justify-between px-6">
-                  <div className="flex items-center space-x-4">
-                    <h1 className="text-lg font-semibold">Admin Dashboard</h1>
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3" />
-                      Authenticated
-                    </Badge>
-                  </div>
-                  <ThemeToggle />
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <div className="bg-slate-900 border-b border-slate-800 px-8 py-4">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-semibold text-white">Admin Dashboard</h1>
+                <div className="flex items-center gap-2 px-3 py-1 bg-slate-800 rounded-full">
+                  <ShieldCheck className="h-4 w-4 text-green-400" />
+                  <span className="text-sm text-slate-300">Authenticated</span>
                 </div>
               </div>
+              <Button variant="ghost" size="icon">
+                🌙
+              </Button>
+            </div>
 
-              <div className="p-6 space-y-6">
-                {/* Tabs */}
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <div className="flex items-center justify-between">
-                    <TabsList className="grid w-[750px] grid-cols-5">
-                      <TabsTrigger value="vendors" className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
-                        Vendors
-                      </TabsTrigger>
-                      <TabsTrigger value="products" className="flex items-center gap-2">
-                        <Package className="h-4 w-4" />
-                        Products
-                      </TabsTrigger>
-                      <TabsTrigger value="vendor-products" className="flex items-center gap-2">
-                        <ShoppingCart className="h-4 w-4" />
-                        Vendor Products
-                      </TabsTrigger>
-                      <TabsTrigger value="signups" className="flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        Signups
-                      </TabsTrigger>
-                      <TabsTrigger value="upload" className="flex items-center gap-2">
-                        <Upload className="h-4 w-4" />
-                        Upload
-                      </TabsTrigger>
-                    </TabsList>
+            {/* Tabs */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab('vendors')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'vendors'
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <Users className="h-4 w-4" />
+                Vendors
+              </button>
+              <button
+                onClick={() => setActiveTab('products')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'products'
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <Package className="h-4 w-4" />
+                Products
+              </button>
+              <button
+                onClick={() => setActiveTab('vendor-products')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'vendor-products'
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Vendor Products
+              </button>
+              <button
+                onClick={() => setActiveTab('vendor-mappings')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'vendor-mappings'
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <ArrowLeftRight className="h-4 w-4" />
+                Vendor Mappings
+              </button>
+              <button
+                onClick={() => setActiveTab('signups')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'signups'
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <Mail className="h-4 w-4" />
+                Signups
+              </button>
+              <button
+                onClick={() => setActiveTab('upload')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'upload'
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <UploadIcon className="h-4 w-4" />
+                Upload
+              </button>
+              <button
+                onClick={() => setActiveTab('currency-converter')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'currency-converter'
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                💱
+                Currency Converter
+              </button>
+              <button
+                onClick={() => setActiveTab('offers')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'offers'
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                🎁
+                Offers
+              </button>
+              <button
+                onClick={() => setActiveTab('unmapped')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'unmapped'
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                📦
+                Unmapped Products
+              </button>
+            </div>
+          </div>
 
-                    <div className="flex items-center space-x-4">
-                      <Button variant="outline" size="sm">
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload
-                      </Button>
-                    </div>
+          {/* Content Area */}
+          <div className="flex-1 p-8 overflow-auto">
+            {activeTab === 'vendors' && (
+              <div className="space-y-6">
+                {/* Search and Filters */}
+                <div className="flex items-center gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="Search vendors by name, email, or website..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 bg-slate-900 border-slate-800"
+                    />
                   </div>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
+                  >
+                    <option value="all">All Vendors</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
+                  >
+                    <option value="name">Sort by Name</option>
+                    <option value="date">Sort by Date</option>
+                  </select>
+                  <Button size="icon" variant="outline" className="border-slate-800">
+                    ↑
+                  </Button>
+                </div>
 
-                  {/* Vendors Tab */}
-                  <TabsContent value="vendors" className="space-y-4">
-                    {/* Filters and Search */}
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <div className="flex-1">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                          <Input
-                            placeholder="Search vendors by name, email, or website..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10"
-                          />
-                        </div>
+                {/* Stats Row */}
+                <div className="grid grid-cols-4 gap-4">
+                  <Card className="bg-slate-900 border-slate-800 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-500/10 rounded-lg">
+                        <Users className="h-5 w-5 text-blue-400" />
                       </div>
-                      <div className="flex gap-2">
-                        <select
-                          value={vendorFilter}
-                          onChange={(e) => setVendorFilter(e.target.value)}
-                          className="px-3 py-2 border border-border rounded-md bg-background text-sm"
-                        >
-                          <option value="all">All Vendors</option>
-                          <option value="active">Active Only</option>
-                          <option value="inactive">Inactive Only</option>
-                        </select>
-                        <select
-                          value={sortBy}
-                          onChange={(e) => setSortBy(e.target.value)}
-                          className="px-3 py-2 border border-border rounded-md bg-background text-sm"
-                        >
-                          <option value="name">Sort by Name</option>
-                          <option value="created_at">Sort by Created</option>
-                          <option value="updated_at">Sort by Updated</option>
-                        </select>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                        >
-                          {sortOrder === 'asc' ? '↑' : '↓'}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Vendor Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="flex items-center space-x-2">
-                            <Users className="h-4 w-4 text-blue-500" />
-                            <div>
-                              <p className="text-sm font-medium">Total Vendors</p>
-                              <p className="text-2xl font-bold">{vendors.length}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="flex items-center space-x-2">
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                            <div>
-                              <p className="text-sm font-medium">Active</p>
-                              <p className="text-2xl font-bold">{vendors.filter(v => v.is_active).length}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="flex items-center space-x-2">
-                            <XCircle className="h-4 w-4 text-red-500" />
-                            <div>
-                              <p className="text-sm font-medium">Inactive</p>
-                              <p className="text-2xl font-bold">{vendors.filter(v => !v.is_active).length}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="flex items-center space-x-2">
-                            <Globe className="h-4 w-4 text-purple-500" />
-                            <div>
-                              <p className="text-sm font-medium">With Websites</p>
-                              <p className="text-2xl font-bold">{vendors.filter(v => v.website_url).length}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-
-                    <div className="grid gap-4">
-                      {filteredVendors.map((vendor) => (
-                        <Card key={vendor.id}>
-                          <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-2">
-                                <div className="flex items-center space-x-2">
-                                  <h3 className="font-semibold">{vendor.name}</h3>
-                                  <Badge variant={selectedRegion === 'US' ? ((vendor as USVendor).status === 'active' ? "default" : "secondary") : ((vendor as Vendor).is_active ? "default" : "secondary")}>
-                                    {selectedRegion === 'US' ? ((vendor as USVendor).status === 'active' ? "Active" : "Inactive") : ((vendor as Vendor).is_active ? "Active" : "Inactive")}
-                                  </Badge>
-                                </div>
-                                <div className="space-y-1">
-                                  {vendor.website_url && (
-                                    <div className="flex items-center space-x-2">
-                                      <Globe className="h-3 w-3 text-muted-foreground" />
-                                      <a 
-                                        href={vendor.website_url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="text-sm text-blue-600 hover:underline"
-                                      >
-                                        {vendor.website_url}
-                                      </a>
-                              </div>
-                                  )}
-                                  {vendor.contact_email && (
-                              <div className="flex items-center space-x-2">
-                                      <Mail className="h-3 w-3 text-muted-foreground" />
-                                      <span className="text-sm text-muted-foreground">{vendor.contact_email}</span>
-                                    </div>
-                                  )}
-                                  {vendor.contact_phone && (
-                                    <div className="flex items-center space-x-2">
-                                      <Phone className="h-3 w-3 text-muted-foreground" />
-                                      <span className="text-sm text-muted-foreground">{vendor.contact_phone}</span>
-                                    </div>
-                                  )}
-                                </div>
-                                {vendor.description && (
-                                  <p className="text-sm text-muted-foreground line-clamp-2">{vendor.description}</p>
-                                )}
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                {vendor.website_url && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                    onClick={() => window.open(vendor.website_url, '_blank')}
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                </Button>
-                                )}
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDeleteVendor(vendor.id)}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </TabsContent>
-
-                  {/* Products Tab */}
-                  <TabsContent value="products" className="space-y-4">
-                    <div className="flex items-center justify-between">
                       <div>
-                        <h2 className="text-2xl font-bold tracking-tight">Product Management</h2>
-                        <p className="text-muted-foreground">{currentProductCount} products</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setShowProductCsvPreview(!showProductCsvPreview)}
-                        >
-                          <Upload className="h-4 w-4 mr-2" />
-                          Upload Products CSV
-                        </Button>
+                        <p className="text-xs text-slate-400">Total Vendors</p>
+                        <p className="text-2xl font-bold text-white">{vendors.length}</p>
                       </div>
                     </div>
+                  </Card>
 
-                    {/* Product Filters */}
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <div className="flex-1">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                          <Input
-                            placeholder="Search products by name, brand, or flavour..."
-                            value={mainProductsSearchTerm}
-                            onChange={(e) => handleMainProductsSearch(e.target.value)}
-                            className="pl-10"
-                          />
-                        </div>
+                  <Card className="bg-slate-900 border-slate-800 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-green-500/10 rounded-lg">
+                        <CheckCircle className="h-5 w-5 text-green-400" />
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleMainProductsSearch('')}
-                        >
-                          <RefreshCw className="h-4 w-4 mr-1" />
-                          Clear
-                        </Button>
+                      <div>
+                        <p className="text-xs text-slate-400">Active</p>
+                        <p className="text-2xl font-bold text-white">{activeVendors.length}</p>
                       </div>
                     </div>
+                  </Card>
 
-                    {/* Product Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="flex items-center space-x-2">
-                            <Package className="h-4 w-4 text-blue-500" />
-                            <div>
-                              <p className="text-sm font-medium">Total Products</p>
-                              <p className="text-2xl font-bold">{mainProductsTotalCount}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="flex items-center space-x-2">
-                            <DollarSign className="h-4 w-4 text-green-500" />
-                            <div>
-                              <p className="text-sm font-medium">Avg Price</p>
-                              <p className="text-2xl font-bold">
-                                £{mainProducts.length > 0 ? (mainProducts.reduce((sum, p) => sum + (p.price || 0), 0) / mainProducts.length).toFixed(2) : '0.00'}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="flex items-center space-x-2">
-                            <TrendingUp className="h-4 w-4 text-purple-500" />
-                            <div>
-                              <p className="text-sm font-medium">Unique Brands</p>
-                              <p className="text-2xl font-bold">
-                                {new Set(mainProducts.map(p => p.brand)).size}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="flex items-center space-x-2">
-                            <Users className="h-4 w-4 text-orange-500" />
-                            <div>
-                              <p className="text-sm font-medium">Vendors</p>
-                              <p className="text-2xl font-bold">
-                                {selectedVendorForProducts === 'all' ? vendors.length : 1}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                  <Card className="bg-slate-900 border-slate-800 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-red-500/10 rounded-lg">
+                        <XCircle className="h-5 w-5 text-red-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">Inactive</p>
+                        <p className="text-2xl font-bold text-white">{inactiveVendors.length}</p>
+                      </div>
                     </div>
+                  </Card>
 
-                    {/* Product CSV Upload Section */}
-                    {showProductCsvPreview && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <Upload className="h-5 w-5" />
-                            Upload Products CSV
-                          </CardTitle>
-                          <CardDescription>
-                            Upload a CSV file to import new products into the system
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {/* File Upload */}
-                          <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                            <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                            <h3 className="text-sm font-semibold mb-1">Upload Products CSV</h3>
-                            <p className="text-xs text-muted-foreground mb-3">
-                              Drag and drop your CSV file here, or click to browse
-                            </p>
-                            <input
-                              type="file"
-                              accept=".csv"
-                              onChange={handleProductFileUpload}
-                              className="hidden"
-                              id="product-csv-upload"
+                  <Card className="bg-slate-900 border-slate-800 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-purple-500/10 rounded-lg">
+                        <Globe className="h-5 w-5 text-purple-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">With Websites</p>
+                        <p className="text-2xl font-bold text-white">{vendorsWithWebsites.length}</p>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Vendor Cards */}
+                <div className="space-y-3">
+                  {filteredVendors.map((vendor) => (
+                    <VendorCard
+                      key={`vendor-${vendor.id}-${vendor.shipping_info || ''}`}
+                      vendor={vendor}
+                      region={region}
+                      onUpdate={handleUpdateVendor}
+                      onDelete={handleDeleteVendor}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'products' && (
+              <div className="space-y-6">
+                {/* Search and Filters */}
+                <div className="flex items-center gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="Search products by name, brand, or flavour..."
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          loadProducts();
+                        }
+                      }}
+                      className="pl-10 bg-slate-900 border-slate-800"
+                    />
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setCurrentPage(1);
+                      loadProducts();
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Search className="h-4 w-4 mr-2" />
+                    Search
+                  </Button>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
+                  >
+                    <option value="name">Sort by Name</option>
+                    <option value="brand">Sort by Brand</option>
+                    <option value="date">Sort by Date</option>
+                  </select>
+                  <Button size="icon" variant="outline" className="border-slate-800">
+                    ↑
+                  </Button>
+                </div>
+
+                {/* Stats Row */}
+                <div className="grid grid-cols-4 gap-4">
+                  <Card className="bg-slate-900 border-slate-800 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-500/10 rounded-lg">
+                        <Package className="h-5 w-5 text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">Total Products</p>
+                        <p className="text-2xl font-bold text-white">{products.length}</p>
+                      </div>
+                    </div>
+                  </Card>
+
+                  <Card className="bg-slate-900 border-slate-800 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-purple-500/10 rounded-lg">
+                        <span className="text-xl">🏷️</span>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">Unique Brands</p>
+                        <p className="text-2xl font-bold text-white">
+                          {new Set(products.map(p => p.brand).filter(Boolean)).size}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+
+                  <Card className="bg-slate-900 border-slate-800 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-green-500/10 rounded-lg">
+                        <CheckCircle className="h-5 w-5 text-green-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">With Images</p>
+                        <p className="text-2xl font-bold text-white">
+                          {products.filter(p => p.image_url).length}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+
+                  <Card className="bg-slate-900 border-slate-800 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-orange-500/10 rounded-lg">
+                        <span className="text-xl">🔥</span>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">Avg. Strength</p>
+                        <p className="text-2xl font-bold text-white">
+                          {products.length > 0
+                            ? Math.round(
+                                products
+                                  .filter(p => p.strength_mg)
+                                  .reduce((acc, p) => acc + parseFloat(p.strength_mg || 0), 0) /
+                                  products.filter(p => p.strength_mg).length
+                              )
+                            : 0}mg
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Products Grid */}
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-4">
+                      {products.map((product) => (
+                      <Card key={product.id} className="bg-slate-900 border-slate-800 p-4 hover:border-slate-700 transition-colors">
+                        <div className="flex gap-3">
+                          {product.image_url ? (
+                            <img
+                              src={product.image_url}
+                              alt={product.name || product.product_title}
+                              className="w-16 h-16 object-cover rounded-lg"
                             />
-                            <Button asChild>
-                              <label htmlFor="product-csv-upload" className="cursor-pointer">
-                                <Upload className="h-4 w-4 mr-2" />
-                                Choose File
-                              </label>
-                            </Button>
+                          ) : (
+                            <div className="w-16 h-16 bg-slate-800 rounded-lg flex items-center justify-center">
+                              <Package className="h-6 w-6 text-slate-600" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-semibold text-white truncate mb-1">
+                              {product.name || product.product_title}
+                            </h3>
+                            <div className="flex items-center gap-2 text-xs text-slate-400">
+                              {product.brand && (
+                                <span className="px-2 py-0.5 bg-slate-800 rounded">
+                                  {product.brand}
+                                </span>
+                              )}
+                              {product.strength_mg && (
+                                <span className="px-2 py-0.5 bg-orange-500/10 text-orange-400 rounded">
+                                  {product.strength_mg}mg
+                                </span>
+                              )}
+                            </div>
+                            {product.flavour && (
+                              <p className="text-xs text-slate-500 mt-1 truncate">
+                                {product.flavour}
+                              </p>
+                            )}
                           </div>
-
-                          {/* File Info */}
-                          {productCsvFile && (
-                            <div className="bg-muted/50 p-3 rounded-lg">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
-                                  <FileText className="h-4 w-4" />
-                                  <span className="text-sm font-medium">{productCsvFile.name}</span>
-                                  <Badge variant="outline">{productCsvData.length} rows</Badge>
-                                </div>
-                                <Button variant="ghost" size="sm" onClick={resetProductCsvUpload}>
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Column Mapping */}
-                          {productCsvFile && productCsvHeaders.length > 0 && (
-                            <div className="space-y-3">
-                              <h4 className="text-sm font-semibold">Map CSV Columns</h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {productCsvHeaders.map((header) => (
-                                  <div key={header} className="space-y-1">
-                                    <Label htmlFor={`product-mapping-${header}`} className="text-xs">{header}</Label>
-                                    <select
-                                      id={`product-mapping-${header}`}
-                                      value={productColumnMapping[header] || ''}
-                                      onChange={(e) => setProductColumnMapping(prev => ({
-                                        ...prev,
-                                        [header]: e.target.value
-                                      }))}
-                                      className="w-full p-2 border border-border rounded-md bg-background text-sm"
-                                    >
-                                      <option value="">Select field...</option>
-                                      <option value="name">Product Name *</option>
-                                      <option value="brand">Brand *</option>
-                                      <option value="price">Price</option>
-                                      <option value="flavour">Flavour</option>
-                                      <option value="strength_group">Strength Group</option>
-                                      <option value="format">Format</option>
-                                      <option value="description">Description</option>
-                                      <option value="image_url">Image URL</option>
-                                      <option value="page_url">Page URL</option>
-                                    </select>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Import Actions */}
-                          {productCsvFile && productColumnMapping.name && (
-                            <div className="space-y-3">
-                              {isProcessingProductCsv && (
-                                <div className="space-y-2">
-                                  <div className="flex items-center justify-between text-sm">
-                                    <span>Processing...</span>
-                                    <span>{productCsvProgress}%</span>
-                                  </div>
-                                  <div className="w-full bg-muted rounded-full h-2">
-                                    <div 
-                                      className="bg-primary h-2 rounded-full transition-all duration-300"
-                                      style={{ width: `${productCsvProgress}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              )}
-
-                              {!isProcessingProductCsv && (
-                                <div className="flex items-center space-x-3">
-                                  <Button 
-                                    onClick={processProductCsvImport}
-                                    disabled={!productColumnMapping.name}
-                                    className="flex-1"
-                                  >
-                                    <Upload className="h-4 w-4 mr-2" />
-                                    Import {productCsvData.length} Products
-                                  </Button>
-                                  <Button variant="outline" onClick={resetProductCsvUpload}>
-                                    Cancel
-                                  </Button>
-                                </div>
-                              )}
-
-                              {productImportResults && (
-                                <div className="p-3 bg-muted/50 rounded-lg">
-                                  <h5 className="text-sm font-semibold mb-2">Import Results</h5>
-                                  <div className="grid grid-cols-2 gap-3 text-sm">
-                                    <div>
-                                      <span className="text-green-600 font-medium">{productImportResults.success}</span>
-                                      <span className="text-muted-foreground"> Success</span>
-                                    </div>
-                                    <div>
-                                      <span className="text-red-600 font-medium">{productImportResults.errors}</span>
-                                      <span className="text-muted-foreground"> Errors</span>
-                                    </div>
-                                  </div>
-                                  
-                                  {productImportResults.errors_list.length > 0 && (
-                                    <div className="mt-2">
-                                      <h6 className="text-xs font-medium text-red-600 mb-1">Errors:</h6>
-                                      <div className="max-h-20 overflow-y-auto">
-                                        {productImportResults.errors_list.slice(0, 5).map((error: string, index: number) => (
-                                          <div key={index} className="text-xs text-red-600">
-                                            • {error}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    <div className="grid gap-4">
-                      {(selectedRegion === 'UK' ? mainProducts : usProducts).map((product) => (
-                        <Card key={product.id}>
-                          <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-1">
-                                <h3 className="font-semibold">{isUKProduct(product) ? product.name : product.product_title}</h3>
-                                <p className="text-sm text-muted-foreground">{product.brand}</p>
-                                <p className="text-sm text-muted-foreground">Price: £{isUKProduct(product) ? product.price || 'N/A' : 'N/A'}</p>
-                                <p className="text-sm text-muted-foreground">Flavour: {product.flavour || 'N/A'}</p>
-                                <p className="text-sm text-muted-foreground">Strength: {isUKProduct(product) ? product.strength_group || 'N/A' : product.strength || 'N/A'}</p>
-                                <div className="flex items-center space-x-2">
-                                  {product.brand && <Badge variant="outline">{product.brand}</Badge>}
-                                  {product.format && <Badge variant="secondary">{product.format}</Badge>}
-                                </div>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDeleteProduct(product.id)}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-slate-400 hover:text-red-400 hover:bg-red-500/10 flex-shrink-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                         </Card>
                       ))}
                     </div>
 
-                    {/* Pagination for Main Products */}
-                    {mainProductsTotalPages > 1 && (
-                      <div className="flex items-center justify-between mt-6">
-                        <div className="flex items-center space-x-4">
-                          <div className="text-sm text-muted-foreground">
-                            Showing {((mainProductsPage - 1) * mainProductsPageSize) + 1} to {Math.min(mainProductsPage * mainProductsPageSize, currentProductCount)} of {currentProductCount} products
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm text-muted-foreground">Show:</span>
-                            <select
-                              value={mainProductsPageSize}
-                              onChange={(e) => handleMainProductsPageSizeChange(parseInt(e.target.value))}
-                              className="px-2 py-1 border border-gray-300 rounded text-sm"
-                            >
-                              <option value={20}>20</option>
-                              <option value={50}>50</option>
-                              <option value={100}>100</option>
-                              <option value={500}>500</option>
-                              <option value={1000}>1000</option>
-                            </select>
-                          </div>
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between pt-6 border-t border-slate-800">
+                        <div className="text-sm text-slate-400">
+                          Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} products
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleMainProductsPageChange(mainProductsPage - 1)}
-                            disabled={mainProductsPage === 1}
+                            onClick={() => setCurrentPage(1)}
+                            disabled={currentPage === 1}
+                            className="border-slate-800"
+                          >
+                            First
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="border-slate-800"
                           >
                             Previous
                           </Button>
-                          <span className="text-sm">
-                            Page {mainProductsPage} of {mainProductsTotalPages}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                              let pageNum;
+                              if (totalPages <= 5) {
+                                pageNum = i + 1;
+                              } else if (currentPage <= 3) {
+                                pageNum = i + 1;
+                              } else if (currentPage >= totalPages - 2) {
+                                pageNum = totalPages - 4 + i;
+                              } else {
+                                pageNum = currentPage - 2 + i;
+                              }
+                              return (
+                                <Button
+                                  key={pageNum}
+                                  variant={currentPage === pageNum ? 'default' : 'outline'}
+                                  size="sm"
+                                  onClick={() => setCurrentPage(pageNum)}
+                                  className="w-10 border-slate-800"
+                                >
+                                  {pageNum}
+                                </Button>
+                              );
+                            })}
+                          </div>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleMainProductsPageChange(mainProductsPage + 1)}
-                            disabled={mainProductsPage === mainProductsTotalPages}
+                            onClick={() => setCurrentPage(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className="border-slate-800"
                           >
                             Next
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(totalPages)}
+                            disabled={currentPage === totalPages}
+                            className="border-slate-800"
+                          >
+                            Last
                           </Button>
                         </div>
                       </div>
                     )}
-                  </TabsContent>
 
-                  {/* Vendor Products Tab */}
-                  <TabsContent value="vendor-products" className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h2 className="text-2xl font-bold tracking-tight">Vendor Products Management</h2>
-                        <p className="text-muted-foreground">{vendorProductsTotalCount} vendor products</p>
+                    {products.length === 0 && !loading && (
+                      <div className="text-center py-12 text-slate-400">
+                        <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No products found</p>
                       </div>
-                    </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
 
-                    {/* Vendor Selection and Filters */}
-                    <Card>
-                      <CardContent className="p-6">
-                        <div className="space-y-4">
-                          <div className="flex flex-col sm:flex-row gap-4">
-                            <div className="flex-1">
-                              <Label htmlFor="vendor-select">Select Vendor</Label>
-                              <select
-                                id="vendor-select"
-                                value={selectedVendorForProducts}
-                                onChange={(e) => handleVendorFilterChange(e.target.value)}
-                                className="w-full p-2 border border-border rounded-md bg-background mt-1"
-                              >
-                                <option value="all">-- All Vendors --</option>
-                                {currentVendors.map((vendor) => (
-                                  <option key={vendor.id} value={vendor.id}>
-                                    {vendor.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="flex-1">
-                              <Label htmlFor="product-search">Search Products</Label>
-                              <div className="relative mt-1">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                                <Input
-                                  id="product-search"
-                                  placeholder="Search products..."
-                                  value={vendorProductsSearchTerm}
-                                  onChange={(e) => handleVendorProductsSearch(e.target.value)}
-                                  className="pl-10"
-                                />
+            {activeTab === 'vendor-products' && (
+              <div className="space-y-6">
+                {/* Upload CSV Section */}
+                <Card className="bg-slate-900 border-slate-800 p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                      <UploadIcon className="h-5 w-5 text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Upload Vendor Products CSV</h3>
+                      <p className="text-sm text-slate-400">Import vendor products from CSV file</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label htmlFor="csv-upload" className="cursor-pointer">
+                      <div className="border-2 border-dashed border-slate-700 rounded-lg p-8 text-center hover:border-blue-500 transition-colors">
+                        <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-slate-400" />
+                        <p className="text-sm font-medium text-slate-300 mb-2">
+                          {uploading ? 'Uploading...' : 'Click to upload CSV file'}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          CSV files only • Maximum 10MB
+                        </p>
+                      </div>
+                    </label>
+                    <input
+                      id="csv-upload"
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+
+                    {uploadResult && (
+                      <div className={`p-4 rounded-lg border ${
+                        uploadResult.success 
+                          ? 'bg-green-500/10 border-green-500/20' 
+                          : 'bg-red-500/10 border-red-500/20'
+                      }`}>
+                        <div className="flex items-center gap-3">
+                          {uploadResult.success ? (
+                            <CheckCircle className="h-6 w-6 text-green-400 flex-shrink-0" />
+                          ) : (
+                            <XCircle className="h-6 w-6 text-red-400 flex-shrink-0" />
+                          )}
+                          <div>
+                            {uploadResult.success ? (
+                              <div>
+                                <p className="font-medium text-green-400">Upload Successful</p>
+                                <p className="text-sm text-slate-300">
+                                  Processed: {uploadResult.processed} | Inserted: {uploadResult.inserted}
+                                </p>
                               </div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-col sm:flex-row gap-4">
-                            <div className="flex-1">
-                              <Label htmlFor="brand-filter">Brand Filter</Label>
-                              <select
-                                id="brand-filter"
-                                value={productBrandFilter}
-                                onChange={(e) => setProductBrandFilter(e.target.value)}
-                                className="w-full p-2 border border-border rounded-md bg-background mt-1"
-                              >
-                                <option value="all">-- All Brands --</option>
-                                {Array.from(new Set(currentVendorProducts.map(p => {
-                                  return p.brand;
-                                }))).map((brand) => (
-                                  <option key={brand} value={brand}>
-                                    {brand}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="flex-1">
-                              <Label htmlFor="status-filter">Status Filter</Label>
-                              <select
-                                id="status-filter"
-                                value={productStatusFilter}
-                                onChange={(e) => setProductStatusFilter(e.target.value)}
-                                className="w-full p-2 border border-border rounded-md bg-background mt-1"
-                              >
-                                <option value="all">-- All Status --</option>
-                                <option value="mapped">Mapped</option>
-                                <option value="found">Found but not linked</option>
-                                <option value="similar">Similar found</option>
-                                <option value="none">Not found</option>
-                              </select>
-                            </div>
-                            <div className="flex items-end">
-                              <Button
-                                variant="outline"
-                                onClick={() => {
-                                  setProductSearchTerm('');
-                                  setProductBrandFilter('all');
-                                  setProductStatusFilter('all');
-                                }}
-                              >
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Clear Filters
-                              </Button>
-                            </div>
+                            ) : (
+                              <div>
+                                <p className="font-medium text-red-400">Upload Failed</p>
+                                <p className="text-sm text-slate-300">{uploadResult.error}</p>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    )}
+                  </div>
+                </Card>
 
-                    {/* Bulk Autolink Section */}
-                    {selectedVendorForProducts !== 'all' && (
-                      <Card>
-                        <CardContent className="p-6">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-2">
-                              <h3 className="text-lg font-semibold">Bulk Autolink Exact Matches</h3>
-                              <p className="text-sm text-muted-foreground">
-                                This will automatically link all vendor products that have exact name matches with existing products.
-                                {bulkAutolinkCount > 0 ? (
-                                  <span className="text-green-600 font-medium"> ({bulkAutolinkCount} exact matches available)</span>
-                                ) : (
-                                  <span className="text-muted-foreground"> (No exact matches found)</span>
+                {/* Search and Filters */}
+                <div className="flex items-center gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="Search vendor products by name..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          loadVendorProducts();
+                        }
+                      }}
+                      className="pl-10 bg-slate-900 border-slate-800"
+                    />
+                  </div>
+                  <select
+                    value={selectedVendorFilter}
+                    onChange={(e) => setSelectedVendorFilter(e.target.value)}
+                    className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300 min-w-[200px]"
+                  >
+                    <option value="all">All Vendors</option>
+                    {Array.from(new Set(vendorProducts.map(vp => region === 'UK' ? vp.vendor_id : vp.us_vendor_id)))
+                      .filter(Boolean)
+                      .map((vendorId) => {
+                        const vendor = vendors.find(v => v.id === vendorId);
+                        return (
+                          <option key={vendorId} value={vendorId}>
+                            {vendor?.name || `Vendor ${vendorId}`}
+                          </option>
+                        );
+                      })}
+                  </select>
+                  <Button
+                    onClick={loadVendorProducts}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Search className="h-4 w-4 mr-2" />
+                    Search
+                  </Button>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
+                  >
+                    <option value="name">Sort by Name</option>
+                    <option value="date">Sort by Date</option>
+                  </select>
+                  <Button size="icon" variant="outline" className="border-slate-800">
+                    ↑
+                  </Button>
+                </div>
+
+                {/* Stats Row */}
+                {(() => {
+                  // Calculate filtered vendor products for stats
+                  const filteredVendorProducts = vendorProducts.filter((vp) => {
+                    const matchesSearch = vp.name?.toLowerCase().includes(searchTerm.toLowerCase());
+                    const vendorIdToCheck = region === 'UK' ? vp.vendor_id : vp.us_vendor_id;
+                    const matchesVendor = selectedVendorFilter === 'all' || vendorIdToCheck === selectedVendorFilter || vendorIdToCheck?.toString() === selectedVendorFilter;
+                    return matchesSearch && matchesVendor;
+                  });
+
+                  return (
+                    <div className="grid grid-cols-4 gap-4">
+                      <Card className="bg-slate-900 border-slate-800 p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-blue-500/10 rounded-lg">
+                            <FileSpreadsheet className="h-5 w-5 text-blue-400" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-400">Total Products</p>
+                            <p className="text-2xl font-bold text-white">{filteredVendorProducts.length}</p>
+                          </div>
+                        </div>
+                      </Card>
+
+                      <Card className="bg-slate-900 border-slate-800 p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-green-500/10 rounded-lg">
+                            <CheckCircle className="h-5 w-5 text-green-400" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-400">In Stock</p>
+                            <p className="text-2xl font-bold text-white">
+                              {filteredVendorProducts.filter(vp => vp.stock_status === 'in_stock').length}
+                            </p>
+                          </div>
+                        </div>
+                      </Card>
+
+                      <Card className="bg-slate-900 border-slate-800 p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-red-500/10 rounded-lg">
+                            <XCircle className="h-5 w-5 text-red-400" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-400">Out of Stock</p>
+                            <p className="text-2xl font-bold text-white">
+                              {filteredVendorProducts.filter(vp => vp.stock_status === 'out_of_stock').length}
+                            </p>
+                          </div>
+                        </div>
+                      </Card>
+
+                      <Card className="bg-slate-900 border-slate-800 p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-purple-500/10 rounded-lg">
+                            <Users className="h-5 w-5 text-purple-400" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-400">Vendors</p>
+                            <p className="text-2xl font-bold text-white">
+                              {new Set(filteredVendorProducts.map(vp => region === 'UK' ? vp.vendor_id : vp.us_vendor_id)).size}
+                            </p>
+                          </div>
+                        </div>
+                      </Card>
+                    </div>
+                  );
+                })()}
+
+                {/* Vendor Products Table */}
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                  </div>
+                ) : vendorProducts.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400">
+                    <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No vendor products found</p>
+                    <p className="text-sm mt-2">Upload a CSV file to get started</p>
+                  </div>
+                ) : (() => {
+                  // Filter vendor products based on search and vendor filter
+                  const filteredVendorProducts = vendorProducts.filter((vp) => {
+                    const matchesSearch = !searchTerm || vp.name?.toLowerCase().includes(searchTerm.toLowerCase());
+                    const vendorIdToCheck = region === 'UK' ? vp.vendor_id : vp.us_vendor_id;
+                    // Handle both string and number comparisons
+                    const vendorIdStr = vendorIdToCheck?.toString();
+                    const filterIdStr = selectedVendorFilter?.toString();
+                    const matchesVendor = selectedVendorFilter === 'all' || vendorIdStr === filterIdStr || vendorIdToCheck === selectedVendorFilter || vendorIdToCheck === parseInt(selectedVendorFilter);
+                    
+                    return matchesSearch && matchesVendor;
+                  });
+                  
+                  // Debug logging
+                  if (selectedVendorFilter !== 'all') {
+                    console.log(`🔍 Filtering by vendor: ${selectedVendorFilter}, Found ${filteredVendorProducts.length} products out of ${vendorProducts.length} total`);
+                    console.log(`📦 Sample vendor IDs in products:`, vendorProducts.slice(0, 5).map(vp => ({
+                      name: vp.name,
+                      vendor_id: region === 'UK' ? vp.vendor_id : vp.us_vendor_id
+                    })));
+                  }
+
+                  // Calculate pagination
+                  const totalVendorPages = Math.ceil(filteredVendorProducts.length / vendorProductsPerPage);
+                  const startIndex = (vendorProductsPage - 1) * vendorProductsPerPage;
+                  const endIndex = startIndex + vendorProductsPerPage;
+                  const paginatedVendorProducts = filteredVendorProducts.slice(startIndex, endIndex);
+
+                  return (
+                    <>
+                      <div className="space-y-3">
+                        {paginatedVendorProducts.map((vp) => {
+                        const vendorIdToFind = region === 'UK' ? vp.vendor_id : vp.us_vendor_id;
+                        const vendor = vendors.find(v => v.id === vendorIdToFind);
+                        const availablePacks = [
+                          { size: '1-Pack', price: vp.price_1pack },
+                          { size: '3-Pack', price: vp.price_3pack },
+                          { size: '5-Pack', price: vp.price_5pack },
+                          { size: '10-Pack', price: vp.price_10pack },
+                          { size: '15-Pack', price: vp.price_15pack },
+                          { size: '20-Pack', price: vp.price_20pack },
+                          { size: '25-Pack', price: vp.price_25pack },
+                          { size: '30-Pack', price: vp.price_30pack },
+                          { size: '50-Pack', price: vp.price_50pack },
+                          { size: '100-Pack', price: vp.price_100pack },
+                        ].filter(pack => pack.price);
+
+                        return (
+                          <Card key={vp.id} className="bg-slate-900 border-slate-800 p-5 hover:border-slate-700 transition-colors">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                {/* Header with Product Name and Vendor */}
+                                <div className="flex items-center gap-3 mb-3">
+                                  <h3 className="text-lg font-semibold text-white">{vp.name}</h3>
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                      vp.stock_status === 'in_stock'
+                                        ? 'bg-green-500/10 text-green-400'
+                                        : 'bg-red-500/10 text-red-400'
+                                    }`}
+                                  >
+                                    {vp.stock_status === 'in_stock' ? 'In Stock' : 'Out of Stock'}
+                                  </span>
+                                </div>
+
+                                {/* Vendor Info */}
+                                {vendor && (
+                                  <div className="inline-flex items-center gap-2 mb-3 p-2 bg-slate-800/50 rounded-lg">
+                                    <Store className="h-4 w-4 text-slate-400" />
+                                    <div>
+                                      <p className="text-xs text-slate-500">Vendor</p>
+                                      <p className="text-sm font-medium text-slate-300">{vendor.name}</p>
+                                    </div>
+                                    {vendor.website && (
+                                      <a
+                                        href={vendor.website}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="ml-2"
+                                      >
+                                        <Globe className="h-4 w-4 text-blue-400 hover:text-blue-300" />
+                                      </a>
+                                    )}
+                                    {region === 'UK' && vendor.rating && (
+                                      <div className="ml-2 flex items-center gap-1">
+                                        <span className="text-yellow-400">★</span>
+                                        <span className="text-xs text-slate-400">{vendor.rating}</span>
+                                      </div>
+                                    )}
+                                  </div>
                                 )}
-                              </p>
+
+                                {/* Pack Sizes Grid */}
+                                <div className="mb-3">
+                                  <p className="text-xs text-slate-500 mb-2">Available Pack Sizes ({availablePacks.length})</p>
+                                  <div className="grid grid-cols-5 gap-3">
+                                    {availablePacks.map((pack) => (
+                                      <div key={pack.size} className="bg-slate-800/50 p-2 rounded-lg">
+                                        <p className="text-xs text-slate-500">{pack.size}</p>
+                                        <p className="text-sm text-slate-300 font-semibold">{pack.price}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Product URL */}
+                                {vp.url && (
+                                  <a
+                                    href={vp.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-blue-400 hover:underline inline-flex items-center gap-1"
+                                  >
+                                    <Globe className="h-3 w-3" />
+                                    View on vendor site
+                                  </a>
+                                )}
+
+                                {/* Additional Info */}
+                                <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
+                                  <span>ID: {vp.id}</span>
+                                  {region === 'UK' && vp.vendor_id && <span>Vendor ID: {vp.vendor_id}</span>}
+                                  {region === 'US' && vp.us_vendor_id && <span>Vendor ID: {vp.us_vendor_id}</span>}
+                                </div>
+                              </div>
+
+                              {/* Delete Button */}
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => handleDeleteVendorProduct(vp.id)}
+                                className="h-8 w-8 text-slate-400 hover:text-red-400 hover:bg-red-500/10 flex-shrink-0"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </Card>
+                        );
+                      })}
+                      </div>
+
+                      {/* Pagination Controls */}
+                      {totalVendorPages > 1 && (
+                        <div className="mt-6 flex items-center justify-between border-t border-slate-800 pt-6">
+                          <div className="text-sm text-slate-400">
+                            Showing {startIndex + 1} to {Math.min(endIndex, filteredVendorProducts.length)} of {filteredVendorProducts.length} vendor products
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setVendorProductsPage(1)}
+                              disabled={vendorProductsPage === 1}
+                              className="border-slate-800"
+                            >
+                              First
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setVendorProductsPage(vendorProductsPage - 1)}
+                              disabled={vendorProductsPage === 1}
+                              className="border-slate-800"
+                            >
+                              Previous
+                            </Button>
+                            <div className="flex items-center gap-1">
+                              {Array.from({ length: Math.min(5, totalVendorPages) }, (_, i) => {
+                                let pageNum;
+                                if (totalVendorPages <= 5) {
+                                  pageNum = i + 1;
+                                } else if (vendorProductsPage <= 3) {
+                                  pageNum = i + 1;
+                                } else if (vendorProductsPage >= totalVendorPages - 2) {
+                                  pageNum = totalVendorPages - 4 + i;
+                                } else {
+                                  pageNum = vendorProductsPage - 2 + i;
+                                }
+                                return (
+                                  <Button
+                                    key={i}
+                                    variant={vendorProductsPage === pageNum ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => setVendorProductsPage(pageNum)}
+                                    className={vendorProductsPage === pageNum ? "" : "border-slate-800"}
+                                  >
+                                    {pageNum}
+                                  </Button>
+                                );
+                              })}
                             </div>
                             <Button
-                              onClick={() => bulkAutolinkExactMatches(selectedVendorForProducts)}
-                              disabled={isProcessingBulkAutolink || bulkAutolinkCount === 0}
-                              className="bg-gray-900 hover:bg-gray-800"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setVendorProductsPage(vendorProductsPage + 1)}
+                              disabled={vendorProductsPage === totalVendorPages}
+                              className="border-slate-800"
                             >
-                              {isProcessingBulkAutolink ? (
-                                <>
-                                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                  Processing...
-                                </>
-                              ) : (
-                                <>
-                                  <Zap className="h-4 w-4 mr-2" />
-                                  Bulk Autolink Exact Matches
-                                </>
-                              )}
+                              Next
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setVendorProductsPage(totalVendorPages)}
+                              disabled={vendorProductsPage === totalVendorPages}
+                              className="border-slate-800"
+                            >
+                              Last
                             </Button>
                           </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
 
-                    {/* Vendor Products Table */}
-                    <Card>
-                      <CardContent className="p-0">
+            {activeTab === 'vendor-mappings' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Vendor Products Management</h2>
+                    <p className="text-slate-400">
+                      {vendorProductMappings.length} vendor products • 
+                      <span className="text-green-400 ml-1">{vendorProductMappings.filter((vp: any) => vp.is_mapped).length} mapped</span> • 
+                      <span className="text-yellow-400 ml-1">{vendorProductMappings.filter((vp: any) => !vp.is_mapped).length} unmapped</span>
+                      {productsWithMatches.size > 0 && (
+                        <> • <span className="text-blue-400 ml-1">{productsWithMatches.size} with 85%+ matches</span></>
+                      )}
+                    </p>
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          const unmapped = vendorProductMappings.filter((vp: any) => !vp.is_mapped);
+                          if (unmapped.length > 0) {
+                            toast.info(`Checking ${unmapped.length} unmapped products for similarity matches...`);
+                            await checkSimilarityMatches(unmapped);
+                            toast.success('Similarity check complete!');
+                          } else {
+                            toast.info('No unmapped products to check');
+                          }
+                        }}
+                        className="border-slate-800 text-xs"
+                        disabled={loading}
+                      >
+                        🔍 Re-check Similarity Matches
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={autoMatchAll100Percent}
+                        className="border-green-800 text-green-400 hover:bg-green-900/20 text-xs"
+                        disabled={loading}
+                      >
+                        🎯 Auto-Match All 100% Matches
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filters Section */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div>
+                    <label className="text-sm text-slate-400 mb-2 block">Select Vendor</label>
+                    <select
+                      value={selectedVendorFilter}
+                      onChange={(e) => setSelectedVendorFilter(e.target.value)}
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
+                    >
+                      <option value="all">-- All Vendors --</option>
+                      {vendors.map((vendor) => (
+                        <option key={vendor.id} value={vendor.id}>
+                          {vendor.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-400 mb-2 block">Search Products</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Input
+                        placeholder="Search products..."
+                        value={mappingsSearchTerm}
+                        onChange={(e) => setMappingsSearchTerm(e.target.value)}
+                        className="pl-10 bg-slate-900 border-slate-800"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm text-slate-400 mb-2 block">Brand Filter</label>
+                    <select
+                      value={mappingsBrandFilter}
+                      onChange={(e) => setMappingsBrandFilter(e.target.value)}
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
+                    >
+                      <option value="all">-- All Brands --</option>
+                      {Array.from(new Set(vendorProductMappings.map(m => m.name?.split(' ')[0]).filter(Boolean))).map((brand) => (
+                        <option key={brand} value={brand}>
+                          {brand}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-400 mb-2 block">Status Filter</label>
+                    <div className="flex gap-2">
+                      <select
+                        value={mappingsStatusFilter}
+                        onChange={(e) => setMappingsStatusFilter(e.target.value)}
+                        className="flex-1 px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
+                      >
+                        <option value="all">-- All Status --</option>
+                        <option value="mapped">Mapped</option>
+                        <option value="unmapped">Not Mapped</option>
+                      </select>
+                      <Button
+                        onClick={() => {
+                          setMappingsBrandFilter('all');
+                          setMappingsStatusFilter('all');
+                          setMappingsSimilarityFilter('all');
+                          setMappingsSearchTerm('');
+                          setSelectedVendorFilter('all');
+                        }}
+                        variant="outline"
+                        className="border-slate-800"
+                      >
+                        Clear Filters
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-400 mb-2 block">Similarity Match Filter</label>
+                    <select
+                      value={mappingsSimilarityFilter}
+                      onChange={(e) => setMappingsSimilarityFilter(e.target.value)}
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
+                    >
+                      <option value="all">-- All Products --</option>
+                      <option value="has_matches">Has 85%+ Matches</option>
+                      <option value="no_matches">No Matches</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Mappings Table */}
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                  </div>
+                ) : vendorProductMappings.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400">
+                    <ArrowLeftRight className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No vendor product mappings found</p>
+                    <p className="text-sm mt-2">Upload vendor products to create mappings</p>
+                  </div>
+                ) : (() => {
+                  // Filter vendor products for mapping
+                  const filteredMappings = vendorProductMappings.filter((vp) => {
+                    if (!vp.name) return false;
+
+                    const matchesSearch = vp.name?.toLowerCase().includes(mappingsSearchTerm.toLowerCase());
+                    const vendorIdToCheck = region === 'UK' ? vp.vendor_id : vp.us_vendor_id;
+                    // Robust vendor ID comparison - handle both string and number types
+                    const matchesVendor = selectedVendorFilter === 'all' || 
+                      vendorIdToCheck === selectedVendorFilter || 
+                      vendorIdToCheck?.toString() === selectedVendorFilter ||
+                      vendorIdToCheck === parseInt(selectedVendorFilter) ||
+                      parseInt(vendorIdToCheck?.toString() || '0') === parseInt(selectedVendorFilter);
+                    const brand = vp.name?.split(' ')[0];
+                    const matchesBrand = mappingsBrandFilter === 'all' || brand === mappingsBrandFilter;
+                    const matchesStatus = 
+                      mappingsStatusFilter === 'all' || 
+                      (mappingsStatusFilter === 'mapped' && vp.is_mapped) ||
+                      (mappingsStatusFilter === 'unmapped' && !vp.is_mapped);
+                    const hasMatches = productsWithMatches.has(String(vp.id));
+                    const matchesSimilarity = 
+                      mappingsSimilarityFilter === 'all' ||
+                      (mappingsSimilarityFilter === 'has_matches' && hasMatches) ||
+                      (mappingsSimilarityFilter === 'no_matches' && !hasMatches);
+
+                    return matchesSearch && matchesVendor && matchesBrand && matchesStatus && matchesSimilarity;
+                  });
+
+                  // Pagination
+                  const totalMappingsPages = Math.ceil(filteredMappings.length / mappingsPerPage);
+                  const startIndex = (mappingsPage - 1) * mappingsPerPage;
+                  const endIndex = startIndex + mappingsPerPage;
+                  const paginatedMappings = filteredMappings.slice(startIndex, endIndex);
+
+                  return (
+                    <>
+                      {/* Table */}
+                      <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
                         <div className="overflow-x-auto">
                           <table className="w-full">
-                            <thead className="border-b">
+                            <thead className="bg-slate-800/50 border-b border-slate-700">
                               <tr>
-                                <th className="text-left p-4 font-medium">Product Name</th>
-                                <th className="text-left p-4 font-medium">Brand</th>
-                                <th className="text-left p-4 font-medium">Suggested/Mapped Product</th>
-                                <th className="text-left p-4 font-medium">Mapping Status</th>
-                                <th className="text-left p-4 font-medium">URL</th>
-                                <th className="text-left p-4 font-medium">1 Pack</th>
-                                <th className="text-left p-4 font-medium">3 Pack</th>
-                                <th className="text-left p-4 font-medium">5 Pack</th>
-                                <th className="text-left p-4 font-medium">10 Pack</th>
-                                <th className="text-left p-4 font-medium">20 Pack</th>
-                                <th className="text-left p-4 font-medium">25 Pack</th>
-                                <th className="text-left p-4 font-medium">30 Pack</th>
-                                <th className="text-left p-4 font-medium">50 Pack</th>
-                                <th className="text-left p-4 font-medium">Actions</th>
+                                <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Product Name</th>
+                                <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Brand</th>
+                                <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider w-64">Suggested/Mapped Product</th>
+                                <th className="text-center px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Mapping Status</th>
+                                <th className="text-center px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">URL</th>
+                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">1 Pack</th>
+                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">3 Pack</th>
+                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">5 Pack</th>
+                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">10 Pack</th>
+                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">15 Pack</th>
+                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">20 Pack</th>
+                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">25 Pack</th>
+                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">30 Pack</th>
+                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">50 Pack</th>
+                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">100 Pack</th>
+                                <th className="text-center px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
                               </tr>
                             </thead>
-                            <tbody>
-                              {filteredVendorProducts.map((product) => {
-                                const vendorIdField = selectedRegion === 'UK' ? 'vendor_id' : 'us_vendor_id';
-                                const vendor = currentVendors.find(v => v.id === (product as any)[vendorIdField]);
-                                const productName = product.name;
-                                const mappingStatus = getMappingStatus(productName);
-                                const matches = productMatches[productName] || [];
-                                const selectedProductId = selectedMappings[productName];
+                            <tbody className="divide-y divide-slate-800">
+                              {paginatedMappings.map((vp) => {
+                                const mappedProduct = vp.mapped_product;
+                                const brand = vp.name?.split(' ')[0] || '';
+                                const vendorIdToFind = region === 'UK' ? vp.vendor_id : vp.us_vendor_id;
+                                const vendor = vendors.find(v => v.id === vendorIdToFind);
+
+                                const hasMatches = productsWithMatches.has(String(vp.id));
                                 
                                 return (
-                                  <tr key={product.id} className="border-b hover:bg-muted/50">
-                                    <td className="p-4">
-                                      <div className="font-medium">{productName}</div>
-                                      <div className="text-sm text-muted-foreground">{vendor?.name}</div>
+                                  <tr key={vp.id} className="hover:bg-slate-800/30 transition-colors">
+                                    <td className="px-4 py-3">
+                                      <div className="flex items-center gap-2">
+                                        <div className="flex-1">
+                                          <div className="text-sm text-white font-medium">{vp.name || 'N/A'}</div>
+                                          <div className="text-xs text-slate-500">{vendor?.name || ''}</div>
+                                        </div>
+                                        {hasMatches && !vp.is_mapped && (
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30" title="Has 85%+ similarity matches">
+                                            <Search className="h-3 w-3" />
+                                            Match
+                                          </span>
+                                        )}
+                                      </div>
                                     </td>
-                                    <td className="p-4">{product.brand}</td>
-                                    <td className="p-4">
-                                      {mappingStatus.status === 'mapped' ? (
-                                        <div>
-                                          <div className="font-medium text-green-600">
-                                            {(() => {
-                                              const foundProduct = (selectedRegion === 'UK' ? mainProducts : usProducts).find(p => p.id === mappingStatus.productId);
-                                              return foundProduct ? (isUKProduct(foundProduct) ? foundProduct.name : foundProduct.product_title) : '';
-                                            })()}
-                                          </div>
-                                          <div className="text-xs text-muted-foreground">
-                                            ID: {mappingStatus.productId}
-                                          </div>
-                                        </div>
-                                      ) : mappingStatus.status === 'selected' ? (
-                                        <div>
-                                          <div className="font-medium text-blue-600">
-                                            {(() => {
-                                              const foundProduct = (selectedRegion === 'UK' ? mainProducts : usProducts).find(p => p.id === mappingStatus.productId);
-                                              return foundProduct ? (isUKProduct(foundProduct) ? foundProduct.name : foundProduct.product_title) : '';
-                                            })()}
-                                          </div>
-                                          <div className="text-xs text-muted-foreground">
-                                            ID: {mappingStatus.productId} (Selected)
-                                          </div>
+                                    <td className="px-4 py-3 text-sm text-slate-300">{brand}</td>
+                                    <td className="px-4 py-3">
+                                      {vp.is_mapped && mappedProduct ? (
+                                        <div className="flex items-center justify-between">
+                                          <div className="text-sm text-white">{mappedProduct.name}</div>
                                           <Button 
                                             size="sm" 
-                                            variant="outline" 
-                                            className="mt-1"
-                                            onClick={() => handleConfirmMatch(productName, mappingStatus.productId!)}
-                                          >
-                                            Link Selected
-                                          </Button>
-                                        </div>
-                                      ) : mappingStatus.status === 'found' ? (
-                                        <div>
-                                          <div className="font-medium text-orange-600">
-                                            {(() => {
-                                              const foundProduct = (selectedRegion === 'UK' ? mainProducts : usProducts).find(p => p.id === mappingStatus.productId);
-                                              return foundProduct ? (isUKProduct(foundProduct) ? foundProduct.name : foundProduct.product_title) : '';
-                                            })()}
-                                          </div>
-                                          <div className="text-xs text-muted-foreground">
-                                            ID: {mappingStatus.productId} (Exact match)
-                                          </div>
-                                          <Button 
-                                            size="sm" 
-                                            variant="outline" 
-                                            className="mt-1"
-                                            onClick={() => handleConfirmMatch(productName, mappingStatus.productId!)}
-                                          >
-                                            Link Exact Match
-                                          </Button>
-                                        </div>
-                                      ) : matches.length > 0 ? (
-                                        <div className="space-y-2">
-                                          <select 
-                                            className="w-full p-2 border border-border rounded-md bg-background text-sm"
-                                            value={selectedProductId || ''}
-                                            onChange={(e) => {
-                                              if (e.target.value) {
-                                                setSelectedMappings(prev => ({
-                                                  ...prev,
-                                                  [productName]: parseInt(e.target.value)
-                                                }));
+                                            variant="ghost" 
+                                            className="h-7 text-xs text-red-400"
+                                            onClick={() => {
+                                              // Delete mapping logic here
+                                              if (vp.mapping?.id) {
+                                                fetch(`/api/vendor-product-mappings?id=${vp.mapping.id}&region=${region}`, {
+                                                  method: 'DELETE'
+                                                }).then(() => {
+                                                  toast.success('Mapping removed');
+                                                  loadVendorProductMappings();
+                                                });
                                               }
                                             }}
                                           >
-                                            <option value="">-- Select Product --</option>
-                                            {matches.map((match) => (
-                                              <option key={match.id} value={match.id}>
-                                                {match.name} ({match.similarity}% match)
-                                              </option>
-                                            ))}
-                                          </select>
-                                          {selectedProductId && (
-                                            <Button 
-                                              size="sm" 
-                                              variant="outline" 
-                                              className="w-full"
-                                              onClick={() => handleConfirmMatch(productName, selectedProductId)}
-                                            >
-                                              Link Selected
-                                            </Button>
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <div className="space-y-2">
-                                          <div className="text-sm text-gray-500">
-                                            No matches found
-                                          </div>
-                                          <Button 
-                                            size="sm" 
-                                            variant="outline"
-                                            onClick={() => findProductMatches(productName)}
-                                            disabled={matchingLoading}
-                                          >
-                                            {matchingLoading ? 'Finding...' : 'Search Again'}
+                                            Unmap
                                           </Button>
                                         </div>
-                                      )}
-                                    </td>
-                                    <td className="p-4">
-                                      {mappingStatus.status === 'mapped' ? (
-                                        <Badge variant="default" className="bg-green-100 text-green-800">
-                                          ✓ Mapped
-                                        </Badge>
-                                      ) : mappingStatus.status === 'selected' ? (
-                                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                                          ⚡ Selected
-                                        </Badge>
-                                      ) : mappingStatus.status === 'found' ? (
-                                        <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-                                          ⚠ Found but not linked
-                                        </Badge>
-                                      ) : mappingStatus.status === 'similar' ? (
-                                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                                          ? Similar found
-                                        </Badge>
                                       ) : (
-                                        <Badge variant="destructive">
-                                          ✗ Not found
-                                        </Badge>
+                                        <div className="relative">
+                                          <div className="flex items-center gap-2">
+                                            <div className="relative flex-1">
+                                              <Input
+                                                placeholder="Search products (shows all matches)..."
+                                                className="h-8 text-xs bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                                                onFocus={() => {
+                                                  setActiveSearchRow(vp.id);
+                                                  // Auto-search with vendor product name when focused (85% threshold)
+                                                  if (!searchSuggestions.has(vp.id)) {
+                                                    handleSearchSuggestions(vp.name, vp.id, false);
+                                                  }
+                                                }}
+                                                onBlur={() => {
+                                                  // Delay to allow clicking on suggestions
+                                                  setTimeout(() => setActiveSearchRow(null), 200);
+                                                }}
+                                                onChange={async (e) => {
+                                                  const searchValue = e.target.value;
+                                                  if (searchValue.length >= 2) {
+                                                    // Manual search - use lower threshold (50%) to show more results
+                                                    await handleSearchSuggestions(searchValue, vp.id, true);
+                                                  } else if (searchValue.length === 0) {
+                                                    // Reset to vendor product name search (85% threshold)
+                                                    await handleSearchSuggestions(vp.name, vp.id, false);
+                                                  }
+                                                }}
+                                                onKeyDown={async (e) => {
+                                                  if (e.key === 'Enter') {
+                                                    const searchValue = e.currentTarget.value || vp.name;
+                                                    // Manual search - use lower threshold
+                                                    await handleSearchSuggestions(searchValue, vp.id, true);
+                                                  }
+                                                }}
+                                              />
+                                              {activeSearchRow === vp.id && searchSuggestions.has(vp.id) && (
+                                                <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                                  {searchSuggestions.get(vp.id)!.length > 0 ? (
+                                                    searchSuggestions.get(vp.id)!.map((suggestion: any) => (
+                                                      <div
+                                                        key={suggestion.id}
+                                                        className="px-3 py-2 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-b-0 transition-colors group"
+                                                        title="Click to map this product"
+                                                        onMouseDown={(e) => {
+                                                          // Prevent input blur when clicking suggestion
+                                                          e.preventDefault();
+                                                        }}
+                                                        onClick={async (e) => {
+                                                          e.preventDefault();
+                                                          e.stopPropagation();
+                                                          e.nativeEvent.stopImmediatePropagation();
+                                                          setActiveSearchRow(null);
+                                                          console.log('🖱️ Clicked suggestion to map:', { vendorProduct: vp.name, productId: suggestion.id, productName: suggestion.name, vendorId: vendorIdToFind });
+                                                          
+                                                          // Show loading toast
+                                                          const loadingToast = toast.loading('Mapping product...', { id: 'mapping-status' });
+                                                          
+                                                          try {
+                                                            await handleCreateMapping(vp.name, suggestion.id, vendorIdToFind);
+                                                          } catch (error) {
+                                                            toast.error('Failed to map product', { id: 'mapping-status' });
+                                                            console.error('Error mapping product:', error);
+                                                          }
+                                                          
+                                                          return false;
+                                                        }}
+                                                      >
+                                                        <div className="flex items-center justify-between">
+                                                          <div className="flex-1">
+                                                            <p className="text-xs text-white font-medium group-hover:text-blue-400 transition-colors">{suggestion.name}</p>
+                                                            {suggestion.brand && (
+                                                              <p className="text-xs text-slate-400">{suggestion.brand}</p>
+                                                            )}
+                                                          </div>
+                                                          <div className="ml-2 flex items-center gap-2">
+                                                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                                                              suggestion.similarity >= 95 
+                                                                ? 'bg-green-500/20 text-green-400'
+                                                                : suggestion.similarity >= 90
+                                                                ? 'bg-blue-500/20 text-blue-400'
+                                                                : suggestion.similarity >= 85
+                                                                ? 'bg-yellow-500/20 text-yellow-400'
+                                                                : suggestion.similarity >= 70
+                                                                ? 'bg-orange-500/20 text-orange-400'
+                                                                : 'bg-slate-500/20 text-slate-400'
+                                                            }`}>
+                                                              {suggestion.similarity?.toFixed(1) || '0'}%
+                                                            </span>
+                                                            <span className="text-xs text-slate-500 group-hover:text-blue-400 transition-colors">Click to map</span>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    ))
+                                                  ) : (
+                                                    <div className="px-3 py-4 text-center text-xs text-slate-400">
+                                                      {searchLoading ? 'Searching...' : 'No products found. Try typing more characters or different search terms.'}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              )}
+                                              {searchLoading && activeSearchRow === vp.id && (
+                                                <div className="absolute right-2 top-2">
+                                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+                                                </div>
+                                              )}
+                                            </div>
+                                            <Button 
+                                              size="sm" 
+                                              className="h-7 text-xs bg-blue-600 hover:bg-blue-700"
+                                              onClick={async () => {
+                                                setSearchLoading(true);
+                                                const results = await searchSimilarProducts(vp.name);
+                                                setSearchLoading(false);
+                                                if (results.length > 0) {
+                                                  // Auto-map if exact match found
+                                                  const exactMatch = results.find((p: any) => 
+                                                    p.name?.toLowerCase() === vp.name?.toLowerCase()
+                                                  );
+                                                  if (exactMatch) {
+                                                    await handleCreateMapping(vp.name, exactMatch.id, vendorIdToFind);
+                                                  } else {
+                                                    // Show suggestions
+                                                    setSearchSuggestions(prev => {
+                                                      const newMap = new Map(prev);
+                                                      newMap.set(vp.id, results);
+                                                      return newMap;
+                                                    });
+                                                    setActiveSearchRow(vp.id);
+                                                    toast.success(`Found ${results.length} products with 85%+ similarity`);
+                                                  }
+                                                } else {
+                                                  toast.error('No products found with 85%+ similarity');
+                                                }
+                                              }}
+                                            >
+                                              Auto-Map
+                                            </Button>
+                                          </div>
+                                        </div>
                                       )}
                                     </td>
-                                    <td className="p-4">
-                                      {(product as VendorProduct).url ? (
-                                        <Button size="sm" variant="outline" asChild>
-                                          <a href={(product as VendorProduct).url} target="_blank" rel="noopener noreferrer">
-                                            <ExternalLink className="h-3 w-3 mr-1" />
-                                            View
-                                          </a>
-                                        </Button>
+                                    <td className="px-4 py-3 text-center">
+                                      {vp.is_mapped ? (
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
+                                          <CheckCircle className="h-3 w-3" />
+                                          Mapped
+                                        </span>
                                       ) : (
-                                        <span className="text-muted-foreground">-</span>
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400">
+                                          <XCircle className="h-3 w-3" />
+                                          Not Mapped
+                                        </span>
                                       )}
                                     </td>
-                                    <td className="p-4">{product.price_1pack || '-'}</td>
-                                    <td className="p-4">{product.price_3pack || '-'}</td>
-                                    <td className="p-4">{product.price_5pack || '-'}</td>
-                                    <td className="p-4">{product.price_10pack || '-'}</td>
-                                    <td className="p-4">{product.price_20pack || '-'}</td>
-                                    <td className="p-4">{product.price_25pack || '-'}</td>
-                                    <td className="p-4">{product.price_30pack || '-'}</td>
-                                    <td className="p-4">{product.price_50pack || '-'}</td>
-                                    <td className="p-4">
-                                      <Button size="sm" variant="outline" onClick={() => handleDeleteProduct(product.id)}>
-                                        <X className="h-3 w-3" />
+                                    <td className="px-4 py-3 text-center">
+                                      {vp.url && (
+                                        <a href={vp.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
+                                          <Globe className="h-4 w-4 mx-auto" />
+                                        </a>
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_1pack || '-'}</td>
+                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_3pack || '-'}</td>
+                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_5pack || '-'}</td>
+                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_10pack || '-'}</td>
+                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_15pack || '-'}</td>
+                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_20pack || '-'}</td>
+                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_25pack || '-'}</td>
+                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_30pack || '-'}</td>
+                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_50pack || '-'}</td>
+                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_100pack || '-'}</td>
+                                    <td className="px-4 py-3 text-center">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 w-7 p-0 text-slate-400 hover:text-red-400"
+                                        onClick={() => handleDeleteVendorProduct(vp.id)}
+                                      >
+                                        <X className="h-4 w-4" />
                                       </Button>
                                     </td>
                                   </tr>
@@ -3116,650 +3285,944 @@ export default function AdminDashboard() {
                             </tbody>
                           </table>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
 
-                    {/* Pagination for Vendor Products */}
-                    {vendorProductsTotalPages > 1 && (
-                      <div className="flex items-center justify-between mt-6">
-                        <div className="flex items-center space-x-4">
-                          <div className="text-sm text-muted-foreground">
-                            Showing {((vendorProductsPage - 1) * vendorProductsPageSize) + 1} to {Math.min(vendorProductsPage * vendorProductsPageSize, filteredVendorProductsCount)} of {filteredVendorProductsCount} vendor products
-                            {filteredVendorProductsCount !== vendorProductsTotalCount && (
-                              <span className="text-orange-600"> (filtered from {vendorProductsTotalCount} total)</span>
-                            )}
+                      {/* Pagination */}
+                      {totalMappingsPages > 1 && (
+                        <div className="mt-6 flex items-center justify-between border-t border-slate-800 pt-6">
+                          <div className="text-sm text-slate-400">
+                            Showing {startIndex + 1} to {Math.min(endIndex, filteredMappings.length)} of {filteredMappings.length} mappings
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm text-muted-foreground">Show:</span>
-                            <select
-                              value={vendorProductsPageSize}
-                              onChange={(e) => handleVendorProductsPageSizeChange(parseInt(e.target.value))}
-                              className="px-2 py-1 border border-gray-300 rounded text-sm"
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setMappingsPage(1)}
+                              disabled={mappingsPage === 1}
+                              className="border-slate-800"
                             >
-                              <option value={20}>20</option>
-                              <option value={50}>50</option>
-                              <option value={100}>100</option>
-                              <option value={500}>500</option>
-                              <option value={1000}>1000</option>
-                            </select>
+                              First
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setMappingsPage(mappingsPage - 1)}
+                              disabled={mappingsPage === 1}
+                              className="border-slate-800"
+                            >
+                              Previous
+                            </Button>
+                            <div className="flex items-center gap-1">
+                              {Array.from({ length: Math.min(5, totalMappingsPages) }, (_, i) => {
+                                let pageNum;
+                                if (totalMappingsPages <= 5) {
+                                  pageNum = i + 1;
+                                } else if (mappingsPage <= 3) {
+                                  pageNum = i + 1;
+                                } else if (mappingsPage >= totalMappingsPages - 2) {
+                                  pageNum = totalMappingsPages - 4 + i;
+                                } else {
+                                  pageNum = mappingsPage - 2 + i;
+                                }
+                                return (
+                                  <Button
+                                    key={i}
+                                    variant={mappingsPage === pageNum ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => setMappingsPage(pageNum)}
+                                    className={mappingsPage === pageNum ? "" : "border-slate-800"}
+                                  >
+                                    {pageNum}
+                                  </Button>
+                                );
+                              })}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setMappingsPage(mappingsPage + 1)}
+                              disabled={mappingsPage === totalMappingsPages}
+                              className="border-slate-800"
+                            >
+                              Next
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setMappingsPage(totalMappingsPages)}
+                              disabled={mappingsPage === totalMappingsPages}
+                              className="border-slate-800"
+                            >
+                              Last
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+
+            {activeTab === 'signups' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Email Signups</h2>
+                    <p className="text-slate-400">
+                      {signupsTotalCount} total signups • 
+                      <span className="text-green-400 ml-1">{signups.filter((s: any) => s.is_active).length} active</span> • 
+                      <span className="text-slate-500 ml-1">{signups.filter((s: any) => !s.is_active).length} inactive</span>
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const csvContent = [
+                        ['Email', 'Source', 'Status', 'Created At'].join(','),
+                        ...signups.map((s: any) => [
+                          s.email,
+                          s.source,
+                          s.is_active ? 'Active' : 'Inactive',
+                          new Date(s.created_at).toLocaleDateString()
+                        ].join(','))
+                      ].join('\n');
+                      
+                      const blob = new Blob([csvContent], { type: 'text/csv' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `signups-${new Date().toISOString().split('T')[0]}.csv`;
+                      a.click();
+                      toast.success('Signups exported to CSV');
+                    }}
+                    className="border-slate-800"
+                  >
+                    📥 Export CSV
+                  </Button>
+                </div>
+
+                {/* Filters */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm text-slate-400 mb-2 block">Search Email</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Input
+                        placeholder="Search by email..."
+                        value={signupsSearch}
+                        onChange={(e) => {
+                          setSignupsSearch(e.target.value);
+                          setSignupsPage(1);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            loadSignups();
+                          }
+                        }}
+                        className="pl-10 bg-slate-900 border-slate-800"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-400 mb-2 block">Source</label>
+                    <select
+                      value={signupsSourceFilter}
+                      onChange={(e) => {
+                        setSignupsSourceFilter(e.target.value);
+                        setSignupsPage(1);
+                      }}
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
+                    >
+                      <option value="all">-- All Sources --</option>
+                      <option value="newsletter">Newsletter</option>
+                      <option value="us-newsletter">US Newsletter</option>
+                      <option value="footer">Footer</option>
+                      <option value="popup">Popup</option>
+                      <option value="homepage">Homepage</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-400 mb-2 block">Status</label>
+                    <select
+                      value={signupsStatusFilter}
+                      onChange={(e) => {
+                        setSignupsStatusFilter(e.target.value);
+                        setSignupsPage(1);
+                      }}
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
+                    >
+                      <option value="all">-- All Status --</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Signups Table */}
+                {loading ? (
+                  <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+                    <p className="text-slate-400 mt-4">Loading signups...</p>
+                  </div>
+                ) : signups.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400">
+                    <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No signups found</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-slate-900 border-b border-slate-800">
+                          <tr>
+                            <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Email</th>
+                            <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Source</th>
+                            <th className="text-center px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
+                            <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Created At</th>
+                            <th className="text-center px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800">
+                          {signups.map((signup: any) => (
+                            <tr key={signup.id} className="hover:bg-slate-800/30 transition-colors">
+                              <td className="px-4 py-3 text-sm text-white">{signup.email}</td>
+                              <td className="px-4 py-3 text-sm text-slate-300">
+                                <span className="px-2 py-1 rounded-full text-xs bg-blue-500/10 text-blue-400">
+                                  {signup.source}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                {signup.is_active ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
+                                    <CheckCircle className="h-3 w-3" />
+                                    Active
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-slate-500/10 text-slate-400">
+                                    Inactive
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-slate-400">
+                                {new Date(signup.created_at).toLocaleDateString('en-US', { 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <div className="flex items-center justify-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 text-xs"
+                                    onClick={async () => {
+                                      const response = await fetch('/api/admin/signups', {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          id: signup.id,
+                                          is_active: !signup.is_active
+                                        })
+                                      });
+                                      
+                                      if (response.ok) {
+                                        toast.success(`Signup ${signup.is_active ? 'deactivated' : 'activated'}`);
+                                        loadSignups();
+                                      } else {
+                                        toast.error('Failed to update signup');
+                                      }
+                                    }}
+                                  >
+                                    {signup.is_active ? 'Deactivate' : 'Activate'}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 text-xs text-red-400"
+                                    onClick={async () => {
+                                      if (confirm(`Delete signup for ${signup.email}?`)) {
+                                        const response = await fetch(`/api/admin/signups?id=${signup.id}`, {
+                                          method: 'DELETE'
+                                        });
+                                        
+                                        if (response.ok) {
+                                          toast.success('Signup deleted');
+                                          loadSignups();
+                                        } else {
+                                          toast.error('Failed to delete signup');
+                                        }
+                                      }
+                                    }}
+                                  >
+                                    Delete
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination */}
+                    {signupsTotalPages > 1 && (
+                      <div className="flex justify-between items-center mt-6">
+                        <p className="text-sm text-slate-400">
+                          Showing {(signupsPage - 1) * signupsPerPage + 1} to {Math.min(signupsPage * signupsPerPage, signupsTotalCount)} of {signupsTotalCount} signups
+                        </p>
+                        <div className="flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleVendorProductsPageChange(vendorProductsPage - 1)}
-                            disabled={vendorProductsPage === 1}
+                            onClick={() => {
+                              setSignupsPage(1);
+                            }}
+                            disabled={signupsPage === 1}
+                            className="border-slate-800"
+                          >
+                            First
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSignupsPage(signupsPage - 1);
+                            }}
+                            disabled={signupsPage === 1}
+                            className="border-slate-800"
                           >
                             Previous
                           </Button>
-                          <span className="text-sm">
-                            Page {vendorProductsPage} of {vendorProductsTotalPages}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: Math.min(5, signupsTotalPages) }, (_, i) => {
+                              let pageNum;
+                              if (signupsTotalPages <= 5) {
+                                pageNum = i + 1;
+                              } else if (signupsPage <= 3) {
+                                pageNum = i + 1;
+                              } else if (signupsPage >= signupsTotalPages - 2) {
+                                pageNum = signupsTotalPages - 4 + i;
+                              } else {
+                                pageNum = signupsPage - 2 + i;
+                              }
+                              
+                              return (
+                                <Button
+                                  key={i}
+                                  variant={signupsPage === pageNum ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => {
+                                    setSignupsPage(pageNum);
+                                  }}
+                                  className={signupsPage === pageNum ? "" : "border-slate-800"}
+                                >
+                                  {pageNum}
+                                </Button>
+                              );
+                            })}
+                          </div>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleVendorProductsPageChange(vendorProductsPage + 1)}
-                            disabled={vendorProductsPage === vendorProductsTotalPages}
+                            onClick={() => {
+                              setSignupsPage(signupsPage + 1);
+                            }}
+                            disabled={signupsPage === signupsTotalPages}
+                            className="border-slate-800"
+                          >
+                            Next
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSignupsPage(signupsTotalPages);
+                            }}
+                            disabled={signupsPage === signupsTotalPages}
+                            className="border-slate-800"
+                          >
+                            Last
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'upload' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-2">Vendor CSV Upload & Import</h2>
+                  <p className="text-slate-400">Upload vendor product CSV files and map them to existing products</p>
+                </div>
+
+                {/* Instructions Card */}
+                <Card className="bg-slate-900 border-slate-800 p-6">
+                  <div className="flex items-start gap-3 mb-6">
+                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                      <FileSpreadsheet className="h-5 w-5 text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white mb-1">Vendor CSV Upload Instructions</h3>
+                      <p className="text-sm text-slate-400">Follow these steps to successfully upload and import vendor product data for mapping</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6">
+                    {/* Left Column - Format Requirements */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                        📋 Vendor CSV Format Requirements
+                      </h4>
+                      <ul className="space-y-2 text-sm text-slate-300">
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-400 mt-1">•</span>
+                          <span>File must be in CSV format (.csv)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-400 mt-1">•</span>
+                          <span>First row should contain column headers</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-400 mt-1">•</span>
+                          <span>Required columns: Name, URL, Brand</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-400 mt-1">•</span>
+                          <span>Pack columns: Any pack size (e.g., 1 Pack, 3 Packs, 5 Packs, 10 Packs, 20 Packs)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-400 mt-1">•</span>
+                          <span>Flexible naming: "Pack", "Packs", "Can", "Cans", "Unit", "Units", "Pcs", "Pieces"</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-400 mt-1">•</span>
+                          <span>Maximum file size: 10MB</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-400 mt-1">•</span>
+                          <span className="font-semibold text-yellow-400">Select vendor before uploading</span>
+                        </li>
+                      </ul>
+
+                      <div className="mt-4 p-3 bg-slate-800/50 rounded border border-slate-700">
+                        <h5 className="text-xs font-semibold text-white mb-2">💡 Flexible Pack Structure</h5>
+                        <ul className="space-y-1 text-xs text-slate-400">
+                          <li>• Supports any pack size: 1, 2, 3, 5, 6, 10, 12, 15, 20, 25, 30, 50, etc.</li>
+                          <li>• Automatically maps to closest standard pack size</li>
+                          <li>• Works with "Pack/Packs", "Can/Cans", "Unit/Units", "Pcs", "Pieces" naming</li>
+                          <li>• Custom pack sizes are mapped to the nearest standard size</li>
+                          <li>• Use bulk autolink for exact name matches</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Right Column - Supported Column Names */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                        🔧 Supported Column Names
+                      </h4>
+                      <div className="space-y-3 text-sm">
+                        <div>
+                          <p className="text-slate-400 mb-1">Product Name:</p>
+                          <p className="text-slate-300 font-mono text-xs">"Name", "name", "product_name"</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 mb-1">Brand:</p>
+                          <p className="text-slate-300 font-mono text-xs">"Brand", "brand", "manufacturer"</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 mb-1">URL:</p>
+                          <p className="text-slate-300 font-mono text-xs">"URL", "url", "link"</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 mb-1">UK Packs:</p>
+                          <p className="text-slate-300 font-mono text-xs">"1 Pack", "3 Packs", "5 Packs", "10 Packs", "20 Packs"</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 mb-1">US Cans:</p>
+                          <p className="text-slate-300 font-mono text-xs">"1 Can", "5 Cans", "10 Cans", "25 Cans", "30 Cans", "50 Cans"</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 mb-1">Units:</p>
+                          <p className="text-slate-300 font-mono text-xs">"1 Unit", "3 Units", "6 Units", etc.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Upload Section */}
+                <Card className="bg-slate-900 border-slate-800 p-6">
+                  <div className="space-y-4">
+                    {/* Vendor Selection */}
+                    <div>
+                      <label className="text-sm font-medium text-white mb-2 block">
+                        Select Vendor <span className="text-red-400">*</span>
+                      </label>
+                      <select
+                        value={selectedVendorFilter}
+                        onChange={(e) => setSelectedVendorFilter(e.target.value)}
+                        className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="all">-- Select a Vendor --</option>
+                        {vendors.map((vendor) => (
+                          <option key={vendor.id} value={vendor.id}>
+                            {vendor.name}
+                          </option>
+                        ))}
+                      </select>
+                      {selectedVendorFilter === 'all' && (
+                        <p className="text-xs text-yellow-400 mt-2">⚠️ Please select a vendor before uploading</p>
+                      )}
+                    </div>
+
+                    {/* File Upload Area */}
+                    <div>
+                      <input
+                        id="csv-upload-input"
+                        type="file"
+                        accept=".csv"
+                        onChange={handleFileUpload}
+                        disabled={uploading || selectedVendorFilter === 'all'}
+                        className="hidden"
+                      />
+                      <label 
+                        htmlFor="csv-upload-input"
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
+                        className={`block border-2 border-dashed rounded-lg p-12 text-center transition-all ${
+                          uploading 
+                            ? 'border-blue-500 bg-blue-500/5 cursor-wait' 
+                            : selectedVendorFilter === 'all'
+                            ? 'border-slate-700 bg-slate-800/30 cursor-not-allowed'
+                            : 'border-slate-700 hover:border-blue-500 hover:bg-slate-800/50 cursor-pointer'
+                        }`}
+                      >
+                        <UploadIcon className={`h-16 w-16 mx-auto mb-4 ${uploading ? 'text-blue-400 animate-pulse' : 'text-slate-400'}`} />
+                        <p className="text-lg font-medium text-white mb-2">
+                          {uploading ? 'Uploading...' : 'Upload CSV File'}
+                        </p>
+                        <p className="text-sm text-slate-400 mb-4">
+                          Drag and drop your CSV file here, or click to browse
+                        </p>
+                        <span
+                          className={`inline-block px-6 py-2 rounded-lg font-medium transition-colors ${
+                            uploading || selectedVendorFilter === 'all'
+                              ? 'bg-slate-700 text-slate-500'
+                              : 'bg-white text-black hover:bg-slate-200'
+                          }`}
+                        >
+                          <FileSpreadsheet className="inline h-4 w-4 mr-2" />
+                          Choose File
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Upload Result */}
+                    {uploadResult && (
+                      <div className={`p-4 rounded-lg border ${
+                        uploadResult.success 
+                          ? 'bg-green-500/10 border-green-500/50' 
+                          : 'bg-red-500/10 border-red-500/50'
+                      }`}>
+                        <div className="flex items-start gap-3">
+                          {uploadResult.success ? (
+                            <div className="p-2 bg-green-500/20 rounded">
+                              <FileSpreadsheet className="h-5 w-5 text-green-400" />
+                            </div>
+                          ) : (
+                            <div className="p-2 bg-red-500/20 rounded">
+                              <X className="h-5 w-5 text-red-400" />
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            {uploadResult.success ? (
+                              <div>
+                                <p className="font-medium text-green-400 mb-1">Upload Successful</p>
+                                <p className="text-sm text-slate-300">{uploadResult.message}</p>
+                                {uploadResult.updated > 0 && (
+                                  <p className="text-xs text-green-400 mt-1">✓ {uploadResult.updated} products updated (mappings preserved)</p>
+                                )}
+                                {uploadResult.inserted > 0 && (
+                                  <p className="text-xs text-blue-400 mt-1">+ {uploadResult.inserted} new products added</p>
+                                )}
+                                {uploadResult.autoMapped > 0 && (
+                                  <p className="text-xs text-purple-400 mt-1">🔗 {uploadResult.autoMapped} products auto-mapped (exact name match)</p>
+                                )}
+                              </div>
+                            ) : (
+                              <div>
+                                <p className="font-medium text-red-400 mb-1">Upload Failed</p>
+                                <p className="text-sm text-slate-300">{uploadResult.error}</p>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => setUploadResult(null)}
+                            className="text-slate-400 hover:text-white"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {activeTab === 'currency-converter' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-2">Currency Converter</h2>
+                  <p className="text-slate-400">
+                    Mark vendors that use EUR currency and need their prices converted to GBP for accurate UK pricing.
+                  </p>
+                </div>
+
+                {/* Currency Converter Table */}
+                <Card className="bg-slate-900 border-slate-800 p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <p className="text-sm text-slate-400">
+                          {vendors.filter((v: any) => v.needs_currency_conversion && v.currency === 'EUR').length} vendors marked for EUR to GBP conversion
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {vendors.map((vendor) => (
+                        <CurrencyConverterVendorRow
+                          key={vendor.id}
+                          vendor={vendor}
+                          onUpdate={handleUpdateVendor}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {activeTab === 'offers' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-2">Vendor Offers</h2>
+                  <p className="text-slate-400">
+                    Manage special offers for vendors - percentage discounts or extra pouches on purchases.
+                  </p>
+                </div>
+
+                {/* Offers Table */}
+                <Card className="bg-slate-900 border-slate-800 p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <p className="text-sm text-slate-400">
+                          {vendors.filter((v: any) => v.offer_type && v.offer_type !== null).length} vendors with active offers
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {vendors.map((vendor) => (
+                        <OfferVendorRow
+                          key={vendor.id}
+                          vendor={vendor}
+                          onUpdate={handleUpdateVendor}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {activeTab === 'unmapped' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-2">Unmapped Products</h2>
+                  <p className="text-slate-400">
+                    Products found by scrapers that don't match any existing products. Review and decide what to do with them.
+                  </p>
+                </div>
+
+                {/* Filters */}
+                <Card className="bg-slate-900 border-slate-800 p-4">
+                  <div className="flex flex-wrap gap-4 items-center">
+                    {/* Status Filter */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-slate-400">Status:</label>
+                      <select
+                        value={unmappedStatusFilter}
+                        onChange={(e) => setUnmappedStatusFilter(e.target.value)}
+                        className="px-3 py-2 bg-slate-800 border border-slate-700 rounded text-sm text-white"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="mapped">Mapped</option>
+                        <option value="all">All</option>
+                      </select>
+                    </div>
+
+                    {/* Vendor Filter */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-slate-400">Vendor:</label>
+                      <select
+                        value={unmappedVendorFilter}
+                        onChange={(e) => setUnmappedVendorFilter(e.target.value)}
+                        className="px-3 py-2 bg-slate-800 border border-slate-700 rounded text-sm text-white"
+                      >
+                        <option value="all">All Vendors</option>
+                        {unmappedVendors.map(vendor => (
+                          <option key={vendor} value={vendor}>{vendor}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Search */}
+                    <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                      <Search className="w-4 h-4 text-slate-400" />
+                      <Input
+                        value={unmappedSearch}
+                        onChange={(e) => setUnmappedSearch(e.target.value)}
+                        placeholder="Search products..."
+                        className="bg-slate-800 border-slate-700 text-white"
+                      />
+                    </div>
+
+                    <div className="text-sm text-slate-400">
+                      {unmappedTotalCount} products found
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Products List */}
+                <Card className="bg-slate-900 border-slate-800 p-6">
+                  {loading ? (
+                    <div className="text-center py-8 text-slate-400">Loading...</div>
+                  ) : unmappedProducts.length === 0 ? (
+                    <div className="text-center py-8 text-slate-400">
+                      No unmapped products found
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {unmappedProducts.map((product) => (
+                        <Card key={product.id} className="bg-slate-800 border-slate-700 p-4">
+                          <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+                            {/* Product Info */}
+                            <div className="flex-1 space-y-2">
+                              <h3 className="text-lg font-semibold text-white">{product.product_name}</h3>
+
+                              <div className="flex flex-wrap gap-2 text-sm">
+                                <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded">
+                                  Source: {product.source_vendor}
+                                </span>
+                                <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded">
+                                  Found at {product.total_stores} store(s)
+                                </span>
+                                <span className={`px-2 py-1 rounded ${
+                                  product.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
+                                  product.status === 'approved' ? 'bg-green-500/20 text-green-300' :
+                                  product.status === 'rejected' ? 'bg-red-500/20 text-red-300' :
+                                  'bg-purple-500/20 text-purple-300'
+                                }`}>
+                                  {product.status}
+                                </span>
+                              </div>
+
+                              {product.source_url && (
+                                <a
+                                  href={product.source_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-blue-400 hover:underline"
+                                >
+                                  View on {product.source_vendor} →
+                                </a>
+                              )}
+
+                              {/* Price Tiers */}
+                              {product.source_prices && Object.keys(product.source_prices).length > 0 && (
+                                <div className="mt-2">
+                                  <p className="text-xs text-slate-400 mb-1">Prices:</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {Object.entries(product.source_prices).map(([tier, price]) => (
+                                      <span key={tier} className="text-xs px-2 py-1 bg-slate-700 rounded text-white">
+                                        {tier}: {price as string}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Other Stores */}
+                              {product.other_stores && product.other_stores.length > 0 && (
+                                <div className="mt-2">
+                                  <p className="text-xs text-slate-400 mb-1">Also found at:</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {product.other_stores.map((store: any, idx: number) => (
+                                      <span key={idx} className="text-xs px-2 py-1 bg-slate-700 rounded text-slate-300">
+                                        {store.vendor} ({Math.round(store.matchConfidence * 100)}% match)
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Actions */}
+                            {product.status === 'pending' && (
+                              <div className="flex flex-col gap-2 min-w-[150px]">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleUnmappedAction(product.id, 'create')}
+                                  disabled={actionLoading === product.id}
+                                  className="bg-green-600 hover:bg-green-700 w-full"
+                                >
+                                  {actionLoading === product.id ? '...' : '✓ Create New'}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    setShowMapDialog(product);
+                                    setMapSearchTerm('');
+                                    setMapSearchResults([]);
+                                  }}
+                                  disabled={actionLoading === product.id}
+                                  className="bg-blue-600 hover:bg-blue-700 w-full"
+                                >
+                                  🔗 Map to Existing
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleUnmappedAction(product.id, 'reject')}
+                                  disabled={actionLoading === product.id}
+                                  className="bg-red-600 hover:bg-red-700 w-full"
+                                >
+                                  ✕ Reject
+                                </Button>
+                              </div>
+                            )}
+
+                            {product.status !== 'pending' && product.mapped_product_id && (
+                              <div className="text-sm text-slate-400">
+                                Mapped to product #{product.mapped_product_id}
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      ))}
+
+                      {/* Pagination */}
+                      {unmappedTotalPages > 1 && (
+                        <div className="flex justify-center gap-2 mt-6">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setUnmappedPage(p => Math.max(1, p - 1))}
+                            disabled={unmappedPage === 1}
+                            className="border-slate-700 text-white"
+                          >
+                            Previous
+                          </Button>
+                          <span className="px-4 py-2 text-sm text-slate-400">
+                            Page {unmappedPage} of {unmappedTotalPages}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setUnmappedPage(p => Math.min(unmappedTotalPages, p + 1))}
+                            disabled={unmappedPage === unmappedTotalPages}
+                            className="border-slate-700 text-white"
                           >
                             Next
                           </Button>
                         </div>
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  {/* Upload Tab */}
-                  {/* Signups Tab */}
-                  <TabsContent value="signups" className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h2 className="text-2xl font-bold tracking-tight">Email Signups</h2>
-                        <p className="text-muted-foreground">Manage and export email subscriptions</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button onClick={exportSignupsToCSV} disabled={signups.length === 0}>
-                          <Download className="h-4 w-4 mr-2" />
-                          Export CSV
-                        </Button>
-                        <Button onClick={() => fetchSignups(signupsSearchTerm)} variant="outline">
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Refresh
-                        </Button>
-                      </div>
+                      )}
                     </div>
+                  )}
+                </Card>
 
-                    {/* Search and Stats */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
+                {/* Map Dialog */}
+                {showMapDialog && (
+                  <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                    <Card className="bg-slate-900 border-slate-700 p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-white">Map to Existing Product</h3>
+                          <p className="text-sm text-slate-400 mt-1">
+                            Mapping: {showMapDialog.product_name}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setShowMapDialog(null)}
+                          className="text-slate-400 hover:text-white"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                           <Input
-                            placeholder="Search signups..."
-                            value={signupsSearchTerm}
-                            onChange={(e) => setSignupsSearchTerm(e.target.value)}
-                            className="pl-10 w-64"
+                            value={mapSearchTerm}
+                            onChange={(e) => {
+                              setMapSearchTerm(e.target.value);
+                              searchProductsForMapping(e.target.value);
+                            }}
+                            placeholder="Search for existing product..."
+                            className="bg-slate-800 border-slate-700 text-white"
                           />
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="text-sm text-muted-foreground">
-                          Total: {signups.length} signups
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          Active: {signups.filter(s => s.is_active).length}
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* Signups Table */}
-                    <Card>
-                      <CardContent className="p-0">
-                        {signupsLoading ? (
-                          <div className="flex items-center justify-center p-8">
-                            <RefreshCw className="h-6 w-6 animate-spin mr-2" />
-                            Loading signups...
-                          </div>
-                        ) : signups.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center p-8 text-center">
-                            <Mail className="h-12 w-12 text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-semibold mb-2">No signups found</h3>
-                            <p className="text-muted-foreground">
-                              {signupsSearchTerm ? 'Try adjusting your search terms' : 'No email signups yet'}
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="overflow-x-auto">
-                            <table className="w-full">
-                              <thead>
-                                <tr className="border-b">
-                                  <th className="text-left p-4 font-medium">Email</th>
-                                  <th className="text-left p-4 font-medium">Source</th>
-                                  <th className="text-left p-4 font-medium">Created</th>
-                                  <th className="text-left p-4 font-medium">Status</th>
-                                  <th className="text-left p-4 font-medium">Confirmed</th>
-                                  <th className="text-left p-4 font-medium">Unsubscribed</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {signups.map((signup) => (
-                                  <tr key={signup.id} className="border-b hover:bg-muted/50">
-                                    <td className="p-4">
-                                      <div className="flex items-center space-x-2">
-                                        <Mail className="h-4 w-4 text-muted-foreground" />
-                                        <span className="font-medium">{signup.email}</span>
-                                      </div>
-                                    </td>
-                                    <td className="p-4">
-                                      <Badge variant="secondary">
-                                        {signup.source}
-                                      </Badge>
-                                    </td>
-                                    <td className="p-4 text-sm text-muted-foreground">
-                                      {new Date(signup.created_at).toLocaleDateString()}
-                                    </td>
-                                    <td className="p-4">
-                                      <Badge variant={signup.is_active ? "default" : "destructive"}>
-                                        {signup.is_active ? "Active" : "Inactive"}
-                                      </Badge>
-                                    </td>
-                                    <td className="p-4 text-sm text-muted-foreground">
-                                      {signup.confirmed_at ? new Date(signup.confirmed_at).toLocaleDateString() : '-'}
-                                    </td>
-                                    <td className="p-4 text-sm text-muted-foreground">
-                                      {signup.unsubscribed_at ? new Date(signup.unsubscribed_at).toLocaleDateString() : '-'}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                        {mapSearchLoading && (
+                          <div className="text-center py-4 text-slate-400">Searching...</div>
+                        )}
+
+                        {mapSearchResults.length > 0 && (
+                          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                            {mapSearchResults.map((product) => (
+                              <div
+                                key={product.id}
+                                className="p-3 bg-slate-800 rounded hover:bg-slate-700 cursor-pointer flex justify-between items-center"
+                                onClick={() => handleUnmappedAction(showMapDialog.id, 'map', product.id)}
+                              >
+                                <div>
+                                  <p className="text-white font-medium">{product.name}</p>
+                                  <p className="text-sm text-slate-400">{product.brand}</p>
+                                </div>
+                                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                                  Select
+                                </Button>
+                              </div>
+                            ))}
                           </div>
                         )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
 
-                  <TabsContent value="upload" className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h2 className="text-2xl font-bold tracking-tight">Vendor CSV Upload & Import</h2>
-                        <p className="text-muted-foreground">Upload vendor product CSV files and map them to existing products</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setShowImportHistory(!showImportHistory)}
-                        >
-                          <Clock className="h-4 w-4 mr-2" />
-                          Import History ({importHistory.length})
-                        </Button>
-                        {csvFile && (
-                          <Button variant="outline" onClick={resetCsvUpload}>
-                            <X className="h-4 w-4 mr-2" />
-                            Reset Upload
-                          </Button>
+                        {mapSearchTerm && mapSearchResults.length === 0 && !mapSearchLoading && (
+                          <div className="text-center py-4 text-slate-400">
+                            No products found. Try a different search term.
+                          </div>
                         )}
                       </div>
-                    </div>
-
-                    {/* Import History */}
-                    {showImportHistory && (
-                    <Card>
-                      <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <h3 className="text-lg font-semibold">Import History</h3>
-                              <Badge variant="outline">{importHistory.length} imports</Badge>
-                            </div>
-                            
-                            {importHistory.length === 0 ? (
-                              <p className="text-muted-foreground text-center py-8">No import history found</p>
-                            ) : (
-                              <div className="space-y-3">
-                                {importHistory.map((record) => (
-                                  <div key={record.id} className="border border-border rounded-lg p-4 hover:bg-muted/25">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <div className="flex items-center space-x-2">
-                                        <Badge 
-                                          variant={record.status === 'success' ? 'default' : record.status === 'partial' ? 'secondary' : 'destructive'}
-                                        >
-                                          {record.status}
-                                        </Badge>
-                                        <span className="font-medium">{record.vendor_name}</span>
-                                        <span className="text-sm text-muted-foreground">•</span>
-                                        <span className="text-sm text-muted-foreground">{record.filename}</span>
-                                      </div>
-                                      <span className="text-sm text-muted-foreground">
-                                        {new Date(record.timestamp).toLocaleString()}
-                                      </span>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                                      <div>
-                                        <span className="text-muted-foreground">Total:</span>
-                                        <span className="ml-1 font-medium">{record.total_rows}</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-green-600 font-medium">{record.success_count}</span>
-                                        <span className="text-muted-foreground ml-1">Success</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-red-600 font-medium">{record.error_count}</span>
-                                        <span className="text-muted-foreground ml-1">Errors</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-blue-600 font-medium">{record.match_count}</span>
-                                        <span className="text-muted-foreground ml-1">Matches</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-purple-600 font-medium">{record.new_product_count}</span>
-                                        <span className="text-muted-foreground ml-1">New</span>
-                                      </div>
-                                    </div>
-                                    
-                                    {record.errors && record.errors.length > 0 && (
-                                      <details className="mt-2">
-                                        <summary className="text-sm text-muted-foreground cursor-pointer hover:text-foreground">
-                                          Show errors ({record.errors.length})
-                                        </summary>
-                                        <div className="mt-2 text-xs text-red-600 max-h-20 overflow-y-auto">
-                                          {record.errors.map((error: string, index: number) => (
-                                            <div key={index}>• {error}</div>
-                                          ))}
-                                        </div>
-                                      </details>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Vendor CSV Upload Instructions */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <HelpCircle className="h-5 w-5" />
-                          Vendor CSV Upload Instructions
-                        </CardTitle>
-                        <CardDescription>
-                          Follow these steps to successfully upload and import vendor product data for mapping
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <h4 className="font-semibold">📋 Vendor CSV Format Requirements</h4>
-                            <ul className="text-sm text-muted-foreground space-y-1">
-                              <li>• File must be in CSV format (.csv)</li>
-                              <li>• First row should contain column headers</li>
-                              <li>• Required columns: Name, URL, Brand</li>
-                            <li>• Pack columns: Any pack size (e.g., 1 Pack, 3 Packs, 5 Packs, 10 Packs, 20 Packs)</li>
-                            <li>• Flexible naming: "Pack", "Packs", "Can", "Cans", "Unit", "Units", "Pcs", "Pieces"</li>
-                              <li>• Maximum file size: 10MB</li>
-                              <li>• Select vendor before uploading</li>
-                            </ul>
-                          </div>
-                          <div className="space-y-2">
-                            <h4 className="font-semibold">🔧 Supported Column Names</h4>
-                            <ul className="text-sm text-muted-foreground space-y-1">
-                              <li>• Product Name: "Name", "name", "product_name"</li>
-                              <li>• Brand: "Brand", "brand", "manufacturer"</li>
-                              <li>• URL: "URL", "url", "link"</li>
-                            <li>• UK Packs: "1 Pack", "3 Packs", "5 Packs", "10 Packs", "20 Packs"</li>
-                            <li>• US Cans: "1 Can", "5 Cans", "10 Cans", "25 Cans", "30 Cans", "50 Cans"</li>
-                            <li>• Units: "1 Unit", "3 Units", "6 Units", etc.</li>
-                            </ul>
-                          </div>
-                        </div>
-                        <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg">
-                          <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">💡 Flexible Pack Structure</h4>
-                          <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                            <li>• Supports any pack size: 1, 2, 3, 5, 6, 10, 12, 15, 20, 25, 30, 50, etc.</li>
-                            <li>• Automatically maps to closest standard pack size</li>
-                            <li>• Works with "Pack/Packs", "Can/Cans", "Unit/Units", "Pcs", "Pieces" naming</li>
-                            <li>• Custom pack sizes are mapped to the nearest standard size</li>
-                            <li>• Use bulk autolink for exact name matches</li>
-                          </ul>
-                        </div>
-                      </CardContent>
                     </Card>
-
-                    {/* File Upload Section */}
-                    <Card>
-                      <CardContent className="p-6">
-                        <div className="space-y-4">
-                        <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-                          <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                          <h3 className="text-lg font-semibold mb-2">Upload CSV File</h3>
-                          <p className="text-muted-foreground mb-4">
-                            Drag and drop your CSV file here, or click to browse
-                          </p>
-                            <input
-                              type="file"
-                              accept=".csv"
-                              onChange={handleFileUpload}
-                              className="hidden"
-                              id="csv-upload"
-                            />
-                            <Button asChild>
-                              <label htmlFor="csv-upload" className="cursor-pointer">
-                            <Upload className="h-4 w-4 mr-2" />
-                            Choose File
-                              </label>
-                          </Button>
-                          </div>
-
-                          {csvFile && (
-                            <div className="bg-muted/50 p-4 rounded-lg">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
-                                  <FileText className="h-4 w-4" />
-                                  <span className="font-medium">{csvFile.name}</span>
-                                  <Badge variant="outline">{csvData.length} rows</Badge>
-                                </div>
-                                <Button variant="ghost" size="sm" onClick={resetCsvUpload}>
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Vendor Selection */}
-                    {csvFile && (
-                      <Card>
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Select Vendor</h3>
-                            <div className="space-y-2">
-                              <Label htmlFor="vendor-select">Choose vendor for this import</Label>
-                              <select
-                                id="vendor-select"
-                                value={selectedVendor}
-                                onChange={(e) => {
-                                  console.log('Vendor selection changed to:', e.target.value);
-                                  setSelectedVendor(e.target.value);
-                                }}
-                                className="w-full p-2 border border-border rounded-md bg-background"
-                              >
-                                <option value="">Select a vendor...</option>
-                                {currentVendors.map((vendor) => (
-                                  <option key={vendor.id} value={vendor.id}>
-                                    {vendor.name} ({vendor.website})
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Auto-Mapping Status */}
-                    {csvFile && csvHeaders.length > 0 && (
-                      <Card>
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">CSV Auto-Mapping</h3>
-                            <p className="text-sm text-muted-foreground">
-                              Columns are automatically mapped. No manual mapping required.
-                            </p>
-                            
-                            <div className="bg-green-50 border border-green-200 rounded-md p-4">
-                              <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                  </svg>
-                                </div>
-                                <div className="ml-3">
-                                  <p className="text-sm font-medium text-green-800">
-                                    CSV columns have been automatically mapped
-                                  </p>
-                                  <p className="text-sm text-green-700">
-                                    {Object.keys(columnMapping).length} columns mapped successfully
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex gap-4 pt-4 border-t">
-                              <Button
-                                onClick={() => processCsvImport()}
-                                disabled={!selectedVendor || csvData.length === 0}
-                                className="flex-1"
-                              >
-                                {isProcessingMapping ? (
-                                  <>
-                                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                    Uploading CSV...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Upload className="h-4 w-4 mr-2" />
-                                    Upload CSV
-                                  </>
-                                )}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                onClick={() => setShowCsvPreview(!showCsvPreview)}
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                Preview Data
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-
-                    {/* CSV Preview */}
-                    {showCsvPreview && csvPreview.length > 0 && (
-                      <Card>
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <h3 className="text-lg font-semibold">Data Preview</h3>
-                              <Badge variant="outline">First 5 rows</Badge>
-                            </div>
-                            
-                            <div className="overflow-x-auto">
-                              <table className="w-full border-collapse border border-border">
-                                <thead>
-                                  <tr className="bg-muted/50">
-                                    {csvHeaders.map((header, index) => (
-                                      <th key={`${header}-${index}`} className="border border-border p-2 text-left text-sm font-medium">
-                                        {header}
-                                        {columnMapping[`${header}-${index}`] && (
-                                          <Badge variant="secondary" className="ml-2 text-xs">
-                                            → {columnMapping[`${header}-${index}`]}
-                                          </Badge>
-                                        )}
-                                      </th>
-                                    ))}
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {csvPreview.map((row, index) => (
-                                    <tr key={index} className="hover:bg-muted/25">
-                                      {csvHeaders.map((header) => (
-                                        <td key={header} className="border border-border p-2 text-sm">
-                                          {row[header] || '-'}
-                                        </td>
-                                      ))}
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Import Actions */}
-                    {csvFile && selectedVendor && Object.values(columnMapping).includes('name') && (
-                      <Card>
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Import Products</h3>
-                            
-                            {isProcessingCsv && (
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between text-sm">
-                                  <span>Processing...</span>
-                                  <span>{csvProgress}%</span>
-                                </div>
-                                <div className="w-full bg-muted rounded-full h-2">
-                                  <div 
-                                    className="bg-primary h-2 rounded-full transition-all duration-300"
-                                    style={{ width: `${csvProgress}%` }}
-                                  />
-                                </div>
-                              </div>
-                            )}
-
-                            {!isProcessingCsv && (
-                              <div className="flex items-center space-x-4">
-                                <Button 
-                                  onClick={processCsvImport}
-                                  disabled={!Object.values(columnMapping).includes('name')}
-                                  className="flex-1"
-                                >
-                                  <Upload className="h-4 w-4 mr-2" />
-                                  Import {csvData.length} Products
-                                </Button>
-                                <Button variant="outline" onClick={resetCsvUpload}>
-                                  Cancel
-                                </Button>
-                              </div>
-                            )}
-
-                            {importResults && (
-                              <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-                                <h4 className="font-semibold mb-2">Import Results</h4>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                  <div>
-                                    <span className="text-green-600 font-medium">{importResults.success}</span>
-                                    <span className="text-muted-foreground"> Success</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-red-600 font-medium">{importResults.errors}</span>
-                                    <span className="text-muted-foreground"> Errors</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-blue-600 font-medium">{importResults.matches}</span>
-                                    <span className="text-muted-foreground"> Matches</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-purple-600 font-medium">{importResults.newProducts}</span>
-                                    <span className="text-muted-foreground"> New</span>
-                                  </div>
-                                </div>
-                                
-                                {importResults.errors_list.length > 0 && (
-                                  <div className="mt-4">
-                                    <h5 className="font-medium text-red-600 mb-2">Errors:</h5>
-                                    <div className="max-h-32 overflow-y-auto">
-                                      {importResults.errors_list.map((error: string, index: number) => (
-                                        <div key={index} className="text-sm text-red-600">
-                                          • {error}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </TabsContent>
-                </Tabs>
+                  </div>
+                )}
               </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
-
-      {/* Add Vendor Dialog */}
-      <Dialog open={isAddingVendor} onOpenChange={setIsAddingVendor}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Vendor</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={newVendor.name}
-                onChange={(e) => setNewVendor({ ...newVendor, name: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="website">Website</Label>
-              <Input
-                id="website"
-                value={newVendor.website}
-                onChange={(e) => setNewVendor({ ...newVendor, website: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="email">Contact Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={newVendor.contact_email}
-                onChange={(e) => setNewVendor({ ...newVendor, contact_email: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="phone">Contact Phone</Label>
-              <Input
-                id="phone"
-                value={newVendor.contact_phone}
-                onChange={(e) => setNewVendor({ ...newVendor, contact_phone: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Input
-                id="description"
-                value={newVendor.description}
-                onChange={(e) => setNewVendor({ ...newVendor, description: e.target.value })}
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="active"
-                checked={newVendor.is_active}
-                onChange={(e) => setNewVendor({ ...newVendor, is_active: e.target.checked })}
-              />
-              <Label htmlFor="active">Active</Label>
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsAddingVendor(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddVendor}>
-                Add Vendor
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
       </div>
     </AdminThemeProvider>
   );
