@@ -1338,32 +1338,7 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
   );
 }
 
-// Pre-generate city pages and published blog post pages at build time
+// Pre-generate city pages at build time; blog posts render on-demand via ISR
 export async function generateStaticParams() {
-  const params: { slug: string }[] = [];
-
-  // Add all city slugs
-  CITY_SLUGS.forEach(city => {
-    params.push({ slug: city });
-  });
-
-  // Add published blog post slugs from database
-  try {
-    const { data: posts, error } = await supabase()
-      .from('blog_posts')
-      .select('slug')
-      .in('status', ['publish', 'published']);
-
-    if (!error && posts) {
-      posts.forEach((post: { slug: string }) => {
-        if (post.slug) {
-          params.push({ slug: post.slug });
-        }
-      });
-    }
-  } catch (error) {
-    console.error('Error generating static params for [slug]:', error);
-  }
-
-  return params;
+  return CITY_SLUGS.map(city => ({ slug: city }));
 }
