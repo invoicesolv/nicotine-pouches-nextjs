@@ -22,6 +22,7 @@
     "@tailwindcss/typography": "^0.5.16",
     "@types/multer": "^2.0.0",
     "@types/nodemailer": "^7.0.1",
+    "@upstash/qstash": "^2.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "critters": "^0.0.25",
