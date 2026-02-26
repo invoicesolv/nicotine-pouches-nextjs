@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const ACCESS_TOKEN = 'REDACTED_GOOGLE_TOKEN';
+const ACCESS_TOKEN = process.env.GOOGLE_ACCESS_TOKEN || '';
 
 async function fetchData(url, method = 'GET', body = null) {
     const response = await fetch(url, {

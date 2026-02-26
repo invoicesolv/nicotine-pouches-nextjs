@@ -6,7 +6,7 @@ async function requestIndexing() {
     const searchconsole = google.searchconsole('v1');
     
     // Your access token
-    const accessToken = 'REDACTED_GOOGLE_TOKEN';
+    const accessToken = process.env.GOOGLE_ACCESS_TOKEN || '';
     
     // Set up OAuth2 client
     const oauth2Client = new google.auth.OAuth2();

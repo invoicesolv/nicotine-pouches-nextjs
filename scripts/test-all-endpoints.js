@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const ACCESS_TOKEN = 'REDACTED_GOOGLE_TOKEN';
+const ACCESS_TOKEN = process.env.GOOGLE_ACCESS_TOKEN || '';
 const SITE_URL = 'https://nicotine-pouches.org/';
 
 async function makeRequest(url, method = 'GET', data = null) {
