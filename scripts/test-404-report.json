@@ -1,0 +1,1192 @@
+{
+  "timestamp": "2026-02-03T12:08:44.047Z",
+  "csvFile": "/Users/solvifyab/Desktop/TodosImages/nicotine-pouches_03-feb-2026_404-page_2026-02-03_12-26-21.csv",
+  "baseUrl": "http://localhost:3000",
+  "summary": {
+    "total": 168,
+    "fixed": 168,
+    "stillBroken": 0,
+    "errors": 0,
+    "successRate": "100%"
+  },
+  "fixed": [
+    {
+      "path": "/brand/vito",
+      "status": 308,
+      "redirectTo": "/brands/vito",
+      "success": true,
+      "message": "Redirected to /brands/vito"
+    },
+    {
+      "path": "/us/product/on-island-twist",
+      "status": 308,
+      "redirectTo": "/product/on-island-twist",
+      "success": true,
+      "message": "Redirected to /product/on-island-twist"
+    },
+    {
+      "path": "/us/product/stripe-summer-vibe",
+      "status": 308,
+      "redirectTo": "/product/stripe-summer-vibe",
+      "success": true,
+      "message": "Redirected to /product/stripe-summer-vibe"
+    },
+    {
+      "path": "/us/product/kurwa-brutal-fruity-gum",
+      "status": 308,
+      "redirectTo": "/product/kurwa-brutal-fruity-gum",
+      "success": true,
+      "message": "Redirected to /product/kurwa-brutal-fruity-gum"
+    },
+    {
+      "path": "/brand/juice-head",
+      "status": 308,
+      "redirectTo": "/brands/juice-head",
+      "success": true,
+      "message": "Redirected to /brands/juice-head"
+    },
+    {
+      "path": "/us/product/killa-liquorice",
+      "status": 308,
+      "redirectTo": "/product/killa-liquorice",
+      "success": true,
+      "message": "Redirected to /product/killa-liquorice"
+    },
+    {
+      "path": "/us/product/77-forest-fruits",
+      "status": 308,
+      "redirectTo": "/product/77-forest-fruits",
+      "success": true,
+      "message": "Redirected to /product/77-forest-fruits"
+    },
+    {
+      "path": "/us/product/iceberg-sour-berries",
+      "status": 308,
+      "redirectTo": "/product/iceberg-sour-berries",
+      "success": true,
+      "message": "Redirected to /product/iceberg-sour-berries"
+    },
+    {
+      "path": "/us/product/nordic-spirit-mocha",
+      "status": 308,
+      "redirectTo": "/product/nordic-spirit-mocha",
+      "success": true,
+      "message": "Redirected to /product/nordic-spirit-mocha"
+    },
+    {
+      "path": "/us/product/fumi-zingy-ginger",
+      "status": 308,
+      "redirectTo": "/product/fumi-zingy-ginger",
+      "success": true,
+      "message": "Redirected to /product/fumi-zingy-ginger"
+    },
+    {
+      "path": "/product/zone-dragonfruit-6mg",
+      "status": 308,
+      "redirectTo": "/us/product/zone-dragonfruit-6mg",
+      "success": true,
+      "message": "Redirected to /us/product/zone-dragonfruit-6mg"
+    },
+    {
+      "path": "/brand/zimo",
+      "status": 308,
+      "redirectTo": "/brands/zimo",
+      "success": true,
+      "message": "Redirected to /brands/zimo"
+    },
+    {
+      "path": "/us/product/vid-chili-chocolate",
+      "status": 308,
+      "redirectTo": "/product/vid-chili-chocolate",
+      "success": true,
+      "message": "Redirected to /product/vid-chili-chocolate"
+    },
+    {
+      "path": "/us/product/killa-13",
+      "status": 308,
+      "redirectTo": "/product/killa-13",
+      "success": true,
+      "message": "Redirected to /product/killa-13"
+    },
+    {
+      "path": "/us/product/killa-lemonade",
+      "status": 308,
+      "redirectTo": "/product/killa-lemonade",
+      "success": true,
+      "message": "Redirected to /product/killa-lemonade"
+    },
+    {
+      "path": "/product/rogue-tabac-6mg",
+      "status": 308,
+      "redirectTo": "/us/product/rogue-tabac-6mg",
+      "success": true,
+      "message": "Redirected to /us/product/rogue-tabac-6mg"
+    },
+    {
+      "path": "/us/product/lundgrens-vagsvall",
+      "status": 308,
+      "redirectTo": "/product/lundgrens-vagsvall",
+      "success": true,
+      "message": "Redirected to /product/lundgrens-vagsvall"
+    },
+    {
+      "path": "/us/product/kurwa-bubblegum",
+      "status": 308,
+      "redirectTo": "/product/kurwa-bubblegum",
+      "success": true,
+      "message": "Redirected to /product/kurwa-bubblegum"
+    },
+    {
+      "path": "/us/product/kurwa-energy-bubblegum",
+      "status": 308,
+      "redirectTo": "/product/kurwa-energy-bubblegum",
+      "success": true,
+      "message": "Redirected to /product/kurwa-energy-bubblegum"
+    },
+    {
+      "path": "/us/product/stripe-blizzard",
+      "status": 308,
+      "redirectTo": "/product/stripe-blizzard",
+      "success": true,
+      "message": "Redirected to /product/stripe-blizzard"
+    },
+    {
+      "path": "/us/product/volt-coconut-crush",
+      "status": 308,
+      "redirectTo": "/product/volt-coconut-crush",
+      "success": true,
+      "message": "Redirected to /product/volt-coconut-crush"
+    },
+    {
+      "path": "/us/product/helwit-lingonberry",
+      "status": 308,
+      "redirectTo": "/product/helwit-lingonberry",
+      "success": true,
+      "message": "Redirected to /product/helwit-lingonberry"
+    },
+    {
+      "path": "/brand/grizzly",
+      "status": 308,
+      "redirectTo": "/brands/grizzly",
+      "success": true,
+      "message": "Redirected to /brands/grizzly"
+    },
+    {
+      "path": "/product/zone-dragonfruit-9mg",
+      "status": 308,
+      "redirectTo": "/us/product/zone-dragonfruit-9mg",
+      "success": true,
+      "message": "Redirected to /us/product/zone-dragonfruit-9mg"
+    },
+    {
+      "path": "/us/product/skruf-polar-eucalyptus",
+      "status": 308,
+      "redirectTo": "/product/skruf-polar-eucalyptus",
+      "success": true,
+      "message": "Redirected to /product/skruf-polar-eucalyptus"
+    },
+    {
+      "path": "/us/product/helwit-mocha",
+      "status": 308,
+      "redirectTo": "/product/helwit-mocha",
+      "success": true,
+      "message": "Redirected to /product/helwit-mocha"
+    },
+    {
+      "path": "/us/product/vampyou-frostbite",
+      "status": 308,
+      "redirectTo": "/product/vampyou-frostbite",
+      "success": true,
+      "message": "Redirected to /product/vampyou-frostbite"
+    },
+    {
+      "path": "/us/product/nordic-spirit-forest-berries",
+      "status": 308,
+      "redirectTo": "/product/nordic-spirit-forest-berries",
+      "success": true,
+      "message": "Redirected to /product/nordic-spirit-forest-berries"
+    },
+    {
+      "path": "/us/product/iceberg-emerald",
+      "status": 308,
+      "redirectTo": "/product/iceberg-emerald",
+      "success": true,
+      "message": "Redirected to /product/iceberg-emerald"
+    },
+    {
+      "path": "/us/product/elux-banana",
+      "status": 308,
+      "redirectTo": "/product/elux-banana",
+      "success": true,
+      "message": "Redirected to /product/elux-banana"
+    },
+    {
+      "path": "/us/product/klint-honeymelon",
+      "status": 308,
+      "redirectTo": "/product/klint-honeymelon",
+      "success": true,
+      "message": "Redirected to /product/klint-honeymelon"
+    },
+    {
+      "path": "/us/product/vid-fruitfusion",
+      "status": 308,
+      "redirectTo": "/product/vid-fruitfusion",
+      "success": true,
+      "message": "Redirected to /product/vid-fruitfusion"
+    },
+    {
+      "path": "/us/product/klint-blaklint",
+      "status": 308,
+      "redirectTo": "/product/klint-blaklint",
+      "success": true,
+      "message": "Redirected to /product/klint-blaklint"
+    },
+    {
+      "path": "/us/product/cuba-forest-berries",
+      "status": 308,
+      "redirectTo": "/product/cuba-forest-berries",
+      "success": true,
+      "message": "Redirected to /product/cuba-forest-berries"
+    },
+    {
+      "path": "/learn/nicotine-pouches-explained",
+      "status": 308,
+      "redirectTo": "/guides",
+      "success": true,
+      "message": "Redirected to /guides"
+    },
+    {
+      "path": "/us/product/pablo-kiwi",
+      "status": 308,
+      "redirectTo": "/product/pablo-kiwi",
+      "success": true,
+      "message": "Redirected to /product/pablo-kiwi"
+    },
+    {
+      "path": "/us/product/kurwa-pink-rose-lemonade",
+      "status": 308,
+      "redirectTo": "/product/kurwa-pink-rose-lemonade",
+      "success": true,
+      "message": "Redirected to /product/kurwa-pink-rose-lemonade"
+    },
+    {
+      "path": "/us/product/lundgrens-rimfrost",
+      "status": 308,
+      "redirectTo": "/product/lundgrens-rimfrost",
+      "success": true,
+      "message": "Redirected to /product/lundgrens-rimfrost"
+    },
+    {
+      "path": "/brand/nic-s",
+      "status": 308,
+      "redirectTo": "/brands/nic-s",
+      "success": true,
+      "message": "Redirected to /brands/nic-s"
+    },
+    {
+      "path": "/us/product/nois-eucalypt",
+      "status": 308,
+      "redirectTo": "/product/nois-eucalypt",
+      "success": true,
+      "message": "Redirected to /product/nois-eucalypt"
+    },
+    {
+      "path": "/us/product/helwit-wintermint",
+      "status": 308,
+      "redirectTo": "/product/helwit-wintermint",
+      "success": true,
+      "message": "Redirected to /product/helwit-wintermint"
+    },
+    {
+      "path": "/us/product/miami-banana",
+      "status": 308,
+      "redirectTo": "/product/miami-banana",
+      "success": true,
+      "message": "Redirected to /product/miami-banana"
+    },
+    {
+      "path": "/us/product/pablo-bubblegum",
+      "status": 308,
+      "redirectTo": "/product/pablo-bubblegum",
+      "success": true,
+      "message": "Redirected to /product/pablo-bubblegum"
+    },
+    {
+      "path": "/us/product/kurwa-brutal-energy-drink",
+      "status": 308,
+      "redirectTo": "/product/kurwa-brutal-energy-drink",
+      "success": true,
+      "message": "Redirected to /product/kurwa-brutal-energy-drink"
+    },
+    {
+      "path": "/us/product/apres-cactus-lime",
+      "status": 308,
+      "redirectTo": "/product/apres-cactus-lime",
+      "success": true,
+      "message": "Redirected to /product/apres-cactus-lime"
+    },
+    {
+      "path": "/us/product/helwit-vanilla",
+      "status": 308,
+      "redirectTo": "/product/helwit-vanilla",
+      "success": true,
+      "message": "Redirected to /product/helwit-vanilla"
+    },
+    {
+      "path": "/us/product/klint-liquorice",
+      "status": 308,
+      "redirectTo": "/product/klint-liquorice",
+      "success": true,
+      "message": "Redirected to /product/klint-liquorice"
+    },
+    {
+      "path": "/us/product/lundgrens-fjallskog",
+      "status": 308,
+      "redirectTo": "/product/lundgrens-fjallskog",
+      "success": true,
+      "message": "Redirected to /product/lundgrens-fjallskog"
+    },
+    {
+      "path": "/product/lucy-breakers-espresso-4mg",
+      "status": 308,
+      "redirectTo": "/us/product/lucy-breakers-espresso-4mg",
+      "success": true,
+      "message": "Redirected to /us/product/lucy-breakers-espresso-4mg"
+    },
+    {
+      "path": "/brand/sesh",
+      "status": 308,
+      "redirectTo": "/brands/sesh",
+      "success": true,
+      "message": "Redirected to /brands/sesh"
+    },
+    {
+      "path": "/us/product/loop-jalapeno-lime",
+      "status": 308,
+      "redirectTo": "/product/loop-jalapeno-lime",
+      "success": true,
+      "message": "Redirected to /product/loop-jalapeno-lime"
+    },
+    {
+      "path": "/us/product/helwit-lime-liquorice",
+      "status": 308,
+      "redirectTo": "/product/helwit-lime-liquorice",
+      "success": true,
+      "message": "Redirected to /product/helwit-lime-liquorice"
+    },
+    {
+      "path": "/product/zone-tobacco-9mg",
+      "status": 308,
+      "redirectTo": "/us/product/zone-tobacco-9mg",
+      "success": true,
+      "message": "Redirected to /us/product/zone-tobacco-9mg"
+    },
+    {
+      "path": "/us/product/snatch-frozen",
+      "status": 308,
+      "redirectTo": "/product/snatch-frozen",
+      "success": true,
+      "message": "Redirected to /product/snatch-frozen"
+    },
+    {
+      "path": "/us/product/stripe-frosty-vine",
+      "status": 308,
+      "redirectTo": "/product/stripe-frosty-vine",
+      "success": true,
+      "message": "Redirected to /product/stripe-frosty-vine"
+    },
+    {
+      "path": "/us/product/cuba-cold-dry",
+      "status": 308,
+      "redirectTo": "/product/cuba-cold-dry",
+      "success": true,
+      "message": "Redirected to /product/cuba-cold-dry"
+    },
+    {
+      "path": "/product/lucy-espresso-12mg",
+      "status": 308,
+      "redirectTo": "/us/product/lucy-espresso-12mg",
+      "success": true,
+      "message": "Redirected to /us/product/lucy-espresso-12mg"
+    },
+    {
+      "path": "/us/product/loop-cassis-bliss",
+      "status": 308,
+      "redirectTo": "/product/loop-cassis-bliss",
+      "success": true,
+      "message": "Redirected to /product/loop-cassis-bliss"
+    },
+    {
+      "path": "/us/product/volt-spicy-guava",
+      "status": 308,
+      "redirectTo": "/product/volt-spicy-guava",
+      "success": true,
+      "message": "Redirected to /product/volt-spicy-guava"
+    },
+    {
+      "path": "/us/product/on-spicy-lime",
+      "status": 308,
+      "redirectTo": "/product/on-spicy-lime",
+      "success": true,
+      "message": "Redirected to /product/on-spicy-lime"
+    },
+    {
+      "path": "/us/product/cuba-jogurt",
+      "status": 308,
+      "redirectTo": "/product/cuba-jogurt",
+      "success": true,
+      "message": "Redirected to /product/cuba-jogurt"
+    },
+    {
+      "path": "/us/brand/2one",
+      "status": 308,
+      "redirectTo": "/us/brands/2one",
+      "success": true,
+      "message": "Redirected to /us/brands/2one"
+    },
+    {
+      "path": "/us/product/blow-guava",
+      "status": 308,
+      "redirectTo": "/product/blow-guava",
+      "success": true,
+      "message": "Redirected to /product/blow-guava"
+    },
+    {
+      "path": "/us/product/ace-eucalyptus",
+      "status": 308,
+      "redirectTo": "/product/ace-eucalyptus",
+      "success": true,
+      "message": "Redirected to /product/ace-eucalyptus"
+    },
+    {
+      "path": "/us/product/apres-appletini",
+      "status": 308,
+      "redirectTo": "/product/apres-appletini",
+      "success": true,
+      "message": "Redirected to /product/apres-appletini"
+    },
+    {
+      "path": "/brand/zeo",
+      "status": 308,
+      "redirectTo": "/brands/zeo",
+      "success": true,
+      "message": "Redirected to /brands/zeo"
+    },
+    {
+      "path": "/us/product/klint-lavender",
+      "status": 308,
+      "redirectTo": "/product/klint-lavender",
+      "success": true,
+      "message": "Redirected to /product/klint-lavender"
+    },
+    {
+      "path": "/us/product/cuba-cheese",
+      "status": 308,
+      "redirectTo": "/product/cuba-cheese",
+      "success": true,
+      "message": "Redirected to /product/cuba-cheese"
+    },
+    {
+      "path": "/us/product/iceberg-arasaka",
+      "status": 308,
+      "redirectTo": "/product/iceberg-arasaka",
+      "success": true,
+      "message": "Redirected to /product/iceberg-arasaka"
+    },
+    {
+      "path": "/us/product/iceberg-energy",
+      "status": 308,
+      "redirectTo": "/product/iceberg-energy",
+      "success": true,
+      "message": "Redirected to /product/iceberg-energy"
+    },
+    {
+      "path": "/us/product/vampyou-frutti-blast",
+      "status": 308,
+      "redirectTo": "/product/vampyou-frutti-blast",
+      "success": true,
+      "message": "Redirected to /product/vampyou-frutti-blast"
+    },
+    {
+      "path": "/us/product/cuba-coca-leaf",
+      "status": 308,
+      "redirectTo": "/product/cuba-coca-leaf",
+      "success": true,
+      "message": "Redirected to /product/cuba-coca-leaf"
+    },
+    {
+      "path": "/us/product/pablo-lemonade",
+      "status": 308,
+      "redirectTo": "/product/pablo-lemonade",
+      "success": true,
+      "message": "Redirected to /product/pablo-lemonade"
+    },
+    {
+      "path": "/us/product/chapo-brutal-cold",
+      "status": 308,
+      "redirectTo": "/product/chapo-brutal-cold",
+      "success": true,
+      "message": "Redirected to /product/chapo-brutal-cold"
+    },
+    {
+      "path": "/us/product/klint-pomegranate",
+      "status": 308,
+      "redirectTo": "/product/klint-pomegranate",
+      "success": true,
+      "message": "Redirected to /product/klint-pomegranate"
+    },
+    {
+      "path": "/us/product/skruf-nordic-liquorice",
+      "status": 308,
+      "redirectTo": "/product/skruf-nordic-liquorice",
+      "success": true,
+      "message": "Redirected to /product/skruf-nordic-liquorice"
+    },
+    {
+      "path": "/us/product/loop-hot-rhubarb",
+      "status": 308,
+      "redirectTo": "/product/loop-hot-rhubarb",
+      "success": true,
+      "message": "Redirected to /product/loop-hot-rhubarb"
+    },
+    {
+      "path": "/brand/syx",
+      "status": 308,
+      "redirectTo": "/brands/syx",
+      "success": true,
+      "message": "Redirected to /brands/syx"
+    },
+    {
+      "path": "/us/product/bagz-mojito-lime",
+      "status": 308,
+      "redirectTo": "/product/bagz-mojito-lime",
+      "success": true,
+      "message": "Redirected to /product/bagz-mojito-lime"
+    },
+    {
+      "path": "/brand/lucy",
+      "status": 308,
+      "redirectTo": "/brands/lucy",
+      "success": true,
+      "message": "Redirected to /brands/lucy"
+    },
+    {
+      "path": "/us/product/cuba-bubble-gum",
+      "status": 308,
+      "redirectTo": "/product/cuba-bubble-gum",
+      "success": true,
+      "message": "Redirected to /product/cuba-bubble-gum"
+    },
+    {
+      "path": "/product/rogue-tabac-3mg",
+      "status": 308,
+      "redirectTo": "/us/product/rogue-tabac-3mg",
+      "success": true,
+      "message": "Redirected to /us/product/rogue-tabac-3mg"
+    },
+    {
+      "path": "/product/2one-naked-8mg",
+      "status": 308,
+      "redirectTo": "/us/product/2one-naked-8mg",
+      "success": true,
+      "message": "Redirected to /us/product/2one-naked-8mg"
+    },
+    {
+      "path": "/us/product/helwit-acai",
+      "status": 308,
+      "redirectTo": "/product/helwit-acai",
+      "success": true,
+      "message": "Redirected to /product/helwit-acai"
+    },
+    {
+      "path": "/us/product/klint-pink-grapefruit",
+      "status": 308,
+      "redirectTo": "/product/klint-pink-grapefruit",
+      "success": true,
+      "message": "Redirected to /product/klint-pink-grapefruit"
+    },
+    {
+      "path": "/us/product/klint-passionfruit",
+      "status": 308,
+      "redirectTo": "/product/klint-passionfruit",
+      "success": true,
+      "message": "Redirected to /product/klint-passionfruit"
+    },
+    {
+      "path": "/us/product/chainpop-violet-amp-cactus",
+      "status": 308,
+      "redirectTo": "/product/chainpop-violet-amp-cactus",
+      "success": true,
+      "message": "Redirected to /product/chainpop-violet-amp-cactus"
+    },
+    {
+      "path": "/us/product/nordic-spirit-elderflower",
+      "status": 308,
+      "redirectTo": "/product/nordic-spirit-elderflower",
+      "success": true,
+      "message": "Redirected to /product/nordic-spirit-elderflower"
+    },
+    {
+      "path": "/product/zone-tobacco-6mg",
+      "status": 308,
+      "redirectTo": "/us/product/zone-tobacco-6mg",
+      "success": true,
+      "message": "Redirected to /us/product/zone-tobacco-6mg"
+    },
+    {
+      "path": "/us/product/ubbs-salted-caramel",
+      "status": 308,
+      "redirectTo": "/product/ubbs-salted-caramel",
+      "success": true,
+      "message": "Redirected to /product/ubbs-salted-caramel"
+    },
+    {
+      "path": "/us/product/iceberg-bubblegum",
+      "status": 308,
+      "redirectTo": "/product/iceberg-bubblegum",
+      "success": true,
+      "message": "Redirected to /product/iceberg-bubblegum"
+    },
+    {
+      "path": "/us/product/lundgrens-mork",
+      "status": 308,
+      "redirectTo": "/product/lundgrens-mork",
+      "success": true,
+      "message": "Redirected to /product/lundgrens-mork"
+    },
+    {
+      "path": "/us/product/maggie-jamaican-kola",
+      "status": 308,
+      "redirectTo": "/product/maggie-jamaican-kola",
+      "success": true,
+      "message": "Redirected to /product/maggie-jamaican-kola"
+    },
+    {
+      "path": "/us/product/iceberg-berries",
+      "status": 308,
+      "redirectTo": "/product/iceberg-berries",
+      "success": true,
+      "message": "Redirected to /product/iceberg-berries"
+    },
+    {
+      "path": "/product/lucy-espresso-4mg",
+      "status": 308,
+      "redirectTo": "/us/product/lucy-espresso-4mg",
+      "success": true,
+      "message": "Redirected to /us/product/lucy-espresso-4mg"
+    },
+    {
+      "path": "/product/lucy-breakers-espresso-8mg",
+      "status": 308,
+      "redirectTo": "/us/product/lucy-breakers-espresso-8mg",
+      "success": true,
+      "message": "Redirected to /us/product/lucy-breakers-espresso-8mg"
+    },
+    {
+      "path": "/us/product/apres-tangerine",
+      "status": 308,
+      "redirectTo": "/product/apres-tangerine",
+      "success": true,
+      "message": "Redirected to /product/apres-tangerine"
+    },
+    {
+      "path": "/us/product/klint-spicy-ginger",
+      "status": 308,
+      "redirectTo": "/product/klint-spicy-ginger",
+      "success": true,
+      "message": "Redirected to /product/klint-spicy-ginger"
+    },
+    {
+      "path": "/us/product/klint-rose",
+      "status": 308,
+      "redirectTo": "/product/klint-rose",
+      "success": true,
+      "message": "Redirected to /product/klint-rose"
+    },
+    {
+      "path": "/us/product/nordic-spirit-bergamot-wildberry",
+      "status": 308,
+      "redirectTo": "/product/nordic-spirit-bergamot-wildberry",
+      "success": true,
+      "message": "Redirected to /product/nordic-spirit-bergamot-wildberry"
+    },
+    {
+      "path": "/us/product/helwit-cinnapple",
+      "status": 308,
+      "redirectTo": "/product/helwit-cinnapple",
+      "success": true,
+      "message": "Redirected to /product/helwit-cinnapple"
+    },
+    {
+      "path": "/brand/bridge",
+      "status": 308,
+      "redirectTo": "/brands/bridge",
+      "success": true,
+      "message": "Redirected to /brands/bridge"
+    },
+    {
+      "path": "/us/product/rabbit-energy",
+      "status": 308,
+      "redirectTo": "/product/rabbit-energy",
+      "success": true,
+      "message": "Redirected to /product/rabbit-energy"
+    },
+    {
+      "path": "/us/product/kurwa-just-berries-forest-berries",
+      "status": 308,
+      "redirectTo": "/product/kurwa-just-berries-forest-berries",
+      "success": true,
+      "message": "Redirected to /product/kurwa-just-berries-forest-berries"
+    },
+    {
+      "path": "/blogs/news",
+      "status": 308,
+      "redirectTo": "/blog",
+      "success": true,
+      "message": "Redirected to /blog"
+    },
+    {
+      "path": "/us/brand/sesh+",
+      "status": 308,
+      "redirectTo": "/us/brands/sesh",
+      "success": true,
+      "message": "Redirected to /us/brands/sesh"
+    },
+    {
+      "path": "/us/brand/nic",
+      "status": 308,
+      "redirectTo": "/us/brands/nic-s",
+      "success": true,
+      "message": "Redirected to /us/brands/nic-s"
+    },
+    {
+      "path": "/brand/v&you",
+      "status": 308,
+      "redirectTo": "/brands/v&you",
+      "success": true,
+      "message": "Redirected to /brands/v&you"
+    },
+    {
+      "path": "/us/product/noat-matcha",
+      "status": 308,
+      "redirectTo": "/product/noat-matcha",
+      "success": true,
+      "message": "Redirected to /product/noat-matcha"
+    },
+    {
+      "path": "/us/product/lundgrens-dunge",
+      "status": 308,
+      "redirectTo": "/product/lundgrens-dunge",
+      "success": true,
+      "message": "Redirected to /product/lundgrens-dunge"
+    },
+    {
+      "path": "/us/brand/juice",
+      "status": 308,
+      "redirectTo": "/us/brands/juice-head",
+      "success": true,
+      "message": "Redirected to /us/brands/juice-head"
+    },
+    {
+      "path": "/us/product/ace-guarana-chili-boost",
+      "status": 308,
+      "redirectTo": "/product/ace-guarana-chili-boost",
+      "success": true,
+      "message": "Redirected to /product/ace-guarana-chili-boost"
+    },
+    {
+      "path": "/us/product/rave-skittler",
+      "status": 308,
+      "redirectTo": "/product/rave-skittler",
+      "success": true,
+      "message": "Redirected to /product/rave-skittler"
+    },
+    {
+      "path": "/product/sesh-clear-6mg",
+      "status": 308,
+      "redirectTo": "/us/product/sesh-clear-6mg",
+      "success": true,
+      "message": "Redirected to /us/product/sesh-clear-6mg"
+    },
+    {
+      "path": "/us/product/frokens-coconut",
+      "status": 308,
+      "redirectTo": "/product/frokens-coconut",
+      "success": true,
+      "message": "Redirected to /product/frokens-coconut"
+    },
+    {
+      "path": "/brand/rogue",
+      "status": 308,
+      "redirectTo": "/brands/rogue",
+      "success": true,
+      "message": "Redirected to /brands/rogue"
+    },
+    {
+      "path": "/us/product/avant-frozen-berries",
+      "status": 308,
+      "redirectTo": "/product/avant-frozen-berries",
+      "success": true,
+      "message": "Redirected to /product/avant-frozen-berries"
+    },
+    {
+      "path": "/us/product/bagz-chilli-lime",
+      "status": 308,
+      "redirectTo": "/product/bagz-chilli-lime",
+      "success": true,
+      "message": "Redirected to /product/bagz-chilli-lime"
+    },
+    {
+      "path": "/us/product/on-grapefruit-spritz",
+      "status": 308,
+      "redirectTo": "/product/on-grapefruit-spritz",
+      "success": true,
+      "message": "Redirected to /product/on-grapefruit-spritz"
+    },
+    {
+      "path": "/us/product/cuba-liquorice",
+      "status": 308,
+      "redirectTo": "/product/cuba-liquorice",
+      "success": true,
+      "message": "Redirected to /product/cuba-liquorice"
+    },
+    {
+      "path": "/product/sesh-clear-8mg",
+      "status": 308,
+      "redirectTo": "/us/product/sesh-clear-8mg",
+      "success": true,
+      "message": "Redirected to /us/product/sesh-clear-8mg"
+    },
+    {
+      "path": "/us/product/helwit-violet",
+      "status": 308,
+      "redirectTo": "/product/helwit-violet",
+      "success": true,
+      "message": "Redirected to /product/helwit-violet"
+    },
+    {
+      "path": "/us/product/helwit-salmiak",
+      "status": 308,
+      "redirectTo": "/product/helwit-salmiak",
+      "success": true,
+      "message": "Redirected to /product/helwit-salmiak"
+    },
+    {
+      "path": "/brand/zone",
+      "status": 308,
+      "redirectTo": "/brands/zone",
+      "success": true,
+      "message": "Redirected to /brands/zone"
+    },
+    {
+      "path": "/us/us/become-a-member",
+      "status": 308,
+      "redirectTo": "/us/become-a-member",
+      "success": true,
+      "message": "Redirected to /us/become-a-member"
+    },
+    {
+      "path": "/us/product/cuba-coconut",
+      "status": 308,
+      "redirectTo": "/product/cuba-coconut",
+      "success": true,
+      "message": "Redirected to /product/cuba-coconut"
+    },
+    {
+      "path": "/pages/how-to-quit-smoking-with-nicotine-pouches",
+      "status": 308,
+      "redirectTo": "/guides",
+      "success": true,
+      "message": "Redirected to /guides"
+    },
+    {
+      "path": "/brand/alp",
+      "status": 308,
+      "redirectTo": "/brands/alp",
+      "success": true,
+      "message": "Redirected to /brands/alp"
+    },
+    {
+      "path": "/us/product/77-bubble-gum",
+      "status": 308,
+      "redirectTo": "/product/77-bubble-gum",
+      "success": true,
+      "message": "Redirected to /product/77-bubble-gum"
+    },
+    {
+      "path": "/us/product/kurwa-blackcurrant",
+      "status": 308,
+      "redirectTo": "/product/kurwa-blackcurrant",
+      "success": true,
+      "message": "Redirected to /product/kurwa-blackcurrant"
+    },
+    {
+      "path": "/us/product/vid-liquorice-tar",
+      "status": 308,
+      "redirectTo": "/product/vid-liquorice-tar",
+      "success": true,
+      "message": "Redirected to /product/vid-liquorice-tar"
+    },
+    {
+      "path": "/product/lucy-espresso-8mg",
+      "status": 308,
+      "redirectTo": "/us/product/lucy-espresso-8mg",
+      "success": true,
+      "message": "Redirected to /us/product/lucy-espresso-8mg"
+    },
+    {
+      "path": "/us/product/apres-tangerine-spritz",
+      "status": 308,
+      "redirectTo": "/product/apres-tangerine-spritz",
+      "success": true,
+      "message": "Redirected to /product/apres-tangerine-spritz"
+    },
+    {
+      "path": "/us/product/iceberg-coconut",
+      "status": 308,
+      "redirectTo": "/product/iceberg-coconut",
+      "success": true,
+      "message": "Redirected to /product/iceberg-coconut"
+    },
+    {
+      "path": "/us/product/lundgrens-hostaker",
+      "status": 308,
+      "redirectTo": "/product/lundgrens-hostaker",
+      "success": true,
+      "message": "Redirected to /product/lundgrens-hostaker"
+    },
+    {
+      "path": "/brand/fre",
+      "status": 308,
+      "redirectTo": "/brands/fre",
+      "success": true,
+      "message": "Redirected to /brands/fre"
+    },
+    {
+      "path": "/us/product/kurwa-grapefruit-lemonily-vanilla",
+      "status": 308,
+      "redirectTo": "/product/kurwa-grapefruit-lemonily-vanilla",
+      "success": true,
+      "message": "Redirected to /product/kurwa-grapefruit-lemonily-vanilla"
+    },
+    {
+      "path": "/collections/nicotine-pouches",
+      "status": 308,
+      "redirectTo": "/brands",
+      "success": true,
+      "message": "Redirected to /brands"
+    },
+    {
+      "path": "/us/product/lundgrens-manskara",
+      "status": 308,
+      "redirectTo": "/product/lundgrens-manskara",
+      "success": true,
+      "message": "Redirected to /product/lundgrens-manskara"
+    },
+    {
+      "path": "/us/product/garant-extreme",
+      "status": 308,
+      "redirectTo": "/product/garant-extreme",
+      "success": true,
+      "message": "Redirected to /product/garant-extreme"
+    },
+    {
+      "path": "/us/product/killa-mocca",
+      "status": 308,
+      "redirectTo": "/product/killa-mocca",
+      "success": true,
+      "message": "Redirected to /product/killa-mocca"
+    },
+    {
+      "path": "/us/product/rave-lemoncello",
+      "status": 308,
+      "redirectTo": "/product/rave-lemoncello",
+      "success": true,
+      "message": "Redirected to /product/rave-lemoncello"
+    },
+    {
+      "path": "/us/product/helwit-banana",
+      "status": 308,
+      "redirectTo": "/product/helwit-banana",
+      "success": true,
+      "message": "Redirected to /product/helwit-banana"
+    },
+    {
+      "path": "/us/product/blow-minty-lime",
+      "status": 308,
+      "redirectTo": "/product/blow-minty-lime",
+      "success": true,
+      "message": "Redirected to /product/blow-minty-lime"
+    },
+    {
+      "path": "/us/product/rabbit-jalapeno-lime",
+      "status": 308,
+      "redirectTo": "/product/rabbit-jalapeno-lime",
+      "success": true,
+      "message": "Redirected to /product/rabbit-jalapeno-lime"
+    },
+    {
+      "path": "/us/product/goat-frosted",
+      "status": 308,
+      "redirectTo": "/product/goat-frosted",
+      "success": true,
+      "message": "Redirected to /product/goat-frosted"
+    },
+    {
+      "path": "/us/product/snatch-forest-fruits",
+      "status": 308,
+      "redirectTo": "/product/snatch-forest-fruits",
+      "success": true,
+      "message": "Redirected to /product/snatch-forest-fruits"
+    },
+    {
+      "path": "/us/product/coco-mighty-lemonade",
+      "status": 308,
+      "redirectTo": "/product/coco-mighty-lemonade",
+      "success": true,
+      "message": "Redirected to /product/coco-mighty-lemonade"
+    },
+    {
+      "path": "/us/product/rabbit-bubble-gum",
+      "status": 308,
+      "redirectTo": "/product/rabbit-bubble-gum",
+      "success": true,
+      "message": "Redirected to /product/rabbit-bubble-gum"
+    },
+    {
+      "path": "/us/product/cuba-energy",
+      "status": 308,
+      "redirectTo": "/product/cuba-energy",
+      "success": true,
+      "message": "Redirected to /product/cuba-energy"
+    },
+    {
+      "path": "/us/product/chainpop-lychee-amp-coconut",
+      "status": 308,
+      "redirectTo": "/product/chainpop-lychee-amp-coconut",
+      "success": true,
+      "message": "Redirected to /product/chainpop-lychee-amp-coconut"
+    },
+    {
+      "path": "/us/product/77-salted-caramel",
+      "status": 308,
+      "redirectTo": "/product/77-salted-caramel",
+      "success": true,
+      "message": "Redirected to /product/77-salted-caramel"
+    },
+    {
+      "path": "/product/grizzly-southern-12mg",
+      "status": 308,
+      "redirectTo": "/us/product/grizzly-southern-12mg",
+      "success": true,
+      "message": "Redirected to /us/product/grizzly-southern-12mg"
+    },
+    {
+      "path": "/us/product/iceberg-guava-lime",
+      "status": 308,
+      "redirectTo": "/product/iceberg-guava-lime",
+      "success": true,
+      "message": "Redirected to /product/iceberg-guava-lime"
+    },
+    {
+      "path": "/us/product/lundgrens-kvallsbris",
+      "status": 308,
+      "redirectTo": "/product/lundgrens-kvallsbris",
+      "success": true,
+      "message": "Redirected to /product/lundgrens-kvallsbris"
+    },
+    {
+      "path": "/us/product/avant-caffe-mocha",
+      "status": 308,
+      "redirectTo": "/product/avant-caffe-mocha",
+      "success": true,
+      "message": "Redirected to /product/avant-caffe-mocha"
+    },
+    {
+      "path": "/us/product/vid-violet-velvet",
+      "status": 308,
+      "redirectTo": "/product/vid-violet-velvet",
+      "success": true,
+      "message": "Redirected to /product/vid-violet-velvet"
+    },
+    {
+      "path": "/us/product/killa-kiwi",
+      "status": 308,
+      "redirectTo": "/product/killa-kiwi",
+      "success": true,
+      "message": "Redirected to /product/killa-kiwi"
+    },
+    {
+      "path": "/us/product/fumi-salty-violet",
+      "status": 308,
+      "redirectTo": "/product/fumi-salty-violet",
+      "success": true,
+      "message": "Redirected to /product/fumi-salty-violet"
+    },
+    {
+      "path": "/us/product/coco-mighty-colada",
+      "status": 308,
+      "redirectTo": "/product/coco-mighty-colada",
+      "success": true,
+      "message": "Redirected to /product/coco-mighty-colada"
+    },
+    {
+      "path": "/us/product/fix-chai-latte",
+      "status": 308,
+      "redirectTo": "/product/fix-chai-latte",
+      "success": true,
+      "message": "Redirected to /product/fix-chai-latte"
+    },
+    {
+      "path": "/us/product/skruf-purple-cassice",
+      "status": 308,
+      "redirectTo": "/product/skruf-purple-cassice",
+      "success": true,
+      "message": "Redirected to /product/skruf-purple-cassice"
+    },
+    {
+      "path": "/us/product/nois-extreme",
+      "status": 308,
+      "redirectTo": "/product/nois-extreme",
+      "success": true,
+      "message": "Redirected to /product/nois-extreme"
+    },
+    {
+      "path": "/us/product/rave-caramel-cracker",
+      "status": 308,
+      "redirectTo": "/product/rave-caramel-cracker",
+      "success": true,
+      "message": "Redirected to /product/rave-caramel-cracker"
+    },
+    {
+      "path": "/us/brand/white",
+      "status": 308,
+      "redirectTo": "/us/brands",
+      "success": true,
+      "message": "Redirected to /us/brands"
+    },
+    {
+      "path": "/us/product/stng-bubble",
+      "status": 308,
+      "redirectTo": "/product/stng-bubble",
+      "success": true,
+      "message": "Redirected to /product/stng-bubble"
+    },
+    {
+      "path": "/product/sesh-clear-4mg",
+      "status": 308,
+      "redirectTo": "/us/product/sesh-clear-4mg",
+      "success": true,
+      "message": "Redirected to /us/product/sesh-clear-4mg"
+    },
+    {
+      "path": "/us/us/guides",
+      "status": 308,
+      "redirectTo": "/us/guides",
+      "success": true,
+      "message": "Redirected to /us/guides"
+    }
+  ],
+  "stillBroken": [],
+  "errors": []
+}

@@ -1,0 +1,17 @@
+{
+  "id": "vyolbmzuezpoqtdgongz",
+  "ref": "vyolbmzuezpoqtdgongz",
+  "organization_id": "aiwriobmboojumbgvgjf",
+  "organization_slug": "aiwriobmboojumbgvgjf",
+  "name": "Nicotine Pouches",
+  "region": "eu-north-1",
+  "status": "ACTIVE_HEALTHY",
+  "database": {
+    "host": "db.vyolbmzuezpoqtdgongz.supabase.co",
+    "version": "17.4.1.075",
+    "postgres_engine": "17",
+    "release_channel": "ga"
+  },
+  "created_at": "2025-09-08T22:14:44.409664Z",
+  "exported_at": "2026-02-01"
+}

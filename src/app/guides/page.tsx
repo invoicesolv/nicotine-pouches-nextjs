@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import SSRGuidesGrid from '@/components/SSRGuidesGrid';
+import GuidesGridWithSearch from '@/components/GuidesGridWithSearch';
 import { supabase } from '@/lib/supabase';
 import { Metadata } from 'next';
 
@@ -74,17 +74,50 @@ interface BlogPost {
   };
 }
 
-export default async function GuidesPage() {
+interface PageProps {
+  searchParams: Promise<{
+    page?: string;
+    search?: string;
+    sort?: string;
+  }>;
+}
+
+export default async function GuidesPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const currentPage = Math.max(1, parseInt(params.page || '1', 10));
+  const searchQuery = params.search || '';
+  const sortOrder = params.sort || 'newest';
+  const postsPerPage = 12;
+
   const posts = await loadBlogPosts();
-  console.log('GuidesPage: Loaded posts:', posts.length);
-  
-  // Sort posts by date (newest first)
-  const sortedPosts = posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  const featuredPost = sortedPosts[0]; // Latest post as featured
-  const paginatedPosts = sortedPosts.slice(1, 13); // Get 12 posts after featured
-  
-  console.log('GuidesPage: Featured post:', featuredPost?.title);
-  console.log('GuidesPage: Paginated posts:', paginatedPosts.length);
+
+  // Filter by search query
+  let filtered = posts;
+  if (searchQuery) {
+    const term = searchQuery.toLowerCase();
+    filtered = posts.filter(p =>
+      p.title.toLowerCase().includes(term) ||
+      (p.excerpt || '').toLowerCase().includes(term) ||
+      (p.seo_meta?.title || '').toLowerCase().includes(term) ||
+      (p.seo_meta?.description || '').toLowerCase().includes(term)
+    );
+  }
+
+  // Sort posts
+  const sortedPosts = filtered.sort((a, b) => {
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+    return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
+  });
+
+  const featuredPost = sortedPosts[0]; // Latest (or oldest) post as featured
+  const remainingPosts = sortedPosts.slice(1);
+
+  // Paginate
+  const totalPosts = remainingPosts.length;
+  const totalPages = Math.ceil(totalPosts / postsPerPage);
+  const startIndex = (currentPage - 1) * postsPerPage;
+  const paginatedPosts = remainingPosts.slice(startIndex, startIndex + postsPerPage);
 
   return (
     <>
@@ -134,20 +167,9 @@ export default async function GuidesPage() {
               margin-top: 0 !important;
               margin-left: 0 !important;
             }
-            .discover-more-header {
-              flex-direction: column !important;
-              align-items: flex-start !important;
-              gap: 20px !important;
-            }
             .discover-more-title {
               font-size: 1.8rem !important;
               margin: 0 !important;
-            }
-            .filter-controls {
-              width: 100% !important;
-              flex-direction: row !important;
-              gap: 15px !important;
-              flex-wrap: wrap !important;
             }
             .breadcrumb {
               padding: 0 20px !important;
@@ -364,82 +386,16 @@ export default async function GuidesPage() {
               padding: '0 20px'
             }}>
               
-              {/* Section Header with Search and Filters */}
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '20px',
-                marginBottom: '40px'
-              }}>
-                <div className="discover-more-header" style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <h2 className="discover-more-title" style={{
-                    fontSize: '2.5rem',
-                    fontWeight: 'bold',
-                    color: '#333',
-                    margin: '0',
-                    fontFamily: 'Klarna Text, sans-serif'
-                  }}>
-                    Discover more
-                  </h2>
-                  
-                  <div className="filter-controls" style={{
-                    display: 'flex',
-                    gap: '12px',
-                    alignItems: 'center'
-                  }}>
-                  {/* Select Categories Filter */}
-                  <select style={{
-                    padding: '8px 16px',
-                    border: '1px solid #e9ecef',
-                    borderRadius: '20px',
-                    fontSize: '14px',
-                    backgroundColor: '#fff',
-                    color: '#495057',
-                    cursor: 'pointer',
-                    fontWeight: '500',
-                    appearance: 'none',
-                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='https://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
-                    backgroundPosition: 'right 8px center',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundSize: '16px',
-                    paddingRight: '32px'
-                  }}>
-                    <option value="">Select Categories</option>
-                    <option value="guides">Guides</option>
-                    <option value="reviews">Reviews</option>
-                    <option value="comparisons">Comparisons</option>
-                  </select>
-                  
-                  {/* Newest/Oldest Filter */}
-                  <select style={{
-                    padding: '8px 16px',
-                    border: '1px solid #e9ecef',
-                    borderRadius: '20px',
-                    fontSize: '14px',
-                    backgroundColor: '#fff',
-                    color: '#495057',
-                    cursor: 'pointer',
-                    fontWeight: '500',
-                    appearance: 'none',
-                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='https://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
-                    backgroundPosition: 'right 8px center',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundSize: '16px',
-                    paddingRight: '32px'
-                  }}>
-                    <option value="newest">Newest</option>
-                    <option value="oldest">Oldest</option>
-                  </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Posts Grid - Server Component */}
-              <SSRGuidesGrid posts={paginatedPosts} />
+              {/* Posts Grid with Search, Sort & Pagination */}
+              <GuidesGridWithSearch
+                posts={paginatedPosts}
+                totalPosts={totalPosts}
+                totalPages={totalPages}
+                currentPage={currentPage}
+                searchQuery={searchQuery}
+                sortOrder={sortOrder}
+                isServerPaginated={true}
+              />
             </div>
           </div>
         </main>

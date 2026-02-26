@@ -1,0 +1,9 @@
+.brandCard {
+  transition: all 0.3s ease;
+}
+
+.brandCard:hover {
+  transform: translateY(-5px);
+  opacity: 0.8;
+}
+
