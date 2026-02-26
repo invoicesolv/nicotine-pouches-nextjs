@@ -1,12 +1,8 @@
-import Link from 'next/link';
 import Image from 'next/image';
-import { redirect } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BlogContentProcessor from '@/components/BlogContentProcessor';
-import ProductSection from '@/components/ProductSection';
-import SymmetricalContentSection from '@/components/SymmetricalContentSection';
-import GuidesSection from '@/components/GuidesSection';
+import DynamicProductSections from '@/components/DynamicProductSections';
 import CookieConsent from '@/components/CookieConsent';
 import LocalShopComparison from '@/components/LocalShopComparison';
 import RelatedPosts from '@/components/RelatedPosts';
@@ -16,9 +12,13 @@ import { getLocationSEOTemplate, generateBreadcrumbData } from '@/lib/seo-templa
 import { getCityAggregateRating } from '@/lib/aggregate-ratings';
 import { UK_CITIES_GEO_DATA, isCitySlug } from '@/config/uk-cities-data';
 import { SEO_CONFIG, getFullUrl } from '@/config/seo-config';
+import { supabase } from '@/lib/supabase';
 
-// Enable static optimization for better performance
-export const revalidate = 60; // Revalidate every minute for faster updates
+// Enable ISR with 1 hour cache for better performance
+export const revalidate = 3600;
+
+// Allow on-demand generation for slugs not in generateStaticParams
+export const dynamicParams = true;
 
 // List of city slugs that should be handled as city pages
 const CITY_SLUGS = [
@@ -626,12 +626,13 @@ async function generateCityMetadata(slug: string): Promise<Metadata> {
 // Generate metadata for SEO - MUST be at the top of the file
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  
+
   // Check if this is a city slug first
   if (CITY_SLUGS.includes(slug)) {
     return generateCityMetadata(slug);
   }
-  
+
+  // Blog posts (old + generated) and guides all render at root with full metadata below
   // If not a city, try to get the blog post
   try {
     const post = await getBlogPost(slug);
@@ -653,6 +654,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       keywords: post.seo_meta?.keywords || 'nicotine pouches, blog, guide, review',
       robots: 'index, follow',
       authors: [{ name: post.author }],
+      publisher: 'Nicotine Pouches UK',
       openGraph: {
         title: `${title} - Nicotine Pouches`,
         description,
@@ -683,42 +685,27 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         canonical: `https://nicotine-pouches.org/${slug}`,
         languages: {
           'en-GB': `https://nicotine-pouches.org/${slug}`,
-          'en-US': `https://nicotine-pouches.org/us/${slug}`,
           'x-default': `https://nicotine-pouches.org/${slug}`,
         },
       },
+      // Explicit article meta so SEO extensions recognize as normal article (not "special page")
+      other: {
+        'article:author': post.author,
+        'article:published_time': post.date,
+        'article:modified_time': post.updated_at || post.date,
+        'article:section': 'Guides',
+        'article:publisher': 'Nicotine Pouches UK',
+      },
     };
-  } catch (error) {
+  } catch {
     return {
       title: 'Nicotine Pouches - Blog',
       description: 'Read our latest guides and reviews about nicotine pouches.',
       robots: 'index, follow',
     };
   }
-  
-  return {
-    title: 'Nicotine Pouches',
-    description: 'Find the best nicotine pouches and compare prices.',
-    robots: 'index, follow',
-  };
 }
 
-// Load extracted blog posts data
-const loadBlogPosts = async (): Promise<BlogPost[]> => {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://nicotine-pouches.org';
-    const response = await fetch(`${baseUrl}/api/blog-posts`, {
-      cache: 'no-store'
-    });
-    if (!response.ok) {
-      return [];
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error loading blog posts:', error);
-    return [];
-  }
-};
 
 interface BlogPost {
   wp_id: number;
@@ -728,9 +715,12 @@ interface BlogPost {
   content?: string;
   fullContent?: string;
   date: string;
+  updated_at?: string;
   author: string;
   featured_image: string;
   featured_image_local?: string;
+  link?: string;
+  source?: string;
   seo_meta?: {
     title?: string;
     description?: string;
@@ -740,45 +730,37 @@ interface BlogPost {
 
 const getBlogPost = async (slug: string): Promise<BlogPost | null> => {
   try {
-    // Try multiple fallback URLs for production
-    const baseUrls = [
-      process.env.NEXT_PUBLIC_API_URL,
-      'https://nicotine-pouches.org',
-      'https://nicotine-pouches.org'
-    ].filter(Boolean);
-    
-    for (const baseUrl of baseUrls) {
-      try {
-        console.log(`[slug] Trying to fetch from: ${baseUrl}/api/blog-posts`);
-        const response = await fetch(`${baseUrl}/api/blog-posts`, {
-          cache: 'no-store',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (response.ok) {
-          const posts = await response.json();
-          console.log(`[slug] Successfully fetched ${posts.length} blog posts from ${baseUrl}`);
-          const post = posts.find((p: BlogPost) => p.slug === slug);
-          if (post) {
-            console.log(`[slug] Found post: ${post.title}`);
-            return post;
-          } else {
-            console.log(`[slug] Post with slug '${slug}' not found in ${posts.length} posts`);
-          }
-        } else {
-          console.log(`[slug] Failed to fetch from ${baseUrl}: ${response.status} ${response.statusText}`);
-        }
-      } catch (fetchError) {
-        console.log(`[slug] Error fetching from ${baseUrl}:`, fetchError);
-        continue;
-      }
+    // Query database directly for the blog post
+    const { data: post, error } = await supabase()
+      .from('blog_posts')
+      .select('*')
+      .eq('slug', slug)
+      .in('status', ['publish', 'published'])
+      .single();
+
+    if (error || !post) {
+      console.log(`[slug] Post with slug '${slug}' not found in blog_posts table`);
+      return null;
     }
-    
-    console.log(`[slug] All API calls failed for slug: ${slug}`);
-    return null;
+
+    console.log(`[slug] Found post: ${post.title}`);
+
+    return {
+      wp_id: post.wp_id,
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt || '',
+      content: post.content,
+      fullContent: post.content,
+      date: post.date || post.created_at,
+      updated_at: post.updated_at || post.date || post.created_at,
+      author: post.author || 'Nicotine Pouches Team',
+      featured_image: post.featured_image,
+      featured_image_local: post.featured_image_local || post.featured_image,
+      link: post.link,
+      source: 'database',
+      seo_meta: post.seo_meta
+    };
   } catch (error) {
     console.error('Error fetching blog post:', error);
     return null;
@@ -787,8 +769,9 @@ const getBlogPost = async (slug: string): Promise<BlogPost | null> => {
 
 export default async function DynamicPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  
-  // Check if this is a city slug first
+
+  // Cities render here; blog posts (old + generated) fall through and render at root below
+  // Check if this is a city slug
   if (CITY_SLUGS.includes(slug)) {
     const cityData = UK_CITIES[slug as keyof typeof UK_CITIES];
     const geoData = UK_CITIES_GEO_DATA[slug];
@@ -818,17 +801,59 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
             aggregateRating: aggregateRating?.aggregateRating,
             openingHours: "Mo-Su 00:00-23:59"
           })}
-          
+
           {/* Breadcrumb Schema */}
           {generateBreadcrumbSchema(breadcrumbs)}
-          
-          <div style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
+
+          {/* City Page Styles - Match Homepage */}
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+              .city-page-wrapper {
+                font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+              }
+              .city-page-wrapper * {
+                font-family: inherit;
+              }
+              .city-page-wrapper h1,
+              .city-page-wrapper h2,
+              .city-page-wrapper h3,
+              .city-page-wrapper h4,
+              .city-page-wrapper p,
+              .city-page-wrapper span,
+              .city-page-wrapper div {
+                font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+              }
+              @media (max-width: 768px) {
+                .city-hero-section {
+                  min-height: 50vh !important;
+                  padding: 60px 16px !important;
+                }
+                .city-hero-section h1 {
+                  font-size: 2rem !important;
+                }
+                .city-info-grid {
+                  grid-template-columns: 1fr !important;
+                  gap: 30px !important;
+                }
+                .city-stats-row {
+                  gap: 30px !important;
+                }
+                .city-stats-row > div {
+                  min-width: 80px;
+                }
+              }
+            `
+          }} />
+
+          <div className="city-page-wrapper" style={{ backgroundColor: '#ffffff', minHeight: '100vh', fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" }}>
             <Header />
         
             {/* Hero Section with Dark Background */}
-            <div className="hero-section" style={{
+            <div className="city-hero-section" style={{
               background: 'linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(' + cityData.image + ')',
-            backgroundSize: 'cover',
+              backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
               minHeight: '60vh',
@@ -836,132 +861,150 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
               alignItems: 'center',
               justifyContent: 'center',
               color: 'white',
-            textAlign: 'center',
-              padding: '80px 20px'
-          }}>
+              textAlign: 'center',
+              padding: '80px 20px',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+            }}>
               <div style={{ maxWidth: '800px', width: '100%' }}>
-              <h1 style={{
+                <h1 style={{
                   fontSize: '3.5rem',
-                fontWeight: 'bold',
+                  fontWeight: '800',
                   marginBottom: '20px',
-                  lineHeight: '1.2'
-              }}>
-                Nicotine Pouches in {cityData.name}
-              </h1>
-              <p style={{
+                  lineHeight: '1.2',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                  letterSpacing: '-0.5px'
+                }}>
+                  Nicotine Pouches in {cityData.name}
+                </h1>
+                <p style={{
                   fontSize: '1.2rem',
                   marginBottom: '40px',
-                  opacity: '0.9'
-              }}>
-                {cityData.description}
-              </p>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
+                  opacity: '0.9',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                  fontWeight: '400'
+                }}>
+                  {cityData.description}
+                </p>
+                <div className="city-stats-row" style={{
+                  display: 'flex',
+                  justifyContent: 'center',
                   gap: '60px',
                   flexWrap: 'wrap'
-              }}>
-                <div style={{ textAlign: 'center' }}>
+                }}>
+                  <div style={{ textAlign: 'center' }}>
                     <div style={{
                       fontSize: '2.5rem',
-                      fontWeight: 'bold',
-                      marginBottom: '8px'
+                      fontWeight: '700',
+                      marginBottom: '8px',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                     }}>
-                    {cityData.population}
-                  </div>
+                      {cityData.population}
+                    </div>
                     <div style={{
                       fontSize: '1rem',
-                      opacity: '0.8'
+                      opacity: '0.8',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                     }}>
                       Population
                     </div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
                     <div style={{
                       fontSize: '2.5rem',
-                      fontWeight: 'bold',
-                      marginBottom: '8px'
+                      fontWeight: '700',
+                      marginBottom: '8px',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                     }}>
-                    {cityData.region}
-                  </div>
+                      {cityData.region}
+                    </div>
                     <div style={{
                       fontSize: '1rem',
-                      opacity: '0.8'
+                      opacity: '0.8',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                     }}>
                       Region
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-              </div>
-        </div>
 
             {/* City-Specific Content Sections */}
-            <div id="home" className="content-area" style={{ backgroundColor: '#f8f9fa', padding: '60px 0' }}>
-            <div className="fusion-row" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', alignItems: 'start' }}>
+            <div id="home" className="content-area" style={{ backgroundColor: '#f4f5f9', padding: '60px 0' }}>
+              <div className="fusion-row" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
+                <div className="city-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', alignItems: 'start' }}>
                   {/* Left Column - City Info */}
-                <div>
-                  <h2 style={{
+                  <div>
+                    <h2 style={{
                       fontSize: '2rem',
-                    fontWeight: 'bold',
-                    marginBottom: '20px',
-                    color: '#333'
-                  }}>
-                      Nicotine Pouches in {cityData.name}
-                  </h2>
-                  <p style={{
-                      fontSize: '1.1rem',
-                    lineHeight: '1.6',
-                    color: '#666',
-                    marginBottom: '20px'
-                  }}>
-                      Find the best nicotine pouches in {cityData.name}, {cityData.region}. Our local comparison service helps you discover the top brands and best prices available in your area. Whether you're looking for ZYN, VELO, or Nordic Spirit, we've got you covered with local availability and delivery options.
-                    </p>
-                  <div style={{
-                      backgroundColor: 'white',
-                      padding: '20px',
-                        borderRadius: '8px',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                      marginBottom: '20px'
+                      fontWeight: '700',
+                      marginBottom: '20px',
+                      color: '#1f2544',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                      letterSpacing: '-0.3px'
                     }}>
-                  <h3 style={{
+                      Nicotine Pouches in {cityData.name}
+                    </h2>
+                    <p style={{
+                      fontSize: '1.1rem',
+                      lineHeight: '1.7',
+                      color: '#4b5563',
+                      marginBottom: '20px',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                    }}>
+                      Find the best nicotine pouches in {cityData.name}, {cityData.region}. Our local comparison service helps you discover the top brands and best prices available in your area. Whether you&apos;re looking for ZYN, VELO, or Nordic Spirit, we&apos;ve got you covered with local availability and delivery options.
+                    </p>
+                    <div style={{
+                      backgroundColor: 'white',
+                      padding: '24px',
+                      borderRadius: '12px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                      marginBottom: '20px',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      <h3 style={{
                         fontSize: '1.3rem',
-                    fontWeight: 'bold',
-                    marginBottom: '15px',
-                    color: '#333'
-                  }}>
-                    Local Availability
-                  </h3>
-                  <p style={{
+                        fontWeight: '600',
+                        marginBottom: '15px',
+                        color: '#1f2544',
+                        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                      }}>
+                        Local Availability
+                      </h3>
+                      <p style={{
                         fontSize: '1rem',
-                        lineHeight: '1.5',
-                    color: '#666',
-                        margin: '0'
-                  }}>
+                        lineHeight: '1.6',
+                        color: '#4b5563',
+                        margin: '0',
+                        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                      }}>
                         Discover where to buy nicotine pouches in {cityData.name}. From convenience stores to specialty shops, we compare prices and availability across all local retailers to help you find the best deals.
-                  </p>
-                </div>
+                      </p>
+                    </div>
                   </div>
-                  
+
                   {/* Right Column - Popular Brands */}
                   <div>
                     <h2 style={{
                       fontSize: '2rem',
-                    fontWeight: 'bold',
+                      fontWeight: '700',
                       marginBottom: '20px',
-                    color: '#333'
-                  }}>
+                      color: '#1f2544',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                      letterSpacing: '-0.3px'
+                    }}>
                       Popular Brands in {cityData.name}
                     </h2>
-                  <p style={{
+                    <p style={{
                       fontSize: '1rem',
-                      lineHeight: '1.5',
-                    color: '#666',
-                      marginBottom: '20px'
-                  }}>
+                      lineHeight: '1.6',
+                      color: '#4b5563',
+                      marginBottom: '20px',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                    }}>
                       These are the most popular nicotine pouch brands available in {cityData.name}:
-                  </p>
-                <div style={{
+                    </p>
+                    <div style={{
                       display: 'grid',
                       gridTemplateColumns: 'repeat(2, 1fr)',
                       gap: '15px'
@@ -970,45 +1013,49 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
                         <div key={brand} style={{
                           backgroundColor: 'white',
                           padding: '20px',
-                          borderRadius: '8px',
+                          borderRadius: '12px',
                           textAlign: 'center',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
                           cursor: 'pointer',
-                          transition: 'transform 0.2s ease',
-                          border: '1px solid #e0e0e0'
+                          transition: 'all 0.2s ease',
+                          border: '1px solid #e5e7eb'
                         }}>
                           <span style={{
                             fontSize: '1.1rem',
                             fontWeight: '600',
-                    color: '#333'
-                  }}>
+                            color: '#1f2544',
+                            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                          }}>
                             {brand}
                           </span>
                         </div>
                       ))}
                     </div>
                     <div style={{
-                      backgroundColor: '#e8f4fd',
-                      padding: '15px',
-                      borderRadius: '8px',
+                      backgroundColor: '#eef6ff',
+                      padding: '16px',
+                      borderRadius: '12px',
                       marginTop: '20px',
-                      border: '1px solid #b3d9ff'
+                      border: '1px solid #c7d9f5'
                     }}>
-                  <p style={{
+                      <p style={{
                         fontSize: '0.9rem',
-                        color: '#0066cc',
+                        color: '#1f2544',
                         margin: '0',
-                        textAlign: 'center'
+                        textAlign: 'center',
+                        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                        fontWeight: '500'
                       }}>
                         💡 Compare prices for these brands across local retailers in {cityData.name}
-                  </p>
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-              </div>
-        </div>
 
-      <ProductSection />
+      {/* Product Sections - Same as Homepage */}
+      <DynamicProductSections />
       <LocalShopComparison cityName={cityData.name} />
       <Footer />
       <CookieConsent />
@@ -1046,118 +1093,277 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
     );
   }
 
+  const canonicalUrl = getFullUrl(`/${slug}`);
+  const articleImage = post.featured_image_local || post.featured_image || '/placeholder-blog.jpg';
+  const articleImageUrl = articleImage.startsWith('http') ? articleImage : getFullUrl(articleImage);
+  const articleKeywords = post.seo_meta?.keywords
+    ? post.seo_meta.keywords.split(/,\s*/).map((k: string) => k.trim()).filter(Boolean)
+    : [post.title];
+
   return (
-    <div style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
-      {/* Header */}
-      <Header />
-      
-      {/* Main Content Container - Centered like Klarna */}
-      <div style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '0 20px'
-      }}>
-        
-        {/* Blog Post Header - Left Aligned with Content */}
-        <div style={{
-          padding: '40px 0 20px 0',
-          maxWidth: '800px',
-          margin: '0 auto'
-        }}>
-          <h1 style={{ 
-            fontSize: '48px', 
-            fontWeight: '700', 
-            color: '#1A0033', 
-            margin: '0 0 8px 0',
-            lineHeight: '1.2',
-            letterSpacing: '-0.02em',
-            fontFamily: 'Klarna Text, sans-serif'
+    <>
+      {/* Article JSON-LD */}
+      {renderSchemaTag('article', {
+        title: post.seo_meta?.title || post.title,
+        description: (post.seo_meta?.description || post.excerpt || '').replace(/<[^>]*>/g, '').substring(0, 160),
+        image: articleImageUrl,
+        author: { name: post.author },
+        datePublished: post.date,
+        dateModified: post.updated_at || post.date,
+        url: canonicalUrl,
+        keywords: articleKeywords,
+        speakableSections: ['.article-body'],
+      })}
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+          .guide-page-wrapper {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+          }
+          .guide-page-wrapper * {
+            font-family: inherit;
+          }
+          .guide-content-container {
+            width: calc(100% - 80px);
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+          }
+          @media (max-width: 768px) {
+            .guide-content-container {
+              width: 100%;
+              padding: 0 16px;
+            }
+            .guide-hero-grid {
+              grid-template-columns: 1fr !important;
+              gap: 24px !important;
+            }
+            .guide-featured-image {
+              max-width: 100% !important;
+            }
+            .guide-title {
+              font-size: 1.75rem !important;
+            }
+            .guide-meta-row {
+              flex-direction: column !important;
+              align-items: flex-start !important;
+              gap: 12px !important;
+            }
+          }
+        `
+      }} />
+
+      <div className="guide-page-wrapper" style={{ backgroundColor: '#ffffff', minHeight: '100vh', fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" }}>
+        <Header />
+
+        {/* Breadcrumb - Modern Style */}
+        <div style={{ backgroundColor: '#ffffff', padding: '0' }}>
+          <div className="guide-content-container" style={{
+            padding: '16px 0',
+            fontSize: '15px',
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
           }}>
-            {post.title}
-          </h1>
-          
-          <div style={{ 
-            fontSize: '18px', 
-            color: '#1A0033', 
-            marginBottom: '20px',
-            fontWeight: '400',
-            fontFamily: 'Klarna Text, sans-serif'
-          }}>
-            By {post.author}
+            <a href="/" style={{ color: '#1f2937', textDecoration: 'none', fontWeight: '600' }}>Home</a>
+            <span style={{ margin: '0 12px', color: '#9ca3af' }}>/</span>
+            <a href="/guides" style={{ color: '#6b7280', textDecoration: 'none', fontWeight: '400' }}>Guides</a>
+            <span style={{ margin: '0 12px', color: '#9ca3af' }}>/</span>
+            <span style={{ color: '#6b7280', fontWeight: '400' }}>
+              {post.title.length > 50 ? post.title.substring(0, 50) + '...' : post.title}
+            </span>
           </div>
         </div>
 
-        {/* Featured Image Section */}
-        {(post.featured_image || post.featured_image_local) && (
-          <div style={{
-            padding: '20px 0',
-            maxWidth: '800px',
-            margin: '0 auto'
-          }}>
-            <Image
-              src={post.featured_image_local || post.featured_image || '/placeholder-blog.jpg'}
-              alt={post.title}
-              width={800}
-              height={400}
-              style={{
-                width: '100%',
-                height: 'auto',
-                borderRadius: '12px',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-              }}
-            />
+        {/* Guide Hero Section */}
+        <div style={{ backgroundColor: '#ffffff', padding: '24px 0 40px 0' }}>
+          <div className="guide-content-container" style={{ maxWidth: '800px' }}>
+            {/* Category Badge */}
+            <div style={{
+              display: 'inline-block',
+              backgroundColor: '#EEF2FF',
+              color: '#4F46E5',
+              padding: '6px 14px',
+              borderRadius: '100px',
+              fontSize: '13px',
+              fontWeight: '600',
+              marginBottom: '16px',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+            }}>
+              Guide
+            </div>
+
+            {/* Title */}
+            <h1 className="guide-title" style={{
+              fontSize: '2.5rem',
+              fontWeight: '800',
+              color: '#0B051D',
+              margin: '0 0 24px 0',
+              lineHeight: '1.2',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+              letterSpacing: '-0.02em'
+            }}>
+              {post.title}
+            </h1>
+
+            {/* Meta Row */}
+            <div className="guide-meta-row" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '24px',
+              flexWrap: 'wrap',
+              marginBottom: '32px'
+            }}>
+              {/* Author */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <div style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  backgroundColor: '#4F46E5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                }}>
+                  {post.author.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div style={{
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    color: '#1f2937',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                  }}>
+                    {post.author}
+                  </div>
+                  <div style={{
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                  }}>
+                    {new Date(post.date).toLocaleDateString('en-GB', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div style={{
+                width: '1px',
+                height: '32px',
+                backgroundColor: '#e5e7eb'
+              }} />
+
+              {/* Read Time */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '14px',
+                color: '#6b7280',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12,6 12,12 16,14"/>
+                </svg>
+                5 min read
+              </div>
+            </div>
+
+            {/* Featured Image - Full Width Row */}
+            {(post.featured_image || post.featured_image_local) && (
+              <div style={{
+                position: 'relative',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                backgroundColor: '#f8fafc',
+                marginBottom: '40px'
+              }}>
+                <Image
+                  src={post.featured_image_local || post.featured_image || '/placeholder-blog.jpg'}
+                  alt={post.title}
+                  width={800}
+                  height={450}
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    objectFit: 'cover',
+                    borderRadius: '16px'
+                  }}
+                />
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Main Content */}
-        <div style={{
-          maxWidth: '800px',
-          margin: '0 auto',
-          padding: '20px 0 60px 0'
-        }}>
-          <BlogContentProcessor 
-            content={post.fullContent || post.content || ''} 
-            title={post.title}
-            post={post}
-          />
+        <div style={{ backgroundColor: '#ffffff', padding: '0 0 60px 0' }}>
+          <div className="guide-content-container" style={{ maxWidth: '800px' }}>
+            <div className="article-body">
+              <BlogContentProcessor
+                content={post.fullContent || post.content || ''}
+                title={post.title}
+                post={post}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Related Posts */}
-        <RelatedPosts 
-          currentPostSlug={slug} 
-          currentPostTitle={post.title}
-        />
-      </div>
+        <div style={{ backgroundColor: '#f8fafc', padding: '64px 0' }}>
+          <div className="guide-content-container">
+            <RelatedPosts
+              currentPostSlug={slug}
+              currentPostTitle={post.title}
+            />
+          </div>
+        </div>
 
-      {/* My Products Floating Box */}
-      <div style={{
-        position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        backgroundColor: '#1A0033',
-        color: 'white',
-        padding: '12px 16px',
-        borderRadius: '8px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        cursor: 'pointer',
-        fontFamily: 'Klarna Text, sans-serif',
-        fontSize: '14px',
-        fontWeight: '500',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        zIndex: 1000
-      }}>
-        <span>My products</span>
-        <span style={{ fontSize: '12px' }}>^</span>
+        <Footer />
+        <CookieConsent />
       </div>
-
-      <ProductSection />
-      <SymmetricalContentSection />
-      <GuidesSection />
-      <LocalShopComparison cityName="UK" />
-      <Footer />
-      <CookieConsent />
-    </div>
+    </>
   );
+}
+
+// Pre-generate city pages and published blog post pages at build time
+export async function generateStaticParams() {
+  const params: { slug: string }[] = [];
+
+  // Add all city slugs
+  CITY_SLUGS.forEach(city => {
+    params.push({ slug: city });
+  });
+
+  // Add published blog post slugs from database
+  try {
+    const { data: posts, error } = await supabase()
+      .from('blog_posts')
+      .select('slug')
+      .in('status', ['publish', 'published']);
+
+    if (!error && posts) {
+      posts.forEach((post: { slug: string }) => {
+        if (post.slug) {
+          params.push({ slug: post.slug });
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error generating static params for [slug]:', error);
+  }
+
+  return params;
 }
