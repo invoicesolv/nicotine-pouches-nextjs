@@ -162,6 +162,23 @@ export function generateBecomeMemberPageMeta(): PageMeta {
 }
 
 // Generate meta tags for US become a member page
+export function generateUSGuidesPageMeta(): PageMeta {
+  return {
+    title: 'Guides - Nicotine Pouches US',
+    description: 'Expert guides on nicotine pouches in the US. Learn about different brands, strengths, flavors, and find the perfect pouch for your needs.',
+    keywords: 'nicotine pouches guides, nicotine pouch tips, best nicotine pouches, US guides',
+    ogTitle: 'Guides - Nicotine Pouches US',
+    ogDescription: 'Expert guides on nicotine pouches in the US. Learn about different brands, strengths, flavors, and find the perfect pouch for your needs.',
+    ogImage: 'https://nicotine-pouches.org/us-guides-og-image.jpg',
+    ogUrl: 'https://nicotine-pouches.org/us/guides',
+    twitterTitle: 'Guides - Nicotine Pouches US',
+    twitterDescription: 'Expert guides on nicotine pouches in the US. Learn about different brands, strengths, flavors, and find the perfect pouch for your needs.',
+    twitterImage: 'https://nicotine-pouches.org/us-guides-og-image.jpg',
+    canonical: 'https://nicotine-pouches.org/us/guides',
+    robots: 'index,follow'
+  };
+}
+
 export function generateUSBecomeMemberPageMeta(): PageMeta {
   return {
     title: 'Become a Member - Nicotine Pouches US',
