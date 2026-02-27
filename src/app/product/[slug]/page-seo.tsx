@@ -76,14 +76,14 @@ async function getProduct(slug: string) {
 
     // Extract SEO data
     const seoInputs = extractProductDataFromDB(product, vendorProducts);
-    seoInputs.page_url = `https://nicotinepouches.co.uk/product/${slug}`;
+    seoInputs.page_url = `https://nicotine-pouches.org/product/${slug}`;
     
     // Update breadcrumbs for product page
     seoInputs.breadcrumbs = [
-      { name: 'Home', url: 'https://nicotinepouches.co.uk' },
-      { name: 'Nicotine Pouches', url: 'https://nicotinepouches.co.uk/compare' },
-      { name: 'Products', url: 'https://nicotinepouches.co.uk/products' },
-      { name: product.name, url: `https://nicotinepouches.co.uk/product/${slug}` }
+      { name: 'Home', url: 'https://nicotine-pouches.org' },
+      { name: 'Nicotine Pouches', url: 'https://nicotine-pouches.org/compare' },
+      { name: 'Products', url: 'https://nicotine-pouches.org/products' },
+      { name: product.name, url: `https://nicotine-pouches.org/product/${slug}` }
     ];
 
     const seoData = generateProductSEO(seoInputs);
@@ -267,7 +267,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     color: '#0B051D',
                     margin: '0 0 15px 0',
                     lineHeight: '1.1',
-                    fontFamily: 'Klarna Text, sans-serif',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     letterSpacing: '-0.05em'
                   }}>
                     {product.title}
@@ -310,7 +310,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     fontWeight: '600',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
-                    fontFamily: 'Klarna Text, sans-serif'
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                   }}>
                     Compare prices
                   </button>

@@ -1,12 +1,6 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-
-// Dynamically import SignupForm with no SSR to avoid breaking server-side rendering
-const SignupForm = dynamic(() => import('./SignupForm'), {
-  ssr: false,
-  loading: () => <div style={{ minHeight: '60px' }}></div>
-});
+import SignupForm from './SignupForm';
 
 interface ClientSignupFormProps {
   source: string;
@@ -16,7 +10,7 @@ interface ClientSignupFormProps {
 
 const ClientSignupForm = ({ source, placeholder, buttonText }: ClientSignupFormProps) => {
   return (
-    <SignupForm 
+    <SignupForm
       source={source}
       placeholder={placeholder}
       buttonText={buttonText}

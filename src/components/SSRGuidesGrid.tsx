@@ -2,7 +2,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 interface BlogPost {
-  wp_id: number;
+  id?: number;
+  wp_id?: number;
   title: string;
   slug: string;
   excerpt: string;
@@ -37,15 +38,15 @@ export default function SSRGuidesGrid({ posts }: SSRGuidesGridProps) {
         // Try to construct the correct image path
         let displayImage = post.featured_image_local;
         
-        if (!displayImage && post.featured_media && post.featured_media > 0) {
-          // Try to find the image based on post data
+        if (!displayImage && post.wp_id && post.featured_media && post.featured_media > 0) {
+          // Try to find the image based on post data (only for JSON posts with wp_id)
           const possibleImageNames = [
             `post_${post.wp_id}_${post.title.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}`,
             `post_${post.wp_id}_${post.slug}`,
             post.slug,
             post.title.toLowerCase().replace(/[^a-z0-9]/g, '_')
           ];
-          
+
           // Use the first pattern as default
           displayImage = `/blog-images/${possibleImageNames[0]}.jpg`;
         }
@@ -56,8 +57,8 @@ export default function SSRGuidesGrid({ posts }: SSRGuidesGridProps) {
         }
         
         return (
-          <Link 
-            key={post.wp_id} 
+          <Link
+            key={post.id || post.wp_id || post.slug}
             href={`/${post.slug}`}
             style={{ textDecoration: 'none', color: 'inherit' }}
           >

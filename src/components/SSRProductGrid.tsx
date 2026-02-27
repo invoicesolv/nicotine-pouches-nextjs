@@ -189,7 +189,7 @@ const SSRProductGrid = async ({ brandFilter, vendorFilter, isUSRoute = false }: 
             padding: '3px 8px',
             borderRadius: '100px',
             fontSize: '11px',
-            fontFamily: '"Klarna 600", system-ui, -apple-system, sans-serif',
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
             fontWeight: '600',
             color: 'rgba(0, 0, 0, 0.9)',
             zIndex: 2,
@@ -316,7 +316,7 @@ const SSRProductGrid = async ({ brandFilter, vendorFilter, isUSRoute = false }: 
                   }}>
                     <h2 className="product-title" style={{
                       fontSize: '14px',
-                      fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                       fontWeight: '500',
                       color: '#000',
                       margin: '0',
@@ -344,7 +344,7 @@ const SSRProductGrid = async ({ brandFilter, vendorFilter, isUSRoute = false }: 
                             padding: '2px 6px',
                             borderRadius: '12px',
                             fontSize: '10px',
-                            fontFamily: '"Klarna 600", system-ui, -apple-system, sans-serif',
+                            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                             fontWeight: '600',
                             display: 'inline-block',
                             whiteSpace: 'nowrap',
@@ -364,7 +364,7 @@ const SSRProductGrid = async ({ brandFilter, vendorFilter, isUSRoute = false }: 
               }}>
                 <div className="product-price" style={{
                   fontSize: '14px',
-                  fontFamily: '"Klarna 600", system-ui, -apple-system, sans-serif',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                   fontWeight: '600',
                   color: '#000',
                   letterSpacing: '-0.2px',
@@ -381,7 +381,7 @@ const SSRProductGrid = async ({ brandFilter, vendorFilter, isUSRoute = false }: 
                 alignItems: 'center',
                 gap: '2px',
                 fontSize: '10px',
-                fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                 color: '#666',
                 marginTop: '4px',
                 letterSpacing: '-0.2px',
@@ -596,7 +596,7 @@ const SSRProductGrid = async ({ brandFilter, vendorFilter, isUSRoute = false }: 
                    style={{ width: '50%' }}>
                 <div className="fusion-column-wrapper">
                   <h2 style={{
-                    fontFamily: '"Klarna 700"',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     fontSize: '24px',
                     fontWeight: '400',
                     margin: '0',

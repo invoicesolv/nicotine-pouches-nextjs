@@ -29,7 +29,6 @@ interface GuidesGridWithSearchProps {
   totalPages?: number;
   currentPage?: number;
   searchQuery?: string;
-  sortOrder?: string;
   isServerPaginated?: boolean;
 }
 
@@ -39,7 +38,6 @@ export default function GuidesGridWithSearch({
   totalPages: serverTotalPages,
   currentPage: serverCurrentPage = 1,
   searchQuery: serverSearchQuery = '',
-  sortOrder: serverSortOrder = 'newest',
   isServerPaginated = false
 }: GuidesGridWithSearchProps) {
   const router = useRouter();
@@ -66,32 +64,25 @@ export default function GuidesGridWithSearch({
   const startIndex = (currentPage - 1) * postsPerPage;
   const endIndex = Math.min(startIndex + postsPerPage, totalPosts);
 
-  // Build URL params preserving all filters
-  const buildParams = useCallback((overrides: { search?: string; page?: string; sort?: string }) => {
-    const params = new URLSearchParams();
-    const search = overrides.search ?? serverSearchQuery;
-    const sort = overrides.sort ?? serverSortOrder;
-    const page = overrides.page ?? String(currentPage);
-    if (search) params.set('search', search);
-    if (sort && sort !== 'newest') params.set('sort', sort);
-    params.set('page', page);
-    return params.toString();
-  }, [serverSearchQuery, serverSortOrder, currentPage]);
-
   // Handle search
   const handleSearch = useCallback(() => {
     setIsSearching(true);
-    safePush(`/guides?${buildParams({ search: searchInput.trim(), page: '1' })}`);
-  }, [searchInput, buildParams]);
-
-  // Handle sort change
-  const handleSortChange = useCallback((sort: string) => {
-    safePush(`/guides?${buildParams({ sort, page: '1' })}`);
-  }, [buildParams]);
+    const params = new URLSearchParams();
+    if (searchInput.trim()) {
+      params.set('search', searchInput.trim());
+    }
+    params.set('page', '1');
+    safePush(`/guides?${params.toString()}`);
+  }, [searchInput]);
 
   // Handle page change via URL
   const handlePageChange = (page: number) => {
-    safePush(`/guides?${buildParams({ page: page.toString() })}`);
+    const params = new URLSearchParams();
+    if (serverSearchQuery) {
+      params.set('search', serverSearchQuery);
+    }
+    params.set('page', page.toString());
+    safePush(`/guides?${params.toString()}`);
 
     // Scroll to top of posts section
     const postsSection = document.getElementById('posts-section');
@@ -103,10 +94,7 @@ export default function GuidesGridWithSearch({
   // Clear search
   const handleClearSearch = () => {
     setSearchInput('');
-    const params = new URLSearchParams();
-    if (serverSortOrder && serverSortOrder !== 'newest') params.set('sort', serverSortOrder);
-    params.set('page', '1');
-    safePush(`/guides?${params.toString()}`);
+    safePush('/guides');
   };
 
   return (
@@ -141,32 +129,6 @@ export default function GuidesGridWithSearch({
             alignItems: 'center',
             flexWrap: 'wrap'
           }}>
-            {/* Sort Dropdown */}
-            <select
-              value={serverSortOrder}
-              onChange={(e) => handleSortChange(e.target.value)}
-              style={{
-                padding: '8px 32px 8px 16px',
-                border: '1px solid #e9ecef',
-                borderRadius: '20px',
-                fontSize: '14px',
-                backgroundColor: '#fff',
-                color: '#495057',
-                cursor: 'pointer',
-                fontWeight: '500',
-                appearance: 'none',
-                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
-                backgroundPosition: 'right 8px center',
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: '16px',
-                outline: 'none',
-                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
-              }}
-            >
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-            </select>
-
             {/* Search Input */}
             <div style={{ position: 'relative' }}>
               <input
@@ -189,8 +151,7 @@ export default function GuidesGridWithSearch({
                   color: '#495057',
                   fontWeight: '500',
                   minWidth: '200px',
-                  outline: 'none',
-                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                  outline: 'none'
                 }}
               />
               <button

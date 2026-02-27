@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 import FilterHandler from './FilterHandler';
 import USProductCardWithDropdown from './USProductCardWithDropdown';
 import FilterSidebarClient from './FilterSidebarClient';
@@ -16,7 +16,7 @@ interface Product {
   image: string;
   price: string;
   stores: number;
-  watching: number;
+  tracking: number;
   link: string;
 }
 
@@ -28,6 +28,7 @@ interface Filters {
   minPrice: string;
   maxPrice: string;
   format: string;
+  sort: string;
 }
 
 interface SSRProductGridProps {
@@ -39,7 +40,7 @@ interface SSRProductGridProps {
 }
 
 const SSRUSProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute = true, currentPage = 1, filters }: SSRProductGridProps) => {
-  const activeFilters = filters || { brand: '', vendor: '', flavour: '', strength: '', minPrice: '', maxPrice: '', format: '' };
+  const activeFilters = filters || { brand: '', vendor: '', flavour: '', strength: '', minPrice: '', maxPrice: '', format: '', sort: 'popularity' };
   const offset = (currentPage - 1) * PRODUCTS_PER_PAGE;
   // Fetch products on the server
   let products: Product[] = [];
@@ -58,22 +59,22 @@ const SSRUSProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRout
     let data: any[] = [];
 
     if (vendorFilter) {
-      // For vendor filtering, get products through vendor_product_mapping
+      // For vendor filtering, get products through us_vendor_product_mapping
       const { data: vendor, error: vendorError } = await supabase()
-        .from('vendors')
+        .from('us_vendors')
         .select('id')
         .ilike('name', `%${vendorFilter}%`)
         .single();
 
       if (vendorError || !vendor) {
-        throw new Error('Vendor not found');
+        throw new Error('US Vendor not found');
       }
 
-      // Get mapped products for this vendor
+      // Get mapped products for this US vendor
       const { data: mappings, error: mappingError } = await supabase()
-        .from('vendor_product_mapping')
+        .from('us_vendor_product_mapping')
         .select('product_id')
-        .eq('vendor_id', vendor.id);
+        .eq('us_vendor_id', vendor.id);
 
       if (mappingError) {
         throw mappingError;
@@ -82,7 +83,7 @@ const SSRUSProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRout
       if (mappings && mappings.length > 0) {
         const productIds = mappings.map((m: any) => m.product_id);
         const { data: productData, error: productError } = await supabase()
-          .from('wp_products')
+          .from('us_products')
           .select('*')
           .in('id', productIds);
 
@@ -122,15 +123,35 @@ const SSRUSProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRout
         query = query.lte('price', parseFloat(activeFilters.maxPrice));
       }
 
-      // Legacy brand filter support
+      // Brand filter support - use brand column for US products
       if (brandFilter) {
-        countQuery = countQuery.ilike('product_title', `${brandFilter}%`);
-        query = query.ilike('product_title', `${brandFilter}%`);
+        countQuery = countQuery.ilike('brand', brandFilter);
+        query = query.ilike('brand', brandFilter);
       }
 
       // Get total count
       const { count } = await countQuery;
       totalProducts = count || 0;
+
+      // Apply sorting
+      const sortParam = activeFilters.sort || 'popularity';
+      switch (sortParam) {
+        case 'price-low':
+          query = query.order('price', { ascending: true, nullsFirst: false });
+          break;
+        case 'price-high':
+          query = query.order('price', { ascending: false, nullsFirst: false });
+          break;
+        case 'name-asc':
+          query = query.order('product_title', { ascending: true });
+          break;
+        case 'name-desc':
+          query = query.order('product_title', { ascending: false });
+          break;
+        default:
+          // popularity - order by id desc (newest first) as a proxy
+          query = query.order('id', { ascending: false });
+      }
 
       // Get paginated results
       const { data: productData, error } = await query
@@ -149,9 +170,9 @@ const SSRUSProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRout
       data = [];
     }
 
-    // Fetch vendor product mappings to calculate real store counts
+    // Fetch US vendor product mappings to calculate real store counts
     const { data: mappings, error: mappingsError } = await supabase()
-      .from('vendor_product_mapping')
+      .from('us_vendor_product_mapping')
       .select('product_id');
 
     if (mappingsError) {
@@ -165,31 +186,85 @@ const SSRUSProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRout
       storeCounts.set(mapping.product_id, count + 1);
     });
 
-    // Function to generate watching count between 400-800, round up to nearest hundred
-    const generateWatchingCount = (min: number = 400, max: number = 800) => {
-      const count = Math.floor(Math.random() * (max - min + 1)) + min;
-      const rounded = Math.ceil(count / 100) * 100;
-      return rounded;
-    };
+    // Fetch real price alert tracking counts from database (by product_id) - use admin to bypass RLS
+    const { data: priceAlerts } = await supabaseAdmin()
+      .from('price_alerts')
+      .select('product_id')
+      .eq('is_active', true);
+
+    const trackingCounts = new Map<number, number>();
+    priceAlerts?.forEach((alert: any) => {
+      if (alert.product_id) {
+        const count = trackingCounts.get(alert.product_id) || 0;
+        trackingCounts.set(alert.product_id, count + 1);
+      }
+    });
+
+    // Fetch lowest prices from us_vendor_products_new for all mapped products
+    const productIds = data.map((p: any) => p.id);
+    const lowestPrices = new Map<number, string>();
+
+    // Get all vendor products with their prices
+    const { data: vendorProducts, error: vpError } = await supabase()
+      .from('us_vendor_product_mapping')
+      .select(`
+        product_id,
+        vendor_product,
+        us_vendor_id
+      `)
+      .in('product_id', productIds);
+
+    if (!vpError && vendorProducts && vendorProducts.length > 0) {
+      // Fetch prices from us_vendor_products_new
+      const { data: priceData, error: priceError } = await supabase()
+        .from('us_vendor_products_new')
+        .select('name, us_vendor_id, price_1pack');
+
+      if (!priceError && priceData) {
+        // Create a lookup map for prices
+        const priceLookup = new Map<string, number>();
+        priceData.forEach((vp: any) => {
+          const key = `${vp.us_vendor_id}-${vp.name}`;
+          const price = parseFloat(vp.price_1pack?.toString().replace('$', '') || '0');
+          if (price > 0) {
+            priceLookup.set(key, price);
+          }
+        });
+
+        // Find lowest price for each product
+        vendorProducts.forEach((lookup: any) => {
+          const key = `${lookup.us_vendor_id}-${lookup.vendor_product}`;
+          const price = priceLookup.get(key);
+          if (price) {
+            const currentLowest = lowestPrices.get(lookup.product_id);
+            const currentPrice = currentLowest ? parseFloat(currentLowest.replace('$', '')) : Infinity;
+            if (price < currentPrice) {
+              lowestPrices.set(lookup.product_id, `$${price.toFixed(2)}`);
+            }
+          }
+        });
+      }
+    }
 
     // Transform data to match expected format
     products = data.map((product: any, index: number) => {
       // Extract brand from product title (first word)
       const brand = product.product_title.split(' ')[0];
       const flavour = product.product_title.split(' ').slice(1).join(' ');
-      
+      const slug = product.product_title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
       return {
         id: product.id,
         name: product.product_title,
-        price: product.price ? `$${parseFloat(product.price).toFixed(2)}` : `$${(2.99 + Math.random() * 2).toFixed(2)}`,
+        price: lowestPrices.get(product.id) || (product.price ? `$${parseFloat(product.price).toFixed(2)}` : `$${(2.99 + Math.random() * 2).toFixed(2)}`), // Real lowest price or fallback
         strength: 'Normal', // Default strength since us_products doesn't have this field
         stores: storeCounts.get(product.id) || 0, // Real store count from mappings
-        watching: generateWatchingCount(400, 800), // Use same watching logic as homepage
+        tracking: trackingCounts.get(product.id) || 0, // Real tracking count from price alerts
         image: product.image_url || '/placeholder-product.jpg',
-        link: `https://nicotine-pouches.org/us/product/${product.product_title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`,
+        link: `https://nicotine-pouches.org/us/product/${slug}`,
         brand: brand,
         flavour: flavour,
-        format: 'Slim' // Default format since wp_products doesn't have this field
+        format: 'Slim' // Default format since us_products doesn't have this field
       };
     });
 
@@ -241,20 +316,20 @@ const SSRUSProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRout
         { name: 'Mini', count: Math.floor(totalProducts * 0.2) }
       ];
 
-      // Fetch vendors with counts
+      // Fetch US vendors with counts
       const { data: vendorData } = await supabase()
-        .from('vendors')
+        .from('us_vendors')
         .select('name, id')
-        .eq('is_active', true);
+        .eq('status', 'active');
 
       const { data: allMappings } = await supabase()
-        .from('vendor_product_mapping')
-        .select('vendor_id');
+        .from('us_vendor_product_mapping')
+        .select('us_vendor_id');
 
       const vendorCounts: Record<string, number> = {};
       if (vendorData && allMappings) {
         const mappingCounts = allMappings.reduce((acc: Record<string, number>, mapping: any) => {
-          acc[mapping.vendor_id] = (acc[mapping.vendor_id] || 0) + 1;
+          acc[mapping.us_vendor_id] = (acc[mapping.us_vendor_id] || 0) + 1;
           return acc;
         }, {});
 
@@ -539,26 +614,6 @@ const SSRUSProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRout
           padding: '10px',
           alignSelf: 'flex-start'
         }}>
-          {/* Section Header */}
-          <div style={{ marginBottom: '20px' }}>
-            <h2 style={{
-              fontFamily: '"Klarna 700"',
-              fontSize: '24px',
-              fontWeight: '400',
-              margin: '0 0 4px 0',
-              color: '#333',
-              letterSpacing: '-0.3px'
-            }}>
-              Products
-            </h2>
-            <div className="product-count" style={{
-              fontSize: '14px',
-              color: '#666'
-            }}>
-              {products.length} products
-            </div>
-          </div>
-
           {/* Products Grid */}
           <div className="products-grid-mobile swiper-wrapper" style={{
             display: 'grid',

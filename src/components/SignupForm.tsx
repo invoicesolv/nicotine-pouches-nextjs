@@ -77,71 +77,69 @@ export default function SignupForm({
 
   return (
     <div className={className}>
-      <form onSubmit={handleSubmit} style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
+      <form onSubmit={handleSubmit} style={{
+        display: 'flex',
+        justifyContent: 'center',
         alignItems: 'center',
-        maxWidth: '400px',
-        margin: '0 auto'
+        maxWidth: '420px',
+        margin: '0 auto',
+        backgroundColor: '#ffffff',
+        borderRadius: '50px',
+        padding: '4px',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.08)'
       }}>
-        <input 
-          type="email" 
+        <input
+          type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder={placeholder}
           disabled={loading}
+          className="newsletter-input"
           style={{
             flex: 1,
-            padding: '16px 20px',
+            padding: '10px 20px',
             border: 'none',
-            borderRadius: '25px 0 0 25px',
-            fontSize: '16px',
-            fontFamily: '"Klarna Text", system-ui, -apple-system, sans-serif',
+            borderRadius: '50px',
+            fontSize: '15px',
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
             fontWeight: '400',
             outline: 'none',
-            backgroundColor: '#ffffff',
-            color: '#333',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            transition: 'all 0.3s ease'
-          }}
-          onFocus={(e) => {
-            e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-          }}
-          onBlur={(e) => {
-            e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            backgroundColor: 'transparent',
+            color: '#333'
           }}
         />
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           disabled={loading}
           style={{
-            padding: '16px 28px',
+            width: '36px',
+            height: '36px',
             backgroundColor: loading ? '#999' : '#1a1a1a',
             color: 'white',
-            border: '1px solid white',
-            borderRadius: '0 25px 25px 0',
+            border: '2px solid #1a1a1a',
+            borderRadius: '50%',
             fontSize: '16px',
-            fontFamily: '"Klarna Text", system-ui, -apple-system, sans-serif',
-            fontWeight: '600',
+            fontFamily: '"Plus Jakarta Sans", system-ui, -apple-system, sans-serif',
+            fontWeight: '400',
             cursor: loading ? 'not-allowed' : 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             transition: 'all 0.3s ease',
-            minWidth: '100px'
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
           }}
           onMouseEnter={(e) => {
             if (!loading) {
               e.currentTarget.style.backgroundColor = '#333';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
             }
           }}
           onMouseLeave={(e) => {
             if (!loading) {
               e.currentTarget.style.backgroundColor = '#1a1a1a';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
             }
           }}
         >
-          {loading ? '...' : buttonText}
+          {loading ? '...' : '→'}
         </button>
       </form>
       
@@ -151,7 +149,7 @@ export default function SignupForm({
           padding: '8px 16px',
           borderRadius: '20px',
           fontSize: '14px',
-          fontFamily: '"Klarna Text", system-ui, -apple-system, sans-serif',
+          fontFamily: '"Plus Jakarta Sans", system-ui, -apple-system, sans-serif',
           fontWeight: '500',
           textAlign: 'center',
           backgroundColor: message.includes('Success') ? '#d1fae5' : '#fee2e2',

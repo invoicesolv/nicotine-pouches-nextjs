@@ -12,10 +12,20 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+// Default values for when provider is not available (SSR)
+const defaultLanguageContext: LanguageContextType = {
+  currentLanguage: 'uk',
+  setLanguage: () => {},
+  getLocalizedPath: (path: string) => path,
+  isUSRoute: false
+};
+
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
   if (context === undefined) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
+    // Return defaults instead of throwing - handles SSR case
+    console.warn('useLanguage called outside LanguageProvider, using defaults');
+    return defaultLanguageContext;
   }
   return context;
 };

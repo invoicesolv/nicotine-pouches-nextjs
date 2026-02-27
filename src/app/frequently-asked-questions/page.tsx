@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -107,7 +108,8 @@ export default function FrequentlyAskedQuestions() {
       <div id="wrapper" className="fusion-wrapper">
         {/* Header */}
         <Header />
-        
+
+        <main id="main-content">
         {/* Main Content */}
         <div className="fusion-fullwidth fullwidth-box fusion-builder-row-1 fusion-flex-container has-pattern-background has-mask-background hundred-percent-fullwidth non-hundred-percent-height-scrolling" 
              style={{
@@ -140,7 +142,7 @@ export default function FrequentlyAskedQuestions() {
                 <nav className="fusion-menu">
                   <ul className="fusion-menu-list" style={{ listStyle: 'none', padding: '0', margin: '0' }}>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/how-to-use" style={{ 
+                      <Link href="/how-to-use" style={{ 
                         color: '#666', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -149,10 +151,10 @@ export default function FrequentlyAskedQuestions() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         Getting started
-                      </a>
+                      </Link>
                     </li>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/safe-online-shopping" style={{ 
+                      <Link href="/safe-online-shopping" style={{ 
                         color: '#666', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -161,10 +163,10 @@ export default function FrequentlyAskedQuestions() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         Safe online shopping
-                      </a>
+                      </Link>
                     </li>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/become-a-member" style={{ 
+                      <Link href="/become-a-member" style={{ 
                         color: '#666', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -173,10 +175,10 @@ export default function FrequentlyAskedQuestions() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         Membership
-                      </a>
+                      </Link>
                     </li>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/frequently-asked-questions" style={{ 
+                      <Link href="/frequently-asked-questions" style={{ 
                         color: '#22c55e', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -186,10 +188,10 @@ export default function FrequentlyAskedQuestions() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         Frequently asked questions
-                      </a>
+                      </Link>
                     </li>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/terms-and-conditions" style={{ 
+                      <Link href="/terms-and-conditions" style={{ 
                         color: '#666', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -198,10 +200,10 @@ export default function FrequentlyAskedQuestions() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         Policies & privacy
-                      </a>
+                      </Link>
                     </li>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/terms-and-conditions" style={{ 
+                      <Link href="/terms-and-conditions" style={{ 
                         color: '#666', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -210,10 +212,10 @@ export default function FrequentlyAskedQuestions() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         Privacy settings
-                      </a>
+                      </Link>
                     </li>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/digital-services-act" style={{ 
+                      <Link href="/digital-services-act" style={{ 
                         color: '#666', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -222,7 +224,7 @@ export default function FrequentlyAskedQuestions() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         Digital Services Act (DSA)
-                      </a>
+                      </Link>
                     </li>
                   </ul>
                 </nav>
@@ -290,7 +292,7 @@ export default function FrequentlyAskedQuestions() {
             </div>
           </div>
         </div>
-
+        </main>
 
         {/* Footer */}
         <Footer />

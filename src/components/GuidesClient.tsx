@@ -124,14 +124,14 @@ export default function GuidesClient() {
           fontWeight: '600',
           color: '#1a1a1a',
           margin: '0 0 16px 0',
-          fontFamily: 'Klarna Text, sans-serif'
+          fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
         }}>
           No guides found
         </h3>
         <p style={{
           fontSize: '16px',
           color: '#666',
-          fontFamily: 'Klarna Text, sans-serif'
+          fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
         }}>
           We're working on creating comprehensive guides for you. Check back soon!
         </p>
@@ -173,7 +173,7 @@ export default function GuidesClient() {
           <p style={{
             fontSize: '16px',
             color: '#666',
-            fontFamily: 'Klarna Text, sans-serif',
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
             margin: '0'
           }}>
             {searching ? (
@@ -218,8 +218,8 @@ export default function GuidesClient() {
         }
         
         return (
-          <Link 
-            key={post.wp_id} 
+          <Link
+            key={post.id || post.wp_id || post.slug}
             href={`/${post.slug}`}
             style={{ textDecoration: 'none', color: 'inherit' }}
           >
@@ -335,7 +335,7 @@ export default function GuidesClient() {
               border: '2px solid #e5e7eb',
               backgroundColor: currentPage === 1 ? '#f9fafb' : '#ffffff',
               fontSize: '14px',
-              fontFamily: 'Klarna Text, sans-serif',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
               cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
               color: currentPage === 1 ? '#9ca3af' : '#666',
               opacity: currentPage === 1 ? 0.5 : 1
@@ -361,7 +361,7 @@ export default function GuidesClient() {
                     border: isActive ? '2px solid #2563eb' : '2px solid #e5e7eb',
                     backgroundColor: isActive ? '#2563eb' : '#ffffff',
                     fontSize: '14px',
-                    fontFamily: 'Klarna Text, sans-serif',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     cursor: 'pointer',
                     color: isActive ? '#ffffff' : '#666',
                     transition: 'all 0.2s ease'
@@ -382,7 +382,7 @@ export default function GuidesClient() {
                     border: currentPage === totalPages ? '2px solid #2563eb' : '2px solid #e5e7eb',
                     backgroundColor: currentPage === totalPages ? '#2563eb' : '#ffffff',
                     fontSize: '14px',
-                    fontFamily: 'Klarna Text, sans-serif',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     cursor: 'pointer',
                     color: currentPage === totalPages ? '#ffffff' : '#666',
                     transition: 'all 0.2s ease'
@@ -403,7 +403,7 @@ export default function GuidesClient() {
               border: '2px solid #e5e7eb',
               backgroundColor: currentPage === totalPages ? '#f9fafb' : '#ffffff',
               fontSize: '14px',
-              fontFamily: 'Klarna Text, sans-serif',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
               cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
               color: currentPage === totalPages ? '#9ca3af' : '#666',
               opacity: currentPage === totalPages ? 0.5 : 1
@@ -420,7 +420,7 @@ export default function GuidesClient() {
         marginBottom: '40px',
         color: '#666',
         fontSize: '14px',
-        fontFamily: 'Klarna Text, sans-serif'
+        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
       }}>
         Showing {startIndex + 1}-{Math.min(endIndex, totalPosts)} of {totalPosts} guides
       </div>

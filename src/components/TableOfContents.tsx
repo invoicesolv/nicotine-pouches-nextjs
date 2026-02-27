@@ -83,80 +83,21 @@ const TableOfContents = () => {
         });
       }
       
-      // Filter out product names and other non-content headings
+      // Filter to only include headings with section-X IDs (set in SymmetricalContentSection)
       const filteredHeadings = Array.from(headings).filter(heading => {
-        const text = heading.textContent || '';
-        
-        // Only include headings that are specifically content headings
-        const isContentHeading = text.includes('Compare Prices on Nicotine Pouches UK Today') ||
-                                text.includes('Explore a Wide Range of Nicotine Pouches in the UK') ||
-                                text.includes('Why Choose Nicotine Pouches UK?') ||
-                                text.includes('Nicotine Pouches UK: Fast Delivery, Great Prices') ||
-                                text.includes('Start Saving on Nicotine Pouches UK Now') ||
-                                text.includes('Discover the Best Nicotine Pouches UK with Our Price Comparison Service');
-        
-        // Exclude everything else
-        const isProductName = text.includes('ZYN') || 
-                             text.includes('Velo') || 
-                             text.includes('Loop') || 
-                             text.includes('Ice') || 
-                             text.includes('Apres') ||
-                             text.includes('Cool Mint') ||
-                             text.includes('Jalapeno Lime') ||
-                             text.includes('Freezing Peppermint') ||
-                             text.includes('Bright Spearmint') ||
-                             text.includes('Ruby Berry') ||
-                             text.includes('Crispy Peppermint') ||
-                             text.includes('Hot Peach') ||
-                             text.includes('Apple Mint') ||
-                             text.includes('Creamy Cappuccino') ||
-                             text.includes('Habanero Mint') ||
-                             text.includes('Ice Cool Mint') ||
-                             text.includes('Red Chilli Melon') ||
-                             text.includes('Tangerine Spritz') ||
-                             text.includes('Orange Spark') ||
-                             text.includes('Peppermint Storm') ||
-                             text.includes('Purple Grape') ||
-                             text.includes('Tropical Mango') ||
-                             text.includes('Wintry Watermelon') ||
-                             text.includes('Cherry Ice') ||
-                             text.includes('Violet Licorice') ||
-                             text.includes('Cool Frost') ||
-                             text.includes('Cool Blueberry') ||
-                             text.includes('Chili Guava') ||
-                             text.includes('Black Licorice') ||
-                             text.includes('Bellini') ||
-                             text.includes('Black Cherry') ||
-                             text.includes('Citrus') ||
-                             text.includes('Work with') ||
-                             text.includes('Join Community') ||
-                             text.includes('Compare prices') ||
-                             text.includes('Most Popular') ||
-                             text.includes('Trending') ||
-                             text.includes('Products') ||
-                             text.includes('Velo Products') ||
-                             text.includes('Zyn Products') ||
-                             text.includes('Discover the Best') ||
-                             text.includes('Subscribe to') ||
-                             text.includes('Learn more') ||
-                             text.includes('Business') ||
-                             text.includes('Table of content') ||
-                             text.includes('Feeling strong') ||
-                             text.includes('Trending UK');
-        
-        return isContentHeading && !isProductName;
+        const id = heading.id || '';
+        // Only include headings that already have section-X IDs assigned
+        return id.startsWith('section-');
       });
       
-      const items: TOCItem[] = filteredHeadings.map((heading, index) => {
-      const id = `section-${index}`;
-      heading.id = id;
-      return {
-        id,
-        title: heading.textContent || '',
-        level: heading.tagName === 'H2' ? 1 : 2
-      };
-    });
-    setTocItems(items);
+      const items: TOCItem[] = filteredHeadings.map((heading) => {
+        return {
+          id: heading.id,
+          title: heading.textContent || '',
+          level: heading.tagName === 'H2' ? 1 : 2
+        };
+      });
+      setTocItems(items);
     };
 
     // Try immediately, then with a delay to ensure DOM is ready
@@ -263,7 +204,7 @@ const TableOfContents = () => {
   };
 
   return (
-    <div className="sticky top-4 w-full max-w-sm bg-white rounded-lg shadow-xl p-4 md:p-6 h-fit border border-gray-200">
+    <div className="sticky top-4 w-full max-w-sm bg-white rounded-lg shadow-xl p-4 md:p-6 h-fit border border-gray-200" style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif" }}>
       <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-4 md:mb-6 border-b-2 border-blue-500 pb-2 md:pb-3">
         Table of Contents
       </h3>

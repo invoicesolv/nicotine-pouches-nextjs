@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 import FilterHandler from './FilterHandler';
 import ProductCardWithDropdown from './ProductCardWithDropdown';
 import FilterSidebarClient from './FilterSidebarClient';
@@ -16,7 +16,7 @@ interface Product {
   image: string;
   price: string;
   stores: number;
-  watching: number;
+  tracking: number;
   link: string;
 }
 
@@ -28,6 +28,7 @@ interface Filters {
   minPrice: string;
   maxPrice: string;
   format: string;
+  sort: string;
 }
 
 interface SSRProductGridProps {
@@ -39,7 +40,7 @@ interface SSRProductGridProps {
 }
 
 const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute = false, currentPage = 1, filters }: SSRProductGridProps) => {
-  const activeFilters = filters || { brand: '', vendor: '', flavour: '', strength: '', minPrice: '', maxPrice: '', format: '' };
+  const activeFilters = filters || { brand: '', vendor: '', flavour: '', strength: '', minPrice: '', maxPrice: '', format: '', sort: 'popularity' };
   const offset = (currentPage - 1) * PRODUCTS_PER_PAGE;
   // Fetch products on the server
   let products: Product[] = [];
@@ -132,6 +133,26 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
       const { count } = await countQuery;
       totalProducts = count || 0;
 
+      // Apply sorting
+      const sortParam = activeFilters.sort || 'popularity';
+      switch (sortParam) {
+        case 'price-low':
+          query = query.order('price', { ascending: true, nullsFirst: false });
+          break;
+        case 'price-high':
+          query = query.order('price', { ascending: false, nullsFirst: false });
+          break;
+        case 'name-asc':
+          query = query.order('name', { ascending: true });
+          break;
+        case 'name-desc':
+          query = query.order('name', { ascending: false });
+          break;
+        default:
+          // popularity - order by id desc (newest first) as a proxy
+          query = query.order('id', { ascending: false });
+      }
+
       // Get paginated results
       const { data: productData, error } = await query
         .range(offset, offset + PRODUCTS_PER_PAGE - 1);
@@ -165,28 +186,36 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
       storeCounts.set(mapping.product_id, count + 1);
     });
 
-    // Function to generate watching count between 400-800, round up to nearest hundred
-    const generateWatchingCount = (min: number = 400, max: number = 800) => {
-      const count = Math.floor(Math.random() * (max - min + 1)) + min;
-      const rounded = Math.ceil(count / 100) * 100;
-      return rounded;
-    };
+    // Fetch real price alert tracking counts from database (by product_id) - use admin to bypass RLS
+    const { data: priceAlerts } = await supabaseAdmin()
+      .from('price_alerts')
+      .select('product_id')
+      .eq('is_active', true);
+
+    const trackingCounts = new Map<number, number>();
+    priceAlerts?.forEach((alert: any) => {
+      if (alert.product_id) {
+        const count = trackingCounts.get(alert.product_id) || 0;
+        trackingCounts.set(alert.product_id, count + 1);
+      }
+    });
 
     // Transform data to match expected format
     products = data.map((product: any, index: number) => {
       // Extract brand from product name (first word)
       const brand = product.name.split(' ')[0];
       const flavour = product.name.split(' ').slice(1).join(' ');
-      
+      const slug = product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
       return {
         id: product.id,
         name: product.name,
         price: product.price ? `${isUSRoute ? '$' : '£'}${parseFloat(product.price).toFixed(2)}` : `${isUSRoute ? '$' : '£'}${(2.99 + Math.random() * 2).toFixed(2)}`,
         strength: 'Normal', // Default strength since wp_products doesn't have this field
         stores: storeCounts.get(product.id) || 0, // Real store count from mappings
-        watching: generateWatchingCount(400, 800), // Use same watching logic as homepage
+        tracking: trackingCounts.get(product.id) || 0, // Real tracking count from price alerts
         image: product.image_url || '/placeholder-product.jpg',
-        link: `https://nicotine-pouches.org/product/${product.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`,
+        link: `https://nicotine-pouches.org/product/${slug}`,
         brand: brand,
         flavour: flavour,
         format: 'Slim' // Default format since wp_products doesn't have this field
@@ -538,26 +567,6 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
           padding: '10px',
           alignSelf: 'flex-start'
         }}>
-          {/* Section Header */}
-          <div style={{ marginBottom: '20px' }}>
-            <h2 style={{
-              fontFamily: '"Klarna 700"',
-              fontSize: '24px',
-              fontWeight: '400',
-              margin: '0 0 4px 0',
-              color: '#333',
-              letterSpacing: '-0.3px'
-            }}>
-              Products
-            </h2>
-            <div className="product-count" style={{
-              fontSize: '14px',
-              color: '#666'
-            }}>
-              {products.length} products
-            </div>
-          </div>
-
           {/* Products Grid */}
           <div className="products-grid-mobile swiper-wrapper" style={{
             display: 'grid',

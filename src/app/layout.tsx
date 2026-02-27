@@ -1,11 +1,15 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import Script from 'next/script'
+import { headers } from 'next/headers'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import SearchConsoleMonitor from '@/components/SearchConsoleMonitor'
+import { LiveChatWidget } from '@/components/LiveChatWidget'
+import ClientPriceAlertModal from '@/components/ClientPriceAlertModal'
+import AdSenseInit from '@/components/AdSenseInit'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -16,11 +20,9 @@ const inter = Inter({
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
   display: 'swap',
-  preload: true,
   variable: '--font-plus-jakarta-sans',
-  fallback: ['system-ui', '-apple-system', 'sans-serif']
+  weight: ['400', '500', '600', '700']
 })
 
 export const metadata: Metadata = {
@@ -32,11 +34,22 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+// Viewport export - ensures proper viewport meta tag in first 1024 bytes
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // Detect if we're on a US route to set proper lang attribute
+  const headersList = await headers()
+  const pathname = headersList.get('x-pathname') || headersList.get('x-invoke-path') || ''
+  const isUSRoute = pathname.startsWith('/us')
+  const lang = isUSRoute ? 'en-US' : 'en-GB'
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -74,36 +87,6 @@ export default function RootLayout({
     "serviceArea": {
       "@type": "Country",
       "name": "United Kingdom"
-    },
-    "hasOfferCatalog": {
-      "@type": "OfferCatalog",
-      "name": "Nicotine Pouches",
-      "itemListElement": [
-        {
-          "@type": "Offer",
-          "itemOffered": {
-            "@type": "Product",
-            "name": "ZYN Nicotine Pouches",
-            "description": "Premium ZYN nicotine pouches in various flavors and strengths"
-          }
-        },
-        {
-          "@type": "Offer",
-          "itemOffered": {
-            "@type": "Product",
-            "name": "Velo Nicotine Pouches",
-            "description": "High-quality Velo nicotine pouches with refreshing flavors"
-          }
-        },
-        {
-          "@type": "Offer",
-          "itemOffered": {
-            "@type": "Product",
-            "name": "Loop Nicotine Pouches",
-            "description": "Innovative Loop nicotine pouches with unique taste profiles"
-          }
-        }
-      ]
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -225,8 +208,10 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
+    <html lang={lang} suppressHydrationWarning>
+      <head />
+      <body className={`${inter.className} ${plusJakartaSans.variable}`}>
+        {/* JSON-LD Schema scripts - placed in body to keep head small for charset in first 1024 bytes */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -245,8 +230,12 @@ export default function RootLayout({
             __html: JSON.stringify(faqSchema)
           }}
         />
-      </head>
-      <body className={`${plusJakartaSans.className} ${plusJakartaSans.variable}`}>
+        {/* Google AdSense - using dangerouslySetInnerHTML to avoid data-nscript attribute */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9898973838473500"
+          crossOrigin="anonymous"
+        />
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-9FT722JELW'}`}
           strategy="lazyOnload"
@@ -268,6 +257,9 @@ export default function RootLayout({
             {children}
             <GoogleAnalytics />
             <SearchConsoleMonitor />
+            <LiveChatWidget />
+            <ClientPriceAlertModal />
+            <AdSenseInit />
           </AuthProvider>
         </LanguageProvider>
       </body>

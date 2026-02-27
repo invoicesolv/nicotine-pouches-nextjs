@@ -460,7 +460,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
             padding: '3px 8px',
             borderRadius: '100px',
             fontSize: '11px',
-            fontFamily: '"Klarna 600", system-ui, -apple-system, sans-serif',
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
             fontWeight: '600',
             color: 'rgba(0, 0, 0, 0.9)',
             zIndex: 2,
@@ -587,7 +587,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
                   }}>
                     <h2 className="product-title" style={{
                       fontSize: '14px',
-                      fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                       fontWeight: '500',
                       color: '#000',
                       margin: '0',
@@ -615,7 +615,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
                             padding: '2px 6px',
                             borderRadius: '12px',
                             fontSize: '10px',
-                            fontFamily: '"Klarna 600", system-ui, -apple-system, sans-serif',
+                            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                             fontWeight: '600',
                             display: 'inline-block',
                             whiteSpace: 'nowrap',
@@ -635,7 +635,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
               }}>
                 <div className="product-price" style={{
                   fontSize: '14px',
-                  fontFamily: '"Klarna 600", system-ui, -apple-system, sans-serif',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                   fontWeight: '600',
                   color: '#000',
                   letterSpacing: '-0.2px',
@@ -652,7 +652,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
                 alignItems: 'center',
                 gap: '2px',
                 fontSize: '10px',
-                fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                 color: '#666',
                 marginTop: '4px',
                 letterSpacing: '-0.2px',
@@ -917,7 +917,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
                    style={{ width: '50%' }}>
                 <div className="fusion-column-wrapper">
                   <h2 style={{
-                    fontFamily: '"Klarna 700"',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     fontSize: '24px',
                     fontWeight: '400',
                     margin: '0',
@@ -984,7 +984,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
             {/* Results info */}
             <div style={{
               fontSize: '14px',
-              fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
               color: '#666',
               fontWeight: '500'
             }}>
@@ -1009,7 +1009,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
                   color: currentPage === 1 ? '#9ca3af' : '#374151',
                   cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                   fontSize: '14px',
-                  fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                   fontWeight: '500',
                   transition: 'all 0.2s'
                 }}
@@ -1048,7 +1048,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
                         color: currentPage === pageNum ? '#fff' : '#374151',
                         cursor: 'pointer',
                         fontSize: '14px',
-                        fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                         fontWeight: '500',
                         transition: 'all 0.2s',
                         display: 'flex',
@@ -1074,7 +1074,7 @@ const ProductSection = ({ brandFilter, vendorFilter }: ProductGridProps) => {
                   color: currentPage === totalPages ? '#9ca3af' : '#374151',
                   cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
                   fontSize: '14px',
-                  fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                   fontWeight: '500',
                   transition: 'all 0.2s'
                 }}

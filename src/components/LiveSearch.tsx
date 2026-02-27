@@ -19,9 +19,17 @@ interface LiveSearchProps {
   hideInput?: boolean;
   externalQuery?: string;
   onQueryChange?: (query: string) => void;
+  placeholder?: string;
+  showArrowButton?: boolean;
 }
 
-const LiveSearch = ({ hideInput = false, externalQuery = '', onQueryChange }: LiveSearchProps = {}) => {
+const LiveSearch = ({
+  hideInput = false,
+  externalQuery = '',
+  onQueryChange,
+  placeholder = 'What are you looking for?',
+  showArrowButton = false
+}: LiveSearchProps = {}) => {
   const [query, setQuery] = useState(externalQuery || '');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -229,60 +237,71 @@ const LiveSearch = ({ hideInput = false, externalQuery = '', onQueryChange }: Li
     setSelectedIndex(-1);
   };
 
+  const handleSubmit = () => {
+    if (query.trim()) {
+      const searchPath = isUSRoute ? '/us/compare' : '/compare';
+      window.location.href = `${searchPath}?search=${encodeURIComponent(query.trim())}`;
+    } else {
+      const comparePath = isUSRoute ? '/us/compare' : '/compare';
+      window.location.href = comparePath;
+    }
+  };
+
   return (
     <div ref={searchRef} className="search-container" style={{ position: 'relative', width: '100%' }}>
       {!hideInput && (
         <>
-          <input 
+          <svg className="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
             ref={inputRef}
-            type="text" 
-            placeholder="What are you looking for?" 
+            type="text"
+            placeholder={placeholder}
             className="search-input"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
               onQueryChange?.(e.target.value);
             }}
-            onKeyDown={handleKeyDown}
-            onFocus={() => query.length >= 2 && setShowResults(true)}
-            style={{
-              width: '100%',
-              padding: '12px 45px 12px 15px',
-              border: '2px solid #e5e7eb',
-              borderRadius: '25px',
-              fontSize: '14px',
-              fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
-              outline: 'none',
-              transition: 'border-color 0.3s ease',
-              backgroundColor: '#f9f9f9'
+            onKeyDown={(e) => {
+              handleKeyDown(e);
+              if (e.key === 'Enter' && selectedIndex === -1) {
+                handleSubmit();
+              }
             }}
+            onFocus={() => query.length >= 2 && setShowResults(true)}
           />
-          <div className="search-icon" style={{
-            position: 'absolute',
-            right: '15px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            color: '#6b7280',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-        {isLoading && (
-          <div className="search-loading" style={{
-            width: '16px',
-            height: '16px',
-            border: '2px solid #e5e7eb',
-            borderTop: '2px solid #3b82f6',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }} />
-        )}
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="m21 21-4.35-4.35"/>
-        </svg>
-          </div>
+          {isLoading && (
+            <div className="search-loading-spinner" style={{
+              width: '18px',
+              height: '18px',
+              border: '2px solid #e5e7eb',
+              borderTop: '2px solid #1f2544',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              marginRight: '12px'
+            }} />
+          )}
+          <button
+            type="button"
+            className="search-button"
+            onClick={handleSubmit}
+            aria-label="Search"
+          >
+            {showArrowButton ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14"/>
+                <path d="m12 5 7 7-7 7"/>
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+            )}
+          </button>
         </>
       )}
 

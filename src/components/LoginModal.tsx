@@ -151,7 +151,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
             fontWeight: '600',
             color: '#1f2937',
             margin: '0 0 8px 0',
-            fontFamily: '"Klarna 600", system-ui, -apple-system, sans-serif'
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
           }}>
             Welcome!
           </h2>
@@ -184,7 +184,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
             gap: '12px',
             marginBottom: '20px',
             transition: 'all 0.2s ease',
-            fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif'
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.borderColor = '#d1d5db';
@@ -259,7 +259,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
                   fontSize: '14px',
                   outline: 'none',
                   transition: 'border-color 0.2s ease',
-                  fontFamily: '"Klarna 400", system-ui, -apple-system, sans-serif'
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                 }}
                 onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
                 onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
@@ -292,7 +292,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
                 fontSize: '14px',
                 outline: 'none',
                 transition: 'border-color 0.2s ease',
-                fontFamily: '"Klarna 400", system-ui, -apple-system, sans-serif'
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
               }}
               onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
               onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
@@ -323,7 +323,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
                 fontSize: '14px',
                 outline: 'none',
                 transition: 'border-color 0.2s ease',
-                fontFamily: '"Klarna 400", system-ui, -apple-system, sans-serif'
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
               }}
               onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
               onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
@@ -355,7 +355,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
                   fontSize: '14px',
                   outline: 'none',
                   transition: 'border-color 0.2s ease',
-                  fontFamily: '"Klarna 400", system-ui, -apple-system, sans-serif'
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                 }}
                 onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
                 onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
@@ -377,7 +377,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }: LoginModalProps) => {
               fontWeight: '500',
               cursor: loading ? 'not-allowed' : 'pointer',
               transition: 'background-color 0.2s ease',
-              fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
               opacity: loading ? 0.7 : 1
             }}
             onMouseOver={(e) => !loading && (e.currentTarget.style.backgroundColor = '#374151')}

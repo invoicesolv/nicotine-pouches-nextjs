@@ -54,7 +54,7 @@ export default function ThankYou() {
               fontWeight: '700',
               color: '#1a1a1a',
               margin: '0 0 20px 0',
-              fontFamily: 'Klarna Text, sans-serif',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
               lineHeight: '1.2',
               letterSpacing: '-0.02em'
             }}>
@@ -65,7 +65,7 @@ export default function ThankYou() {
               fontSize: '20px',
               color: '#666',
               margin: '0 0 30px 0',
-              fontFamily: 'Klarna Text, sans-serif',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
               lineHeight: '1.6',
               maxWidth: '600px',
               marginLeft: 'auto',
@@ -87,7 +87,7 @@ export default function ThankYou() {
                 color: 'white',
                 borderRadius: '25px',
                 fontSize: '16px',
-                fontFamily: 'Klarna Text, sans-serif',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                 fontWeight: '600'
               }}>
                 Check your email for confirmation
@@ -121,7 +121,7 @@ export default function ThankYou() {
               fontWeight: '700',
               color: '#1a1a1a',
               margin: '0 0 16px 0',
-              fontFamily: 'Klarna Text, sans-serif'
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
             }}>
               Compare Prices & Find Your Perfect Match
             </h2>
@@ -129,7 +129,7 @@ export default function ThankYou() {
               fontSize: '18px',
               color: '#666',
               margin: '0',
-              fontFamily: 'Klarna Text, sans-serif',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
               maxWidth: '600px',
               marginLeft: 'auto',
               marginRight: 'auto'

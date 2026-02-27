@@ -1,6 +1,8 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { Suspense } from 'react';
+import Script from 'next/script';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Image from 'next/image';
@@ -35,6 +37,9 @@ import PackSizeForm from '@/components/PackSizeForm';
 import ShippingFilterDropdown from '@/components/ShippingFilterDropdown';
 import CombinedFilterPopup from '@/components/CombinedFilterPopup';
 import ExpandableVendorCard from '@/components/ExpandableVendorCard';
+import ProductHeroActions from '@/components/ProductHeroActions';
+import ProductSectionNav from '@/components/ProductSectionNav';
+import StrengthSelector from '@/components/StrengthSelector';
 
 // Helper function to check if a price is valid
 function isValidPrice(price: any): boolean {
@@ -52,11 +57,23 @@ function parsePriceToNumber(price: any): number {
   return parseFloat(price.toString().replace(/[£€$]/g, '').replace(/,/g, '').trim() || '0');
 }
 
-// Helper function to calculate price for a pack size (handles 15 pack logic)
+// Helper function to calculate price for a pack size (handles vendor-specific logic)
 function calculatePackPrice(variant: any, packSize: string, vendorName?: string): number {
   if (!variant?.prices) return 0;
 
   let calculatedPrice = 0;
+  const packCount = parseInt(packSize.replace('pack', '')) || 1;
+
+  // Nicpouch stores per-unit prices - multiply by pack count
+  const isNicpouch = vendorName && vendorName.toLowerCase().includes('nicpouch');
+
+  if (isNicpouch && isValidPrice(variant.prices[packSize])) {
+    const pricePerUnit = parsePriceToNumber(variant.prices[packSize]);
+    if (pricePerUnit > 0) {
+      calculatedPrice = pricePerUnit * packCount;
+      return calculatedPrice;
+    }
+  }
 
   if (packSize === '15pack') {
     // Check if 15 pack price exists
@@ -64,8 +81,8 @@ function calculatePackPrice(variant: any, packSize: string, vendorName?: string)
       calculatedPrice = parsePriceToNumber(variant.prices['15pack']);
     }
 
-    // For Nicpouch and Snusifer, prioritize 1pack over 10pack
-    const use1PackFallback = vendorName && (vendorName.toLowerCase().includes('nicpouch') || vendorName.toLowerCase().includes('snusifer'));
+    // For Snusifer, prioritize 1pack over 10pack
+    const use1PackFallback = vendorName && vendorName.toLowerCase().includes('snusifer');
 
     if (!calculatedPrice && use1PackFallback && isValidPrice(variant.prices['1pack'])) {
       // Use 1 pack: price_1pack * 15
@@ -94,17 +111,11 @@ function calculatePackPrice(variant: any, packSize: string, vendorName?: string)
     calculatedPrice = parsePriceToNumber(variant.prices[packSize]);
   }
 
-  // Apply 15% discount for Snusifer (vendor ID 5085)
-  const isSnusifer = vendorName && vendorName.toLowerCase().includes('snusifer');
-  if (isSnusifer && calculatedPrice > 0) {
-    calculatedPrice = calculatedPrice * 0.85; // Apply 15% discount
-  }
-
   return calculatedPrice;
 }
 
 // Fetch product data from Supabase
-async function getProduct(slug: string, packSize: string = '15pack', shippingFilter: string = 'fastest', sortFilter: string = 'low-high') {
+async function getProduct(slug: string, packSize: string = '1pack', shippingFilter: string = 'fastest', sortFilter: string = 'low-high') {
   try {
     // Convert slug back to proper case name
     // First replace 'amp' with '&amp;' to handle HTML entities
@@ -229,11 +240,19 @@ async function getProduct(slug: string, packSize: string = '15pack', shippingFil
       }
     }
 
-    // Extract brand and flavour from product name for wp_products
+    // Use enhanced database columns if available, fallback to parsing from product name
     const productName = product.name || '';
-    const brand = productName.split(' ')[0] || 'Unknown';
-    const flavour = productName.split(' ').slice(1).join(' ') || 'Unknown';
-    const strengthGroup = '6mg'; // Default strength for wp_products
+    const brand = product.brand_name || productName.split(' ')[0] || 'Unknown';
+    // For flavour display, use the full name from product (minus brand) for better UX
+    const flavour = productName.split(' ').slice(1).join(' ') || product.flavour_category || 'Unknown';
+    // For strength, prefer nicotine_mg if available, otherwise try to parse from name or use default
+    const strengthMatch = productName.match(/(\d+(?:\.\d+)?)\s*mg/i);
+    const strengthGroup = product.nicotine_mg
+      ? `${product.nicotine_mg}mg`
+      : (strengthMatch ? `${strengthMatch[1]}mg` : '6mg');
+    // Capitalize format for display (slim -> Slim)
+    const rawFormat = product.pouch_format || 'pouches';
+    const productFormat = rawFormat.charAt(0).toUpperCase() + rawFormat.slice(1);
     
     console.log('Found product:', { id: product.id, name: product.name, brand, flavour });
 
@@ -252,31 +271,52 @@ async function getProduct(slug: string, packSize: string = '15pack', shippingFil
       console.log('Found mappings:', mappings?.length || 0);
     }
 
+    // Build select with all price columns to determine available pack sizes
+    const vendorProductSelect = `
+      id,
+      name,
+      vendor_id,
+      url,
+      price_1pack,
+      price_3pack,
+      price_5pack,
+      price_10pack,
+      price_15pack,
+      price_20pack,
+      price_25pack,
+      price_30pack,
+      price_50pack,
+      price_100pack,
+      stock_status,
+      updated_at,
+      created_at,
+      vendors!inner(
+        id,
+        name,
+        logo_url,
+        rating,
+        trustpilot_score,
+        review_count,
+        shipping_info,
+        shipping_cost,
+        free_shipping_threshold,
+        delivery_speed,
+        currency,
+        needs_currency_conversion,
+        offer_type,
+        offer_value,
+        offer_description
+      )
+    `;
+
     if (mappings && mappings.length > 0) {
-      // Get vendor products using the correct join
+      // Get vendor products - only select needed columns, limit to 20 vendors max
       const { data: vpData, error: vpError } = await supabase()
         .from('vendor_products')
-        .select(`
-          *,
-          updated_at,
-          vendors!inner(
-            id,
-            name,
-            logo_url,
-            rating,
-            trustpilot_score,
-            shipping_info,
-            shipping_cost,
-            free_shipping_threshold,
-            currency,
-            needs_currency_conversion,
-            offer_type,
-            offer_value,
-            offer_description
-          )
-        `)
+        .select(vendorProductSelect)
         .in('name', mappings.map((m: any) => m.vendor_product))
-        .in('vendor_id', mappings.map((m: any) => m.vendor_id));
+        .in('vendor_id', mappings.map((m: any) => m.vendor_id))
+        .limit(20);
 
       if (vpError) {
         console.error('Error fetching mapped vendor products:', vpError);
@@ -284,30 +324,12 @@ async function getProduct(slug: string, packSize: string = '15pack', shippingFil
         vendorProducts = vpData || [];
       }
     } else {
-      // Fallback: search for products with similar brand name
+      // Fallback: search for products with similar brand name - only needed columns
       const { data: vpData, error: vpError } = await supabase()
         .from('vendor_products')
-        .select(`
-          *,
-          updated_at,
-          vendors!inner(
-            id,
-            name,
-            logo_url,
-            rating,
-            trustpilot_score,
-            shipping_info,
-            shipping_cost,
-            free_shipping_threshold,
-            currency,
-            needs_currency_conversion,
-            offer_type,
-            offer_value,
-            offer_description
-          )
-        `)
+        .select(vendorProductSelect)
         .ilike('name', `%${brand.toLowerCase()}%`)
-      .limit(10);
+        .limit(10);
 
       if (vpError) {
         console.error('Error fetching vendor products by brand:', vpError);
@@ -351,9 +373,11 @@ async function getProduct(slug: string, packSize: string = '15pack', shippingFil
       logo: vendor.logo_url,
           rating: vendor.rating || 4.5,
           trustpilot_score: vendor.trustpilot_score || null,
+          review_count: vendor.review_count || 0,
           shipping_info: vendor.shipping_info || 'Standard shipping',
           shipping_cost: typeof vendor.shipping_cost === 'string' ? parseFloat(vendor.shipping_cost) || 0 : (vendor.shipping_cost || 0),
           free_shipping_threshold: typeof vendor.free_shipping_threshold === 'string' ? parseFloat(vendor.free_shipping_threshold) || 0 : (vendor.free_shipping_threshold || 0),
+          delivery_speed: vendor.delivery_speed || null,
           vendorId: vp.vendor_id,
           updated_at: vp.updated_at || vp.created_at || null,
           vendor: {
@@ -382,19 +406,18 @@ async function getProduct(slug: string, packSize: string = '15pack', shippingFil
         strength = strengthMatch ? strengthMatch[1] : 'Standard';
       }
       
-      // Prepare raw prices
-      const rawPrices = {
-        '1pack': vp.price_1pack,
-        '3pack': vp.price_3pack,
-        '5pack': vp.price_5pack,
-        '10pack': vp.price_10pack,
-        '15pack': vp.price_15pack,
-        '20pack': vp.price_20pack,
-        '25pack': vp.price_25pack,
-        '30pack': vp.price_30pack,
-        '50pack': vp.price_50pack,
-        '100pack': vp.price_100pack
-      };
+      // Prepare raw prices - include all pack sizes to calculate available options
+      const rawPrices: Record<string, any> = {};
+      if (vp.price_1pack !== undefined) rawPrices['1pack'] = vp.price_1pack;
+      if (vp.price_3pack !== undefined) rawPrices['3pack'] = vp.price_3pack;
+      if (vp.price_5pack !== undefined) rawPrices['5pack'] = vp.price_5pack;
+      if (vp.price_10pack !== undefined) rawPrices['10pack'] = vp.price_10pack;
+      if (vp.price_15pack !== undefined) rawPrices['15pack'] = vp.price_15pack;
+      if (vp.price_20pack !== undefined) rawPrices['20pack'] = vp.price_20pack;
+      if (vp.price_25pack !== undefined) rawPrices['25pack'] = vp.price_25pack;
+      if (vp.price_30pack !== undefined) rawPrices['30pack'] = vp.price_30pack;
+      if (vp.price_50pack !== undefined) rawPrices['50pack'] = vp.price_50pack;
+      if (vp.price_100pack !== undefined) rawPrices['100pack'] = vp.price_100pack;
       
       // Apply currency conversion if needed
       const convertedPrices = convertVendorPrices(vendor, rawPrices);
@@ -528,10 +551,19 @@ async function getProduct(slug: string, packSize: string = '15pack', shippingFil
         const variantB = b.variants[0];
         const priceA = calculatePackPrice(variantA, packSize, a.name);
         const priceB = calculatePackPrice(variantB, packSize, b.name);
-        
+
         return priceA - priceB;
       });
     }
+
+    // Sort by price (lowest first)
+    stores.sort((a, b) => {
+      const variantA = a.variants[0];
+      const variantB = b.variants[0];
+      const priceA = calculatePackPrice(variantA, packSize, a.name);
+      const priceB = calculatePackPrice(variantB, packSize, b.name);
+      return priceA - priceB;
+    });
 
     const processedStores = stores
       .filter(store => {
@@ -567,7 +599,7 @@ async function getProduct(slug: string, packSize: string = '15pack', shippingFil
       product_name: product.name || 'Unknown Product',
       flavour: flavour,
       strength_mg: strengthGroup,
-      format: 'Pouches',
+      format: productFormat,
       pouch_count: 20, // Default value
       nicotine_free_option: false,
       country_focus: 'UK',
@@ -589,7 +621,7 @@ async function getProduct(slug: string, packSize: string = '15pack', shippingFil
         brand: brand,
         flavour: flavour,
         strength_mg: store.variants?.[0]?.strength || 'Standard',
-        format: 'Pouches',
+        format: productFormat,
         pouch_count: 20,
         nicotine_free_option: false,
         retailer_name: store.name,
@@ -668,7 +700,7 @@ async function getProduct(slug: string, packSize: string = '15pack', shippingFil
         { name: 'Products', url: '/products' },
         { name: product.name || 'Unknown Product', url: product.page_url || `https://nicotine-pouches.org/product/${slug}` }
       ],
-      hreflang: generateSafeHreflang(generateProductHreflang(slug, false)),
+      hreflang: generateSafeHreflang(generateProductHreflang(slug, false, false)),
       related_entities: {
         brand_hub: `/brand/${brand.toLowerCase()}`,
         flavour_hub: `/flavour/${flavour.toLowerCase()}`,
@@ -691,7 +723,7 @@ async function getProduct(slug: string, packSize: string = '15pack', shippingFil
       product_name: product.name || 'Unknown Product',
       flavour: flavour,
       strength_mg: parseFloat(strengthGroup) || 0,
-      format: 'Pouches',
+      format: productFormat,
       pouch_count: 20,
       packs: stores.map((store, index) => {
         const packSizeNumber = parseInt(packSize.replace('pack', ''));
@@ -745,7 +777,7 @@ async function getProduct(slug: string, packSize: string = '15pack', shippingFil
         { name: 'Products', url: '/products' },
         { name: product.name || 'Unknown Product', url: product.page_url || `https://nicotine-pouches.org/product/${slug}` }
       ],
-      hreflang: generateSafeHreflang(generateProductHreflang(slug, false)),
+      hreflang: generateSafeHreflang(generateProductHreflang(slug, false, false)),
       related_entities: {
         brand_hub: `/brand/${brand.toLowerCase()}`,
         flavour_hub: `/flavour/${flavour.toLowerCase()}`,
@@ -766,7 +798,23 @@ async function getProduct(slug: string, packSize: string = '15pack', shippingFil
       faqCount: llmSeoData?.faq_plaintext?.length || 0,
       schemaGenerated: !!llmSeoData?.schema_json_ld
     });
-    
+
+    // Calculate available pack sizes from all stores
+    // A pack size is "available" if at least one vendor has a valid price for it
+    const allPackSizes = ['1pack', '3pack', '5pack', '10pack', '15pack', '20pack', '25pack', '30pack', '50pack', '100pack'];
+    const availablePackSizes = allPackSizes.filter(packSizeKey => {
+      // Check if any store has a valid price for this pack size
+      return stores.some(store => {
+        // Check all variants in the store
+        return store.variants?.some((variant: any) => {
+          const price = variant.prices?.[packSizeKey];
+          return isValidPrice(price);
+        });
+      });
+    });
+
+    console.log('Available pack sizes:', availablePackSizes);
+
     return {
       id: product.id || 'unknown',
       slug: slug,
@@ -775,17 +823,20 @@ async function getProduct(slug: string, packSize: string = '15pack', shippingFil
       image: product.image_url || '/placeholder-product.jpg',
       rating: 0, // Default rating since wp_products doesn't have rating
       description: product.content || 'No description available',
+      description_short: product.description_short || '',
+      description_long: product.description_long || '',
       brand: brand,
       flavour: flavour,
       strength_group: strengthGroup,
-      format: 'Pouches',
+      format: productFormat,
       page_url: product.page_url || `https://nicotine-pouches.org/product/${slug}`,
       stores: processedStores,
       content: product.content || '',
       excerpt: product.excerpt || '',
       regularSeoData,
       llmSeoData,
-      selectedPack: packSize
+      selectedPack: packSize,
+      availablePackSizes: availablePackSizes.length > 0 ? availablePackSizes : ['1pack'] // Fallback to 1pack if none available
     };
   } catch (error) {
     console.error('Error fetching product:', error);
@@ -853,7 +904,7 @@ interface ProductPageProps {
 export default async function ProductPage({ params, searchParams }: ProductPageProps) {
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
-  const selectedPack = resolvedSearchParams.pack || '15pack';
+  const selectedPack = resolvedSearchParams.pack || '1pack';
   
   const product = await getProduct(resolvedParams.slug, selectedPack, resolvedSearchParams.shipping || 'fastest', resolvedSearchParams.sort || 'low-high');
 
@@ -864,30 +915,30 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   // Fetch aggregate rating for the product
   const ratingData = await getProductAggregateRating(product.id);
   
-  // Fetch vendor review counts for SSR table
+  // Fetch vendor review counts - use count queries (no data fetched, just counts)
   const vendorReviewCountMap = new Map<number, number>();
   if (product.stores && product.stores.length > 0) {
-    const vendorIds = product.stores.map((store: any) => store.vendorId);
-    
-    // Fetch review counts for all vendors
-    for (const vendorId of vendorIds) {
-      const { count: userReviewCount } = await supabase()
-        .from('reviews')
-        .select('*', { count: 'exact', head: true })
-        .eq('vendor_id', vendorId)
-        .eq('is_approved', true);
-      
-      const { count: trustpilotReviewCount } = await supabase()
-        .from('trustpilot_reviews')
-        .select('*', { count: 'exact', head: true })
-        .eq('vendor_id', vendorId);
-      
-      const totalReviewCount = (userReviewCount || 0) + (trustpilotReviewCount || 0);
-      
-      if (totalReviewCount > 0) {
-        vendorReviewCountMap.set(vendorId, totalReviewCount);
+    const vendorIds = product.stores.map((store: any) => store.vendorId).filter(Boolean);
+
+    // Get counts for each vendor in parallel (count only, no row data)
+    await Promise.all(vendorIds.map(async (vendorId: number) => {
+      const [userResult, trustpilotResult] = await Promise.all([
+        supabase()
+          .from('reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('vendor_id', vendorId)
+          .eq('is_approved', true),
+        supabase()
+          .from('trustpilot_reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('vendor_id', vendorId)
+      ]);
+
+      const total = (userResult.count || 0) + (trustpilotResult.count || 0);
+      if (total > 0) {
+        vendorReviewCountMap.set(vendorId, total);
       }
-    }
+    }));
   }
   
   // Fetch ALL Trustpilot reviews for all vendors (server-side) - sorted by date newest first
@@ -896,6 +947,8 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   const vendorLogoMap = new Map<number, string>();
   if (product.stores && product.stores.length > 0) {
     const vendorIds = product.stores.map((store: any) => store.vendorId);
+    console.log('🔍 Fetching reviews for vendorIds:', vendorIds);
+    console.log('🔍 Stores:', product.stores.map((s: any) => ({ name: s.name, vendorId: s.vendorId })));
     
     // Fetch vendor logos directly from vendors table (same as SSR table)
     const { data: vendors } = await supabase()
@@ -909,10 +962,24 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       'HAYYP': '/vendor-logos/HAYPP.jpg',
       'Snusifer': '/vendor-logos/Snusifer.png',
       'Emeraldpods': '/vendor-logos/Emeraldpods.webp',
+      'Emerald': '/vendor-logos/Emeraldpods.webp',
       'Snus Vikings': '/vendor-logos/Snus-viking.png',
       'Northerner UK': '/vendor-logos/northerner_black_mobile.webp',
+      'Northerner US': '/vendor-logos/northerner_black_mobile.webp',
       'Nicokick': '/vendor-logos/Nicokick.png',
+      'Nicokick (55788)': '/vendor-logos/Nicokick.png',
       'Nicpouch': '/vendor-logos/NICPOUCHUK.jpg',
+      'GotPouches': '/vendor-logos/gotpouches.png',
+      'SnusDirect': '/vendor-logos/snusdirekt.avif',
+      'SnusDaddy': '/vendor-logos/pouchdaddy.png',
+      'Prime Nic Pouches': '/vendor-logos/PrimeNicPouches.png',
+      'Prime': '/vendor-logos/PrimeNicPouches.png',
+      'PrimeNicPouches': '/vendor-logos/PrimeNicPouches.png',
+      'PrimeVapes': '/vendor-logos/PrimeVapes.png',
+      'NicoUK': '/vendor-logos/NicoUK.png',
+      'NicPouches': '/vendor-logos/NicPouches.svg',
+      'SnusBoys': '/vendor-logos/SnusBoys.png',
+      'NicPouchesDirect': '/vendor-logos/NicPouchesDirect.png',
     };
     
     if (vendors) {
@@ -924,34 +991,41 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       });
     }
     
-    // Fetch ALL reviews from all vendors (no limit)
-    for (const vendorId of vendorIds) {
-      const { data: reviews } = await supabase()
-        .from('trustpilot_reviews')
-        .select('*')
-        .eq('vendor_id', vendorId)
-        .order('review_date', { ascending: false, nullsFirst: false });
-      
-      if (reviews && reviews.length > 0) {
-        // Add vendor name and logo to each review for display
-        const vendorLogo = vendorLogoMap.get(vendorId);
-        const vendorName = vendorNameMap.get(vendorId) || 'Unknown Vendor';
-        reviews.forEach((review: any) => {
-          allTrustpilotReviews.push({
-            ...review,
-            vendor_name: vendorName,
-            vendor_logo: vendorLogo || null
-          });
+    // Fetch first 10 reviews across all vendors (single query with limit)
+    const { data: reviews } = await supabase()
+      .from('trustpilot_reviews')
+      .select('*')
+      .in('vendor_id', vendorIds)
+      .order('review_date', { ascending: false, nullsFirst: false })
+      .limit(10);
+
+    if (reviews && reviews.length > 0) {
+      console.log('🔍 Reviews fetched:', reviews.length);
+      console.log('🔍 Review vendor_ids:', [...new Set(reviews.map((r: any) => r.vendor_id))]);
+      reviews.forEach((review: any) => {
+        const vendorLogo = vendorLogoMap.get(review.vendor_id);
+        const vendorName = vendorNameMap.get(review.vendor_id) || 'Unknown Vendor';
+        allTrustpilotReviews.push({
+          ...review,
+          vendor_name: vendorName,
+          vendor_logo: vendorLogo || null
         });
-      }
+      });
+    } else {
+      console.log('🔍 No reviews returned from query');
     }
-    
-    // Sort all reviews by date (newest first)
-    allTrustpilotReviews.sort((a, b) => {
-      const dateA = a.review_date ? new Date(a.review_date).getTime() : 0;
-      const dateB = b.review_date ? new Date(b.review_date).getTime() : 0;
-      return dateB - dateA; // Newest first
-    });
+  }
+
+  // Get total count of trustpilot reviews for all vendors
+  let totalTrustpilotReviewCount = 0;
+  if (product.stores && product.stores.length > 0) {
+    const vendorIds = product.stores.map((store: any) => store.vendorId).filter(Boolean);
+    const { count } = await supabase()
+      .from('trustpilot_reviews')
+      .select('*', { count: 'exact', head: true })
+      .in('vendor_id', vendorIds);
+    totalTrustpilotReviewCount = count || 0;
+    console.log('🔍 Total trustpilot reviews count:', totalTrustpilotReviewCount);
   }
   
   // Prepare product data for schema
@@ -983,6 +1057,13 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
 
   return (
     <>
+      {/* Google AdSense - only loaded on product pages */}
+      <Script
+        async
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9898973838473500"
+        crossOrigin="anonymous"
+        strategy="lazyOnload"
+      />
       {/* Standalone AggregateRating Schema - Only render if reviewCount > 0 */}
       {ratingData && ratingData.reviewCount > 0 && (() => {
         // Calculate SKU, MPN, GTIN values (same logic as in getProduct function)
@@ -1002,7 +1083,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
             // Get the first variant (or use store directly if no variants)
             const variant = store.variants?.[0] || store;
             const prices = variant.prices || store.prices || {};
-            const storeUrl = variant.link || store.url || `https://nicotinepouches.co.uk/product/${resolvedParams.slug}`;
+            const storeUrl = variant.link || store.url || `https://nicotine-pouches.org/product/${resolvedParams.slug}`;
             const stockStatus = variant.stock_status || store.stock_status || 'in_stock';
             
             // Determine availability
@@ -1079,8 +1160,8 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
         
         // Ensure image URL is absolute - product.image comes from product.image_url
         const imageUrl = product.image && product.image !== '/placeholder-product.jpg'
-          ? (product.image.startsWith('http') ? product.image : `https://nicotinepouches.co.uk${product.image}`)
-          : `https://nicotinepouches.co.uk/placeholder-product.jpg`;
+          ? (product.image.startsWith('http') ? product.image : `https://nicotine-pouches.org${product.image}`)
+          : `https://nicotine-pouches.org/placeholder-product.jpg`;
         
         // Get description (strip HTML tags) - product.description comes from product.content
         const description = (product.description || product.content || '')
@@ -1131,7 +1212,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               
               return {
                 "@type": "Offer",
-                "url": store.url || `https://nicotinepouches.co.uk/product/${resolvedParams.slug}`,
+                "url": store.url || `https://nicotine-pouches.org/product/${resolvedParams.slug}`,
                 "priceCurrency": priceCurrency,
                 "price": priceValue.toFixed(2),
                 "priceValidUntil": new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -1210,49 +1291,134 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
         </div>
       )}
       
-      {/* Hreflang Meta Tags */}
-      {generateSafeHreflang(generateProductHreflang(resolvedParams.slug, false)).map((entry) => (
+      {/* Hreflang Meta Tags - UK products only, no cross-region links (UK/US have different product catalogs) */}
+      {generateSafeHreflang(generateProductHreflang(resolvedParams.slug, false, false)).map((entry) => (
         <link key={entry.lang} rel="alternate" hrefLang={entry.lang} href={entry.url} />
       ))}
       
       <style dangerouslySetInnerHTML={{
         __html: `
+          .content-container {
+            width: calc(100% - 80px);
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+          }
+          @media (min-width: 1536px) {
+            .content-container {
+              max-width: 90%;
+            }
+          }
+          /* Desktop defaults - hide mobile elements */
+          .strength-selector-mobile {
+            display: none;
+          }
+          .price-summary-mobile {
+            display: none;
+          }
+          @media (max-width: 1024px) {
+            .hero-ad-sidebar,
+            .adsense-sidebar,
+            .reviews-ad-sidebar,
+            .details-ad-sidebar {
+              display: none !important;
+            }
+          }
           @media (max-width: 768px) {
+            .content-container {
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+            }
+            .comparison-section-wrapper {
+              padding: 0 !important;
+            }
             .product-hero-grid {
-              grid-template-columns: 1fr 1fr !important;
-              gap: 20px !important;
+              display: block !important;
               padding: 0 15px !important;
-              align-items: start !important;
+            }
+            .product-hero-top-row {
+              display: flex !important;
+              gap: 16px !important;
+              align-items: flex-start !important;
             }
             .product-image-container {
-              min-height: 250px !important;
-              padding: 15px !important;
+              flex: 0 0 100px !important;
+              min-height: auto !important;
+              padding: 8px !important;
+              max-width: 100px !important;
+              position: relative !important;
+            }
+            .product-info-mobile {
+              flex: 1 !important;
+              min-width: 0 !important;
+            }
+            .strength-selector-wrapper {
+              display: none !important;
+            }
+            .strength-selector-mobile {
+              display: none !important;
             }
             .product-title {
-              font-size: 1.8rem !important;
+              font-size: 1.2rem !important;
               word-wrap: break-word !important;
               overflow-wrap: break-word !important;
-              hyphens: auto !important;
               margin-bottom: 10px !important;
+              line-height: 1.35 !important;
+              font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
+              font-weight: 700 !important;
+              color: #202124 !important;
             }
             .product-hero p {
               font-size: 14px !important;
-              line-height: 1.4 !important;
+              line-height: 1.5 !important;
+              font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
+              color: #5f6368 !important;
             }
             .product-hero {
-              padding: 30px 0 !important;
+              padding: 12px 0 !important;
+            }
+            .product-description-desktop {
+              display: block !important;
+              font-size: 14px !important;
+              margin-bottom: 0 !important;
+              -webkit-line-clamp: 2 !important;
+              display: -webkit-box !important;
+              -webkit-box-orient: vertical !important;
+              overflow: hidden !important;
+              color: #5f6368 !important;
+            }
+            .product-action-row {
+              display: none !important;
+            }
+            .price-summary-mobile {
+              display: block !important;
+            }
+            .rating-badge-mobile {
+              display: flex !important;
+            }
+            .breadcrumb-link:hover {
+              text-decoration: underline !important;
             }
             .main-content-layout {
               flex-direction: column !important;
               gap: 20px !important;
-              margin: 40px auto 20px auto !important;
-              padding: 0 15px !important;
+              margin: 0 !important;
+              padding: 16px 0 0 0 !important;
+              max-width: 100% !important;
             }
             .vendor-comparison {
               order: 1 !important;
               flex: none !important;
               min-width: 100% !important;
               width: 100% !important;
+              padding: 0 !important;
+            }
+            .vendor-cards-container {
+              padding: 0 !important;
+              gap: 8px !important;
+              width: 95% !important;
+              margin: 0 auto !important;
             }
             .product-info-sidebar {
               order: 2 !important;
@@ -1266,15 +1432,26 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               max-width: 100% !important;
             }
             .comparison-table-filters {
-              flex-direction: column !important;
-              gap: 10px !important;
-              align-items: stretch !important;
-            }
-            .comparison-table-filters > div {
+              flex-direction: row !important;
+              gap: 8px !important;
+              align-items: center !important;
+              overflow-x: auto !important;
+              overflow-y: hidden !important;
+              -webkit-overflow-scrolling: touch !important;
+              scrollbar-width: none !important;
+              -ms-overflow-style: none !important;
+              padding: 12px 15px !important;
+              margin: 0 0 0 0 !important;
+              flex-wrap: nowrap !important;
               width: 100% !important;
+              background: transparent !important;
             }
-            .vendor-card {
-              margin-bottom: 15px !important;
+            .comparison-table-filters::-webkit-scrollbar {
+              display: none !important;
+            }
+            .comparison-table-filters > * {
+              flex-shrink: 0 !important;
+              width: auto !important;
             }
             .vendor-info {
               flex-direction: column !important;
@@ -1330,24 +1507,38 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
           }
           @media (max-width: 480px) {
             .product-hero-grid {
-              grid-template-columns: 1fr 1fr !important;
-              gap: 15px !important;
-              padding: 0 10px !important;
+              display: block !important;
+              padding: 0 12px !important;
+            }
+            .product-hero-top-row {
+              display: flex !important;
+              gap: 12px !important;
+              align-items: flex-start !important;
             }
             .product-image-container {
-              min-height: 200px !important;
-              padding: 10px !important;
+              min-height: auto !important;
+              padding: 6px !important;
+              flex: 0 0 80px !important;
+              max-width: 80px !important;
+            }
+            .product-info-mobile {
+              flex: 1 !important;
+              min-width: 0 !important;
             }
             .product-title {
-              font-size: 1.4rem !important;
-              margin-bottom: 8px !important;
+              font-size: 1.2rem !important;
+              margin-bottom: 4px !important;
+              line-height: 1.2 !important;
             }
             .product-hero p {
               font-size: 12px !important;
               line-height: 1.3 !important;
             }
             .product-hero {
-              padding: 20px 0 !important;
+              padding: 12px 0 !important;
+            }
+            .product-title {
+              font-size: 1.1rem !important;
             }
             .vendor-card {
               padding: 0 !important;
@@ -1377,10 +1568,10 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               padding: 1px 3px !important;
             }
             .comparison-table-filters {
-              padding: 10px !important;
+              padding: 10px 12px !important;
             }
             .main-content-layout {
-              padding: 0 10px !important;
+              padding: 0 !important;
             }
           }
         `
@@ -1392,7 +1583,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
 
         {/* Main Content */}
         <main id="main" className="clearfix" style={{
-          backgroundColor: '#f3f3f5',
+          backgroundColor: '#ffffff',
           minHeight: '100vh'
         }}>
           
@@ -1401,131 +1592,171 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
             backgroundColor: '#ffffff',
             padding: '0'
           }}>
-            <div style={{
-              maxWidth: '1200px',
-              margin: '0 auto',
-                padding: '15px 20px',
-              fontSize: '14px',
-                color: '#666'
-              }}>
-                <a href="/" style={{ color: '#007cba', textDecoration: 'none' }}>Home</a>
-                <span style={{ margin: '0 8px' }}>›</span>
-                <a href="/products" style={{ color: '#007cba', textDecoration: 'none' }}>Products</a>
-                <span style={{ margin: '0 8px' }}>›</span>
-                <span style={{ color: '#333' }}>{product.name}</span>
+            <div className="content-container" style={{
+              padding: '12px 0',
+              fontSize: '15px',
+              color: '#6b7280',
+              fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
+            }}>
+              <Link href="/" className="breadcrumb-link" style={{ color: '#1f2937', textDecoration: 'none', fontWeight: '600' }}>Home</Link>
+              <span style={{ margin: '0 12px', color: '#9ca3af' }}>/</span>
+              <Link href="/products" className="breadcrumb-link" style={{ color: '#6b7280', textDecoration: 'none', fontWeight: '400' }}>Products</Link>
+              <span style={{ margin: '0 12px', color: '#9ca3af' }}>/</span>
+              <span style={{ color: '#6b7280', fontWeight: '400' }}>{product.name}</span>
             </div>
           </div>
 
           {/* Product Hero Section */}
           <div className="product-hero" style={{
             backgroundColor: '#ffffff',
-            padding: '60px 0',
-            borderBottom: '1px solid #e9ecef'
+            padding: '16px 0 0 0'
           }}>
-            <div className="product-hero-grid" style={{
-              maxWidth: '1200px',
-              margin: '0 auto',
-              padding: '0 20px',
-              display: 'grid',
-              gridTemplateColumns: '400px 1fr',
-              gap: '60px',
-              alignItems: 'center'
+            {/* Hero with Ad Sidebar */}
+            <div className="content-container" style={{
+              display: 'flex',
+              gap: '24px'
             }}>
-              
-              {/* Product Image */}
-              <div className="product-image-container" style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '20px',
-                padding: '40px',
-                minHeight: '400px'
-              }}>
-                <Image
-                      src={product.image || '/placeholder-product.jpg'}
-                      alt={product.name}
-                  width={300}
-                  height={300}
-                  style={getImageStyles(product.image || '/placeholder-product.jpg')}
-                />
-              </div>
-
-              {/* Product Info */}
-              <div>
-                <h1 className="product-title" style={{
-                  fontSize: '3rem',
-                  fontWeight: '1000',
-                  color: '#0B051D',
-                  margin: '0 0 15px 0',
-                  lineHeight: '1.1',
-                  fontFamily: 'Klarna Text, sans-serif',
-                  letterSpacing: '-0.05em'
-                    }}>
-                      {product.name}
-                </h1>
-
-                <div className="product-rating" style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  marginBottom: '20px'
+              {/* Left - Product Content */}
+              <div style={{ flex: '1', minWidth: 0 }}>
+                <div className="product-hero-grid" style={{
+                  display: 'grid',
+                  gridTemplateColumns: '280px 1fr',
+                  gap: '32px',
+                  alignItems: 'start'
                 }}>
-                  <div style={{ marginRight: '8px' }}>
-                    <ReviewBalls rating={ratingData?.ratingValue || product.rating || 4.5} size={24} />
-                  </div>
-                  <span style={{
-                    color: '#666',
-                    fontSize: '18px',
-                    fontWeight: '500',
-                    marginRight: '8px'
-                  }}>
-                    {(ratingData?.ratingValue || product.rating || 4.5).toFixed(1)}
-                  </span>
-                  {ratingData && ratingData.reviewCount > 0 && (
-                    <span style={{
-                      color: '#999',
-                      fontSize: '14px',
-                      fontWeight: '400'
+
+                  {/* Mobile: Top Row with Image + Basic Info */}
+                  <div className="product-hero-top-row" style={{ display: 'contents' }}>
+                    {/* Product Image */}
+                    <div className="product-image-container" style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      backgroundColor: '#fafafa',
+                      borderRadius: '8px',
+                      padding: '6px',
+                      minHeight: 'auto',
+                      position: 'relative'
                     }}>
-                      ({ratingData.reviewCount} {ratingData.reviewCount === 1 ? 'review' : 'reviews'})
-                    </span>
-                  )}
+                      {/* Rating Badge - Mobile */}
+                      <div className="rating-badge-mobile" style={{
+                        position: 'absolute',
+                        top: '-8px',
+                        left: '-4px',
+                        backgroundColor: '#fff',
+                        borderRadius: '16px',
+                        padding: '4px 8px',
+                        display: 'none',
+                        alignItems: 'center',
+                        gap: '3px',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+                        fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        zIndex: 10
+                      }}>
+                        <span style={{ color: '#fbbc04' }}>★</span>
+                        <span style={{ color: '#202124' }}>
+                          {(() => {
+                            const vendorRatings = product.stores
+                              ?.map((s: any) => parseFloat(s.trustpilot_score || s.rating || 0))
+                              .filter((r: number) => r > 0) || [];
+                            const avg = vendorRatings.length > 0
+                              ? vendorRatings.reduce((sum: number, r: number) => sum + r, 0) / vendorRatings.length
+                              : 4.5;
+                            return avg.toFixed(1);
+                          })()}
+                        </span>
+                      </div>
+                      <Image
+                        src={product.image || '/placeholder-product.jpg'}
+                        alt={product.name}
+                        width={280}
+                        height={280}
+                        style={getImageStyles(product.image || '/placeholder-product.jpg')}
+                      />
+                    </div>
+
+                    {/* Product Info */}
+                    <div className="product-info-mobile">
+                      <h1 className="product-title" style={{
+                        fontSize: '2rem',
+                        fontWeight: '800',
+                        color: '#0B051D',
+                        margin: '0 0 12px 0',
+                        lineHeight: '1.2',
+                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        letterSpacing: '-0.02em'
+                      }}>
+                        {product.name}
+                      </h1>
+
+                      <ProductHeroActions product={product} ratingData={ratingData} />
+
+                      {/* Short Description - Hidden on mobile */}
+                      <p className="product-description-desktop" style={{
+                        fontSize: '14px',
+                        color: '#6b7280',
+                        lineHeight: '1.6',
+                        marginBottom: '16px'
+                      }}>
+                        {(product.description_short || product.excerpt || product.description || '').replace(/<[^>]*>/g, '').replace(/\\n/g, '').trim().substring(0, 250)}
+                        {(product.description_short || product.excerpt || product.description || '').length > 250 && '...'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Mobile-only Strength Selector - positioned below image */}
+                  <div className="strength-selector-mobile">
+                    <StrengthSelector product={product} />
+                  </div>
                 </div>
 
-                {/* Short Description */}
-                <p style={{
-                  fontSize: '18px',
-                  color: '#666',
-                  lineHeight: '1.6',
-                  marginBottom: '30px'
-                }}>
-                  {(product.excerpt || product.description || '').replace(/<[^>]*>/g, '').replace(/\\n/g, '').trim()}
-                </p>
+                {/* Section Navigation */}
+                <div style={{ marginTop: '8px' }}>
+                  <ProductSectionNav />
+                </div>
+              </div>
 
-                <ComparisonDialog product={product} />
+              {/* Right - Hero Ad */}
+              <div className="hero-ad-sidebar" style={{ flex: '0 0 300px', maxWidth: '300px' }}>
+                <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Advertisement
+                </div>
+                <ins
+                  className="adsbygoogle"
+                  style={{ display: 'block', minHeight: '400px' }}
+                  data-ad-client="ca-pub-9898973838473500"
+                  data-ad-slot="4889694434"
+                  data-ad-format="vertical"
+                />
               </div>
             </div>
           </div>
 
-                  
-            {/* Main Content Layout - Two Columns */}
-            <div className="main-content-layout" style={{
-              maxWidth: '100%',
-              margin: '60px auto 40px auto',
-              padding: '0 20px',
-              display: 'flex',
-              gap: '2rem'
+            {/* Main Content Layout - Two Columns with Grey Background */}
+            <div className="comparison-section-wrapper" style={{
+              backgroundColor: '#f5f5f7',
+              padding: '0 0 32px 0'
             }}>
-              
+            <div className="main-content-layout content-container" style={{
+              display: 'flex',
+              gap: '2rem',
+              paddingTop: '16px'
+            }}>
+
               {/* Left Column - Vendor Price Comparison */}
-              <div className="vendor-comparison" style={{ flex: '1', minWidth: '0' }}>
+              <div id="prices" className="vendor-comparison" style={{ flex: '1', minWidth: '0' }}>
                 {/* Filter Options */}
                 <div className="comparison-table-filters" style={{
-                  marginBottom: '1.5rem',
                   display: 'flex',
                   gap: '8px',
                   alignItems: 'center',
-                  flexWrap: 'wrap'
+                  flexWrap: 'wrap',
+                  marginBottom: '16px',
+                  fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+                  position: 'relative',
+                  zIndex: 100
                 }}>
                 {/* Combined Filter Popup */}
                 <Suspense fallback={
@@ -1544,12 +1775,12 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/>
                     </svg>
-                    <span>Filters</span>
                 </div>
                 }>
-                  <CombinedFilterPopup 
-                    selectedPack={product.selectedPack} 
-                    selectedShipping={resolvedSearchParams.shipping || 'fastest'} 
+                  <CombinedFilterPopup
+                    selectedPack={product.selectedPack}
+                    selectedShipping={resolvedSearchParams.shipping || 'fastest'}
+                    availablePackSizes={product.availablePackSizes}
                   />
                 </Suspense>
                 
@@ -1559,6 +1790,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                   border: '1px solid #e9ecef',
                   borderRadius: '20px',
                   fontSize: '0.85rem',
+                  fontFamily: 'inherit',
                   backgroundColor: '#fff',
                   color: '#495057',
                   cursor: 'pointer',
@@ -1574,7 +1806,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                 </select>
                 
                 {/* Pack Size Filter */}
-                <PackSizeForm selectedPack={product.selectedPack} />
+                <PackSizeForm selectedPack={product.selectedPack} availablePackSizes={product.availablePackSizes} />
                 
                 {/* Shipping Filter */}
                 <ShippingFilterDropdown selectedShipping={resolvedSearchParams.shipping || 'fastest'} />
@@ -1588,7 +1820,9 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               <div className="vendor-cards-container" style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '12px'
+                gap: '12px',
+                position: 'relative',
+                zIndex: 1
               }}>
               {product.stores.map((store: any, storeIndex: number) => (
                 <ExpandableVendorCard
@@ -1602,22 +1836,37 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               </div>
                   </div>
                   
-              {/* Right Column - Product Info Sidebar */}
-              <div className="product-info-sidebar" style={{ flex: '0 0 280px', maxWidth: '280px' }}>
+              {/* Right Column - AdSense Sidebar */}
+              <div className="adsense-sidebar" style={{ flex: '0 0 300px', maxWidth: '300px' }}>
                 <div style={{
-                  background: '#ffffff',
-                  borderRadius: '12px',
-                  padding: '1.5rem',
-                  boxShadow: '0 2px 8px 0 rgba(0, 0, 0, 0.06)',
                   position: 'sticky',
                   top: '2rem',
-                  maxWidth: '280px'
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '20px'
                 }}>
-                  <ProductDetailsCard product={product} />
+                  {/* Ad Label */}
+                  <div style={{
+                    fontSize: '11px',
+                    color: '#9ca3af',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Advertisement
+                  </div>
+                  {/* Google AdSense - Vertical Ad */}
+                  <ins
+                    className="adsbygoogle"
+                    style={{ display: 'block', minHeight: '600px' }}
+                    data-ad-client="ca-pub-9898973838473500"
+                    data-ad-slot="4889694434"
+                    data-ad-format="vertical"
+                  />
                 </div>
               </div>
             </div>
-                  
+            </div>
+
 
       {/* Minimal variant handling script - KEEP VARIANT BUTTONS ONLY */}
       <script
@@ -1682,93 +1931,168 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
             {/* Product Details Card - Moved to right sidebar in two-column layout */}
                       
             {/* Reviews Section */}
-                      <div style={{
+            <div style={{
               backgroundColor: '#ffffff',
               padding: '40px 0',
-              marginBottom: '40px'
+              marginBottom: '0'
             }}>
-                        <div style={{
-                maxWidth: '1200px',
-                margin: '0 auto',
-                padding: '0 20px'
+              <div className="content-container" style={{
+                display: 'flex',
+                gap: '24px'
               }}>
-                      {/* Trustpilot Reviews Section - Show FIRST */}
-                {allTrustpilotReviews && allTrustpilotReviews.length > 0 && (
-                  <div style={{ marginBottom: '3rem' }}>
+                {/* Left - Reviews Content */}
+                <div id="reviews" style={{ flex: '1', minWidth: 0 }}>
+                  {/* Trustpilot Reviews Section - Show FIRST */}
+                  {allTrustpilotReviews && allTrustpilotReviews.length > 0 && (
+                    <div style={{ marginBottom: '3rem' }}>
+                      <h3 style={{
+                        fontSize: '1.5rem',
+                        fontWeight: '600',
+                        color: '#1a1a1a',
+                        marginBottom: '1.5rem'
+                      }}>
+                        Vendor Reviews from Trustpilot
+                      </h3>
+                      <TrustpilotReviews
+                        reviews={allTrustpilotReviews}
+                        initialLimit={10}
+                        vendorIds={product.stores?.map((s: any) => s.vendorId).filter(Boolean)}
+                        totalCount={totalTrustpilotReviewCount}
+                      />
+                    </div>
+                  )}
+
+                  <div style={{ marginBottom: '40px' }}>
+                    <h2 style={{
+                      fontSize: '2rem',
+                      fontWeight: '700',
+                      color: '#1a1a1a',
+                      marginBottom: '10px'
+                    }}>
+                      Customer Reviews
+                    </h2>
+                    <p style={{
+                      fontSize: '1.1rem',
+                      color: '#666',
+                      marginBottom: '30px'
+                    }}>
+                      See what customers are saying about {product.name}
+                    </p>
+                    <ReviewBalls rating={ratingData?.ratingValue || product.rating || 4.5} />
+                  </div>
+                  {ratingData && ratingData.reviewCount > 0 && (
+                    <p style={{
+                      fontSize: '1rem',
+                      color: '#666',
+                      marginTop: '10px',
+                      marginBottom: '20px'
+                    }}>
+                      Based on {ratingData.reviewCount} {ratingData.reviewCount === 1 ? 'review' : 'reviews'}
+                    </p>
+                  )}
+
+                  <ReviewsDisplay productId={product.id} />
+
+                  <div style={{ marginTop: '40px' }}>
                     <h3 style={{
                       fontSize: '1.5rem',
                       fontWeight: '600',
                       color: '#1a1a1a',
-                      marginBottom: '1.5rem',
-                      textAlign: 'center'
+                      marginBottom: '1.5rem'
                     }}>
-                      Vendor Reviews from Trustpilot
+                      Write a Review
                     </h3>
-                    <TrustpilotReviews
-                      reviews={allTrustpilotReviews}
-                      initialLimit={5}
+                    <ReviewForm
+                      productId={product.id}
+                      productName={product.name}
+                      vendors={product.stores}
                     />
                   </div>
-                )}
+                </div>
 
-                      <div style={{
-                  textAlign: 'center',
-                  marginBottom: '40px'
-                }}>
-                  <h2 style={{
-                    fontSize: '2rem',
-                    fontWeight: '700',
-                    color: '#1a1a1a',
-                    marginBottom: '10px'
+                {/* Right - Ad Sidebar */}
+                <div className="reviews-ad-sidebar" style={{ flex: '0 0 300px', maxWidth: '300px' }}>
+                  <div style={{
+                    position: 'sticky',
+                    top: '2rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '20px'
                   }}>
-                    Customer Reviews
-                  </h2>
-                  <p style={{
-                    fontSize: '1.1rem',
-                    color: '#666',
-                    marginBottom: '30px'
-                  }}>
-                    See what customers are saying about {product.name}
-                  </p>
-                  <ReviewBalls rating={ratingData?.ratingValue || product.rating || 4.5} />
-                      </div>
-                      {ratingData && ratingData.reviewCount > 0 && (
-                        <p style={{
-                          fontSize: '1rem',
-                          color: '#666',
-                          marginTop: '10px',
-                          marginBottom: '20px'
-                        }}>
-                          Based on {ratingData.reviewCount} {ratingData.reviewCount === 1 ? 'review' : 'reviews'}
-                        </p>
-                      )}
-                      
-                <ReviewsDisplay productId={product.id} />
-
                     <div style={{
-                  textAlign: 'center',
-                  marginTop: '40px'
+                      fontSize: '11px',
+                      color: '#9ca3af',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Advertisement
+                    </div>
+                    <ins
+                      className="adsbygoogle"
+                      style={{ display: 'block', minHeight: '600px' }}
+                      data-ad-client="ca-pub-9898973838473500"
+                      data-ad-slot="4889694434"
+                      data-ad-format="vertical"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          {/* Product Details Section */}
+          <div id="product-details" style={{
+            backgroundColor: '#ffffff',
+            padding: '40px 0',
+            marginBottom: '0'
+          }}>
+            <div className="content-container" style={{
+              display: 'flex',
+              gap: '24px'
+            }}>
+              {/* Left - Product Details Content */}
+              <div style={{ flex: '1', minWidth: 0 }}>
+                <h3 style={{
+                  fontSize: '1.5rem',
+                  fontWeight: '600',
+                  color: '#1a1a1a',
+                  marginBottom: '1.5rem'
                 }}>
-                  <h3 style={{
-                    fontSize: '1.5rem',
-                        fontWeight: '600',
-                    color: '#1a1a1a',
-                    marginBottom: '1.5rem',
-                    textAlign: 'center'
+                  Product Details
+                </h3>
+                <ProductDetailsCard product={product} />
+              </div>
+
+              {/* Right - Ad Sidebar */}
+              <div className="details-ad-sidebar" style={{ flex: '0 0 300px', maxWidth: '300px' }}>
+                <div style={{
+                  position: 'sticky',
+                  top: '2rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '20px'
+                }}>
+                  <div style={{
+                    fontSize: '11px',
+                    color: '#9ca3af',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
                   }}>
-                    Write a Review
-                  </h3>
-                <ReviewForm 
-                  productId={product.id}
-                  productName={product.name}
-                    vendors={product.stores}
-                />
+                    Advertisement
+                  </div>
+                  <ins
+                    className="adsbygoogle"
+                    style={{ display: 'block', minHeight: '400px' }}
+                    data-ad-client="ca-pub-9898973838473500"
+                    data-ad-slot="4889694434"
+                    data-ad-format="vertical"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
           {/* FAQ Section */}
-          <div style={{ marginBottom: '40px' }}>
+          <div id="features" style={{ marginBottom: '40px' }}>
             <FAQSection faqs={product.regularSeoData?.faq_plaintext || product.llmSeoData?.faq_plaintext || []} />
           </div>
         </main>

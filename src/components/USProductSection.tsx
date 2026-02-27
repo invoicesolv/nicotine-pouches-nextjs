@@ -465,7 +465,7 @@ const USProductSection = () => {
                    style={{ width: '50%' }}>
                 <div className="fusion-column-wrapper">
                   <h2 style={{
-                    fontFamily: '"Klarna 700"',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     fontSize: '28px',
                     fontWeight: '400',
                     margin: '0',
@@ -542,7 +542,7 @@ const USProductSection = () => {
                    style={{ width: '50%' }}>
                 <div className="fusion-column-wrapper">
                   <h2 style={{
-                    fontFamily: '"Klarna 700"',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     fontSize: '28px',
                     fontWeight: '400',
                     margin: '0',
@@ -616,7 +616,7 @@ const USProductSection = () => {
                    style={{ width: '50%' }}>
                 <div className="fusion-column-wrapper">
                   <h2 style={{
-                    fontFamily: '"Klarna 700"',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     fontSize: '28px',
                     fontWeight: '400',
                     margin: '0',
@@ -690,7 +690,7 @@ const USProductSection = () => {
                    style={{ width: '50%' }}>
                 <div className="fusion-column-wrapper">
                   <h2 style={{
-                    fontFamily: '"Klarna 700"',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     fontSize: '28px',
                     fontWeight: '400',
                     margin: '0',

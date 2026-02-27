@@ -8,6 +8,7 @@ interface ProductDetailsCardProps {
     strength_group?: string;
     format?: string;
     description?: string;
+    description_long?: string;
     stores: Array<{
       name: string;
       variants?: Array<{
@@ -56,18 +57,18 @@ const ProductDetailsCard: React.FC<ProductDetailsCardProps> = ({ product }) => {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      padding: '8px 0',
-      borderBottom: isLast ? 'none' : '1px solid #f3f4f6'
+      padding: '12px 0',
+      borderBottom: isLast ? 'none' : '1px solid #e5e7eb'
     }}>
       <span style={{
-        fontSize: '12px',
+        fontSize: '14px',
         color: '#6b7280',
         fontWeight: '500'
       }}>
         {label}
       </span>
       <span style={{
-        fontSize: '12px',
+        fontSize: '14px',
         color: '#1f2544',
         fontWeight: '600'
       }}>
@@ -78,24 +79,10 @@ const ProductDetailsCard: React.FC<ProductDetailsCardProps> = ({ product }) => {
 
   return (
     <div style={{
-      background: 'white',
-      borderRadius: '10px',
-      padding: '12px',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
-      border: '1px solid #e5e7eb',
+      background: 'transparent',
+      padding: '0',
       fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
     }}>
-      {/* Header */}
-      <h3 style={{
-        fontSize: '13px',
-        fontWeight: '700',
-        color: '#1f2544',
-        margin: '0 0 2px 0',
-        letterSpacing: '-0.2px'
-      }}>
-        Product Details
-      </h3>
-
       {/* Details List */}
       <div>
         <DetailRow label="Brand" value={product.brand} />
@@ -116,24 +103,24 @@ const ProductDetailsCard: React.FC<ProductDetailsCardProps> = ({ product }) => {
         )}
       </div>
 
-      {/* Description */}
-      {product.description && cleanDescription(product.description) && (
-        <div style={{ paddingTop: '8px' }}>
+      {/* Description - prefer long description */}
+      {(product.description_long || product.description) && cleanDescription(product.description_long || product.description || '') && (
+        <div style={{ paddingTop: '16px', borderTop: '1px solid #e5e7eb', marginTop: '4px' }}>
           <div style={{
-            fontSize: '12px',
+            fontSize: '14px',
             color: '#6b7280',
             fontWeight: '500',
-            marginBottom: '4px'
+            marginBottom: '8px'
           }}>
             Description
           </div>
           <p style={{
-            fontSize: '12px',
+            fontSize: '14px',
             color: '#4b5563',
-            lineHeight: '1.5',
+            lineHeight: '1.6',
             margin: 0
           }}>
-            {cleanDescription(product.description)}
+            {cleanDescription(product.description_long || product.description || '')}
           </p>
         </div>
       )}

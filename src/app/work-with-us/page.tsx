@@ -1,27 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { 
-  Users, 
-  MapPin, 
-  Clock, 
-  ExternalLink,
-  Star,
-  CheckCircle,
-  MessageCircle,
-  Mail,
-  Briefcase,
-  Upload,
-  X,
-  Send
-} from 'lucide-react';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 export default function WorkWithUs() {
   const [showApplicationForm, setShowApplicationForm] = useState(false);
@@ -108,7 +90,7 @@ export default function WorkWithUs() {
       formDataToSend.append('position', formData.position);
       formDataToSend.append('experience', formData.experience);
       formDataToSend.append('motivation', formData.motivation);
-      
+
       files.forEach(file => {
         formDataToSend.append('files', file);
       });
@@ -175,316 +157,710 @@ export default function WorkWithUs() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Work at Nicotine Pouches
+    <div id="boxed-wrapper">
+      <div id="wrapper" className="fusion-wrapper">
+        <Header />
+
+        <main id="main" className="clearfix" style={{
+          backgroundColor: '#ffffff',
+          minHeight: '100vh',
+          padding: '0',
+          margin: '0',
+          width: '100%'
+        }}>
+
+          {/* Hero Section */}
+          <div style={{
+            backgroundColor: '#ffffff',
+            padding: '24px 20px 32px 20px',
+            maxWidth: '1400px',
+            margin: '0 auto'
+          }}>
+            {/* Breadcrumb */}
+            <nav style={{
+              marginBottom: '20px',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+            }}>
+              <Link href="/" style={{
+                color: '#1f2937',
+                textDecoration: 'none',
+                fontSize: '15px',
+                fontWeight: '400'
+              }}>Start</Link>
+              <span style={{
+                margin: '0 10px',
+                color: '#9ca3af',
+                fontSize: '15px'
+              }}>/</span>
+              <span style={{
+                color: '#6b7280',
+                fontSize: '15px'
+              }}>Work With Us</span>
+            </nav>
+
+            {/* Title */}
+            <h1 style={{
+              fontSize: '42px',
+              fontWeight: '800',
+              color: '#1f2937',
+              margin: '0 0 16px 0',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+              letterSpacing: '-0.5px',
+              lineHeight: '1.1'
+            }}>
+              Work With Us
             </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-              Join our fast-growing platform and help us build the best nicotine pouch community. We're looking for passionate individuals who want to make a difference.
+
+            {/* Description */}
+            <p style={{
+              fontSize: '17px',
+              color: '#4b5563',
+              maxWidth: '800px',
+              margin: '0 0 32px 0',
+              lineHeight: '1.7',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+            }}>
+              Join our team and help build the leading nicotine pouch comparison platform.
+              We're looking for passionate individuals who want to make a difference.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100">
-                <Briefcase className="w-5 h-5 mr-2" />
-                View Open Positions
-              </Button>
-              <Button size="lg" variant="outline" className="border-white text-white bg-transparent hover:bg-white hover:text-purple-600">
-                <Mail className="w-5 h-5 mr-2" />
-                Contact Us
-              </Button>
+          </div>
+
+          {/* Open Positions Section */}
+          <div style={{
+            backgroundColor: '#f9fafb',
+            padding: '48px 20px'
+          }}>
+            <div style={{
+              maxWidth: '1400px',
+              margin: '0 auto'
+            }}>
+              <h2 style={{
+                fontSize: '28px',
+                fontWeight: '700',
+                color: '#1f2937',
+                marginBottom: '24px',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+              }}>
+                Open Positions
+              </h2>
+
+              {/* Job Listings */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                {jobListings.map((job) => (
+                  <div
+                    key={job.id}
+                    style={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '12px',
+                      padding: '32px',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                    }}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '16px'
+                    }}>
+                      {/* Job Header */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '16px'
+                      }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                            <h3 style={{
+                              fontSize: '22px',
+                              fontWeight: '700',
+                              color: '#1f2937',
+                              margin: 0
+                            }}>
+                              {job.title}
+                            </h3>
+                            {job.urgent && (
+                              <span style={{
+                                backgroundColor: '#fef2f2',
+                                color: '#dc2626',
+                                padding: '4px 12px',
+                                borderRadius: '100px',
+                                fontSize: '13px',
+                                fontWeight: '600'
+                              }}>
+                                Urgent
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '16px',
+                            color: '#6b7280',
+                            fontSize: '14px'
+                          }}>
+                            <span>{job.location}</span>
+                            <span>•</span>
+                            <span>{job.type}</span>
+                            <span>•</span>
+                            <span style={{ color: '#059669', fontWeight: '600' }}>{job.salary}</span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          <button
+                            onClick={() => setShowApplicationForm(true)}
+                            style={{
+                              backgroundColor: '#1f2937',
+                              color: '#ffffff',
+                              padding: '12px 24px',
+                              borderRadius: '8px',
+                              fontSize: '15px',
+                              fontWeight: '600',
+                              border: 'none',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Apply Now
+                          </button>
+                          <a
+                            href={`mailto:${job.contact}?subject=Question about ${job.title}`}
+                            style={{
+                              backgroundColor: '#ffffff',
+                              color: '#1f2937',
+                              padding: '12px 24px',
+                              borderRadius: '8px',
+                              fontSize: '15px',
+                              fontWeight: '600',
+                              border: '1px solid #e5e7eb',
+                              textDecoration: 'none',
+                              display: 'inline-block'
+                            }}
+                          >
+                            Ask Questions
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Job Description */}
+                      <p style={{
+                        color: '#4b5563',
+                        fontSize: '15px',
+                        lineHeight: '1.6',
+                        margin: 0
+                      }}>
+                        {job.description}
+                      </p>
+
+                      {/* Job Details Grid */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                        gap: '24px',
+                        marginTop: '8px'
+                      }}>
+                        {/* Responsibilities */}
+                        <div>
+                          <h4 style={{
+                            fontSize: '15px',
+                            fontWeight: '700',
+                            color: '#1f2937',
+                            marginBottom: '12px'
+                          }}>
+                            What You'll Do
+                          </h4>
+                          <ul style={{
+                            listStyle: 'none',
+                            padding: 0,
+                            margin: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px'
+                          }}>
+                            {job.responsibilities.map((item, index) => (
+                              <li key={index} style={{
+                                fontSize: '14px',
+                                color: '#4b5563',
+                                paddingLeft: '20px',
+                                position: 'relative'
+                              }}>
+                                <span style={{
+                                  position: 'absolute',
+                                  left: 0,
+                                  color: '#059669'
+                                }}>•</span>
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Requirements */}
+                        <div>
+                          <h4 style={{
+                            fontSize: '15px',
+                            fontWeight: '700',
+                            color: '#1f2937',
+                            marginBottom: '12px'
+                          }}>
+                            What We're Looking For
+                          </h4>
+                          <ul style={{
+                            listStyle: 'none',
+                            padding: 0,
+                            margin: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px'
+                          }}>
+                            {job.requirements.map((item, index) => (
+                              <li key={index} style={{
+                                fontSize: '14px',
+                                color: '#4b5563',
+                                paddingLeft: '20px',
+                                position: 'relative'
+                              }}>
+                                <span style={{
+                                  position: 'absolute',
+                                  left: 0,
+                                  color: '#059669'
+                                }}>•</span>
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Benefits */}
+                        <div>
+                          <h4 style={{
+                            fontSize: '15px',
+                            fontWeight: '700',
+                            color: '#1f2937',
+                            marginBottom: '12px'
+                          }}>
+                            What We Offer
+                          </h4>
+                          <ul style={{
+                            listStyle: 'none',
+                            padding: 0,
+                            margin: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px'
+                          }}>
+                            {job.benefits.map((item, index) => (
+                              <li key={index} style={{
+                                fontSize: '14px',
+                                color: '#4b5563',
+                                paddingLeft: '20px',
+                                position: 'relative'
+                              }}>
+                                <span style={{
+                                  position: 'absolute',
+                                  left: 0,
+                                  color: '#059669'
+                                }}>•</span>
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Posted date */}
+                      <div style={{
+                        color: '#9ca3af',
+                        fontSize: '13px',
+                        marginTop: '8px'
+                      }}>
+                        Posted {job.posted}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
+          {/* Why Work With Us Section */}
+          <div style={{
+            backgroundColor: '#ffffff',
+            padding: '64px 20px'
+          }}>
+            <div style={{
+              maxWidth: '1400px',
+              margin: '0 auto'
+            }}>
+              <h2 style={{
+                fontSize: '28px',
+                fontWeight: '700',
+                color: '#1f2937',
+                marginBottom: '12px',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                textAlign: 'center'
+              }}>
+                Why Work With Us?
+              </h2>
+              <p style={{
+                fontSize: '17px',
+                color: '#6b7280',
+                textAlign: 'center',
+                marginBottom: '48px',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+              }}>
+                We're building something special, and we want you to be part of it.
+              </p>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Open Positions
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            We're always looking for talented individuals to join our team. Check out our current openings and see if there's a perfect fit for you.
-          </p>
-        </div>
-
-        <div className="space-y-6">
-          {jobListings.map((job) => (
-            <Card key={job.id} className="hover:shadow-lg transition-shadow duration-300">
-              <CardContent className="p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-semibold text-gray-900">{job.title}</h3>
-                      {job.urgent && (
-                        <Badge variant="destructive" className="text-xs">
-                          Urgent
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
-                      <div className="flex items-center">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        {job.location}
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 mr-1" />
-                        {job.type}
-                      </div>
-                      <div className="font-semibold text-green-600">
-                        {job.salary}
-                      </div>
-                    </div>
-                    
-                    <p className="text-gray-600 mb-4">{job.description}</p>
-                    
-                    <div className="mb-4">
-                      <h4 className="font-medium text-gray-900 mb-2">What You'll Do:</h4>
-                      <ul className="space-y-1">
-                        {job.responsibilities.map((resp, index) => (
-                          <li key={index} className="flex items-start text-sm text-gray-600">
-                            <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                            {resp}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    
-                    <div className="mb-4">
-                      <h4 className="font-medium text-gray-900 mb-2">What We're Looking For:</h4>
-                      <ul className="space-y-1">
-                        {job.requirements.map((req, index) => (
-                          <li key={index} className="flex items-start text-sm text-gray-600">
-                            <CheckCircle className="w-4 h-4 text-blue-500 mr-2 flex-shrink-0 mt-0.5" />
-                            {req}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    
-                    <div className="mb-4">
-                      <h4 className="font-medium text-gray-900 mb-2">What We Offer:</h4>
-                      <ul className="space-y-1">
-                        {job.benefits.map((benefit, index) => (
-                          <li key={index} className="flex items-start text-sm text-gray-600">
-                            <Star className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0 mt-0.5" />
-                            {benefit}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    
-                    <div className="text-sm text-gray-500">
-                      Posted {job.posted}
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col gap-2 lg:min-w-[200px]">
-                    <Button 
-                      className="w-full" 
-                      onClick={() => setShowApplicationForm(true)}
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      Apply Now
-                    </Button>
-                    <Button variant="outline" className="w-full" asChild>
-                      <a href={`mailto:${job.contact}?subject=Question about ${job.title}`}>
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                        Ask Questions
-                      </a>
-                    </Button>
-                  </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '24px'
+              }}>
+                {/* Small Team Card */}
+                <div style={{
+                  backgroundColor: '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  padding: '32px',
+                  textAlign: 'center',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                }}>
+                  <h3 style={{
+                    fontSize: '18px',
+                    fontWeight: '700',
+                    color: '#1f2937',
+                    marginBottom: '12px'
+                  }}>
+                    Small Team, Big Impact
+                  </h3>
+                  <p style={{
+                    fontSize: '15px',
+                    color: '#6b7280',
+                    lineHeight: '1.6',
+                    margin: 0
+                  }}>
+                    Work directly with founders and make decisions that shape our platform's future.
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
 
-      {/* Why Work With Us Section */}
-      <div className="bg-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Why Work With Us?
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              We're building something special, and we want you to be part of it.
-            </p>
-          </div>
+                {/* Remote Card */}
+                <div style={{
+                  backgroundColor: '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  padding: '32px',
+                  textAlign: 'center',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                }}>
+                  <h3 style={{
+                    fontSize: '18px',
+                    fontWeight: '700',
+                    color: '#1f2937',
+                    marginBottom: '12px'
+                  }}>
+                    100% Remote
+                  </h3>
+                  <p style={{
+                    fontSize: '15px',
+                    color: '#6b7280',
+                    lineHeight: '1.6',
+                    margin: 0
+                  }}>
+                    Work from anywhere in the world with flexible hours and team check-ins.
+                  </p>
+                </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="text-center p-6">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-purple-600" />
+                {/* Growth Card */}
+                <div style={{
+                  backgroundColor: '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  padding: '32px',
+                  textAlign: 'center',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                }}>
+                  <h3 style={{
+                    fontSize: '18px',
+                    fontWeight: '700',
+                    color: '#1f2937',
+                    marginBottom: '12px'
+                  }}>
+                    Growth Opportunities
+                  </h3>
+                  <p style={{
+                    fontSize: '15px',
+                    color: '#6b7280',
+                    lineHeight: '1.6',
+                    margin: 0
+                  }}>
+                    Commission-based rewards and opportunities to grow with our expanding platform.
+                  </p>
+                </div>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Small Team, Big Impact</h3>
-              <p className="text-gray-600">Work directly with founders and make decisions that shape our platform's future.</p>
-            </Card>
-
-            <Card className="text-center p-6">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MapPin className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">100% Remote</h3>
-              <p className="text-gray-600">Work from anywhere in the world with flexible hours and team check-ins.</p>
-            </Card>
-
-            <Card className="text-center p-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Growth Opportunities</h3>
-              <p className="text-gray-600">Commission-based rewards and opportunities to grow with our expanding platform.</p>
-            </Card>
-          </div>
-        </div>
-      </div>
-
-      {/* CTA Section */}
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Ready to Join Our Team?
-          </h2>
-          <p className="text-xl mb-8">
-            Don't see a position that fits? We're always interested in hearing from talented people.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100">
-              <Mail className="w-5 h-5 mr-2" />
-              Send Us Your CV
-            </Button>
-            <Button size="lg" variant="outline" className="border-white text-white bg-transparent hover:bg-white hover:text-purple-600">
-              <MessageCircle className="w-5 h-5 mr-2" />
-              Get in Touch
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer Info */}
-      <div className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Our Culture</h3>
-              <ul className="space-y-2 text-gray-300">
-                <li>Remote-first approach</li>
-                <li>Flexible working hours</li>
-                <li>Open communication</li>
-                <li>Continuous learning</li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Benefits</h3>
-              <ul className="space-y-2 text-gray-300">
-                <li>Competitive compensation</li>
-                <li>Commission opportunities</li>
-                <li>Professional development</li>
-                <li>Work-life balance</li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
-              <ul className="space-y-2 text-gray-300">
-                <li>info@solvify.se</li>
-                <li>London, UK</li>
-              </ul>
             </div>
           </div>
-        </div>
+
+          {/* Contact Section */}
+          <div style={{
+            backgroundColor: '#f9fafb',
+            padding: '48px 20px'
+          }}>
+            <div style={{
+              maxWidth: '800px',
+              margin: '0 auto',
+              textAlign: 'center',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+            }}>
+              <h2 style={{
+                fontSize: '24px',
+                fontWeight: '700',
+                color: '#1f2937',
+                marginBottom: '12px'
+              }}>
+                Don't see a position that fits?
+              </h2>
+              <p style={{
+                fontSize: '16px',
+                color: '#6b7280',
+                marginBottom: '24px'
+              }}>
+                We're always interested in hearing from talented people. Send us your CV and tell us how you can contribute.
+              </p>
+              <a
+                href="mailto:info@solvify.se?subject=General Application"
+                style={{
+                  display: 'inline-block',
+                  backgroundColor: '#1f2937',
+                  color: '#ffffff',
+                  padding: '14px 32px',
+                  borderRadius: '8px',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  textDecoration: 'none'
+                }}
+              >
+                Send Us Your CV
+              </a>
+            </div>
+          </div>
+        </main>
+
+        <Footer />
       </div>
 
       {/* Application Form Modal */}
       {showApplicationForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Apply for Position</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowApplicationForm(false)}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          zIndex: 50
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '640px',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '20px 24px',
+              borderBottom: '1px solid #e5e7eb'
+            }}>
+              <h2 style={{
+                fontSize: '20px',
+                fontWeight: '700',
+                color: '#1f2937',
+                margin: 0
+              }}>
+                Apply for Position
+              </h2>
+              <button
+                onClick={() => setShowApplicationForm(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '8px',
+                  color: '#6b7280'
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Name & Email Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <Label htmlFor="name">Full Name *</Label>
-                    <Input
-                      id="name"
+                    <label style={{
+                      display: 'block',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#1f2937',
+                      marginBottom: '6px'
+                    }}>
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
                       required
                       placeholder="Your full name"
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '15px',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email">Email Address *</Label>
-                    <Input
-                      id="email"
-                      name="email"
+                    <label style={{
+                      display: 'block',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#1f2937',
+                      marginBottom: '6px'
+                    }}>
+                      Email Address *
+                    </label>
+                    <input
                       type="email"
+                      name="email"
                       value={formData.email}
                       onChange={handleInputChange}
                       required
                       placeholder="your.email@example.com"
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '15px',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Phone & Country Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
+                    <label style={{
+                      display: 'block',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#1f2937',
+                      marginBottom: '6px'
+                    }}>
+                      Phone Number
+                    </label>
+                    <input
+                      type="text"
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
                       placeholder="+44 20 1234 5678"
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '15px',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="country">Country *</Label>
-                    <div className="relative" ref={dropdownRef}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#1f2937',
+                      marginBottom: '6px'
+                    }}>
+                      Country *
+                    </label>
+                    <div style={{ position: 'relative' }} ref={dropdownRef}>
                       <input
                         type="text"
-                        id="country"
                         name="country"
                         value={searchTerm}
                         onChange={handleCountrySearch}
                         onFocus={() => setShowCountryDropdown(true)}
                         placeholder="Search for your country..."
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontSize: '15px',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
                       />
                       {showCountryDropdown && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                        <div style={{
+                          position: 'absolute',
+                          zIndex: 10,
+                          width: '100%',
+                          marginTop: '4px',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                          maxHeight: '200px',
+                          overflowY: 'auto'
+                        }}>
                           {filteredCountries.length > 0 ? (
                             filteredCountries.map((country) => (
                               <button
                                 key={country}
                                 type="button"
                                 onClick={() => handleCountrySelect(country)}
-                                className="w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                style={{
+                                  width: '100%',
+                                  padding: '10px 14px',
+                                  textAlign: 'left',
+                                  backgroundColor: 'transparent',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  fontSize: '14px'
+                                }}
                               >
                                 {country}
                               </button>
                             ))
                           ) : (
-                            <div className="px-3 py-2 text-gray-500">No countries found</div>
+                            <div style={{ padding: '10px 14px', color: '#9ca3af', fontSize: '14px' }}>
+                              No countries found
+                            </div>
                           )}
                         </div>
                       )}
@@ -492,130 +868,225 @@ export default function WorkWithUs() {
                   </div>
                 </div>
 
+                {/* Position */}
                 <div>
-                  <Label htmlFor="position">Position *</Label>
-                  <Input
-                    id="position"
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#1f2937',
+                    marginBottom: '6px'
+                  }}>
+                    Position *
+                  </label>
+                  <input
+                    type="text"
                     name="position"
                     value={formData.position}
-                    onChange={handleInputChange}
-                    required
                     disabled
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '15px',
+                      backgroundColor: '#f9fafb',
+                      color: '#6b7280',
+                      boxSizing: 'border-box'
+                    }}
                   />
                 </div>
 
+                {/* Experience */}
                 <div>
-                  <Label htmlFor="experience">Experience</Label>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#1f2937',
+                    marginBottom: '6px'
+                  }}>
+                    Experience
+                  </label>
                   <textarea
-                    id="experience"
                     name="experience"
                     value={formData.experience}
                     onChange={handleInputChange}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={3}
                     placeholder="Tell us about your relevant experience..."
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '15px',
+                      outline: 'none',
+                      resize: 'vertical',
+                      boxSizing: 'border-box'
+                    }}
                   />
                 </div>
 
+                {/* Motivation */}
                 <div>
-                  <Label htmlFor="motivation">Why do you want to work with us? *</Label>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#1f2937',
+                    marginBottom: '6px'
+                  }}>
+                    Why do you want to work with us? *
+                  </label>
                   <textarea
-                    id="motivation"
                     name="motivation"
                     value={formData.motivation}
                     onChange={handleInputChange}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Tell us why you're interested in this position and what you can bring to our team..."
+                    rows={3}
+                    placeholder="Tell us why you're interested in this position..."
                     required
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '15px',
+                      outline: 'none',
+                      resize: 'vertical',
+                      boxSizing: 'border-box'
+                    }}
                   />
                 </div>
 
+                {/* File Upload */}
                 <div>
-                  <Label htmlFor="files">Attach Files (PDF, JPG, PNG, CSV)</Label>
-                  <div className="mt-2">
-                    <input
-                      type="file"
-                      id="files"
-                      multiple
-                      accept=".pdf,.jpg,.jpeg,.png,.csv"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => document.getElementById('files')?.click()}
-                      className="w-full"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Choose Files
-                    </Button>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Accepted formats: PDF, JPG, PNG, CSV (Max 10MB per file)
-                    </p>
-                  </div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#1f2937',
+                    marginBottom: '6px'
+                  }}>
+                    Attach Files (PDF, JPG, PNG, CSV)
+                  </label>
+                  <input
+                    type="file"
+                    id="files"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png,.csv"
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('files')?.click()}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      backgroundColor: '#ffffff',
+                      border: '1px dashed #d1d5db',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      color: '#6b7280',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Click to upload files
+                  </button>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#9ca3af',
+                    marginTop: '6px'
+                  }}>
+                    Accepted formats: PDF, JPG, PNG, CSV (Max 10MB per file)
+                  </p>
 
                   {files.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      <h4 className="text-sm font-medium">Selected Files:</h4>
+                    <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {files.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                          <span className="text-sm">{file.name}</span>
-                          <Button
+                        <div key={index} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          backgroundColor: '#f9fafb',
+                          padding: '8px 12px',
+                          borderRadius: '6px'
+                        }}>
+                          <span style={{ fontSize: '14px', color: '#4b5563' }}>{file.name}</span>
+                          <button
                             type="button"
-                            variant="ghost"
-                            size="sm"
                             onClick={() => removeFile(index)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: '#9ca3af'
+                            }}
                           >
-                            <X className="w-4 h-4" />
-                          </Button>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M18 6L6 18M6 6l12 12" />
+                            </svg>
+                          </button>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
 
+                {/* Submit Message */}
                 {submitMessage && (
-                  <div className={`p-4 rounded-md ${
-                    submitMessage.includes('successfully') 
-                      ? 'bg-green-50 text-green-800 border border-green-200' 
-                      : 'bg-red-50 text-red-800 border border-red-200'
-                  }`}>
+                  <div style={{
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    backgroundColor: submitMessage.includes('successfully') ? '#f0fdf4' : '#fef2f2',
+                    color: submitMessage.includes('successfully') ? '#166534' : '#dc2626',
+                    fontSize: '14px'
+                  }}>
                     {submitMessage}
                   </div>
                 )}
 
-                <div className="flex gap-4">
-                  <Button
+                {/* Buttons */}
+                <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                  <button
                     type="button"
-                    variant="outline"
                     onClick={() => setShowApplicationForm(false)}
-                    className="flex-1"
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      backgroundColor: '#ffffff',
+                      color: '#1f2937',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
                   >
                     Cancel
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1"
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      backgroundColor: '#1f2937',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                      opacity: isSubmitting ? 0.7 : 1
+                    }}
                   >
-                    {isSubmitting ? (
-                      <>
-                        <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4 mr-2" />
-                        Submit Application
-                      </>
-                    )}
-                  </Button>
+                    {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                  </button>
                 </div>
-              </form>
-            </CardContent>
-          </Card>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

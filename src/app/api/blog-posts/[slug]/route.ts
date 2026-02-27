@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { supabase } from '@/lib/supabase';
+import { getFullUrl } from '@/config/seo-config';
 
+// Single source of truth: blog_posts table only
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -9,61 +10,36 @@ export async function GET(
   try {
     const { slug } = await params;
 
-    // Read blog posts from JSON file
-    const filePath = path.join(process.cwd(), 'all_blog_posts_with_content.json');
-    
-    if (!fs.existsSync(filePath)) {
-      console.error('Blog posts JSON file not found:', filePath);
-      return NextResponse.json({ error: 'Blog posts data not found' }, { status: 404 });
-    }
+    const { data: post, error } = await supabase()
+      .from('blog_posts')
+      .select('id, wp_id, title, slug, excerpt, content, date, created_at, featured_image, featured_image_local, seo_meta')
+      .eq('slug', slug)
+      .in('status', ['publish', 'published'])
+      .single();
 
-    const fileContent = fs.readFileSync(filePath, 'utf8');
-    const posts = JSON.parse(fileContent);
-
-    // Find the specific blog post by slug
-    const post = posts.find((p: any) => p.slug === slug && p.status === 'publish' && p.type === 'post');
-
-    if (!post) {
+    if (error || !post) {
       return NextResponse.json({ error: 'Blog post not found' }, { status: 404 });
     }
 
-    // Add local image path
-    let featured_image_local = null;
-    if (post.featured_media && post.featured_media > 0) {
-      const possibleImageNames = [
-        `post_${post.wp_id}_${post.title.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}`,
-        `post_${post.wp_id}_${post.slug}`,
-        post.slug,
-        post.title.toLowerCase().replace(/[^a-z0-9]/g, '_')
-      ];
-      
-      // Try to find the image in the main blog-images directory
-      const blogImagesDir = path.join(process.cwd(), 'public', 'blog-images');
-      
-      for (const imageName of possibleImageNames) {
-        const imagePath = path.join(blogImagesDir, `${imageName}.jpg`);
-        if (fs.existsSync(imagePath)) {
-          featured_image_local = `/blog-images/${imageName}.jpg`;
-          break;
-        }
-      }
-      
-      // If no specific image found, use a default placeholder
-      if (!featured_image_local) {
-        featured_image_local = '/blog-images/post_28580_What_is_Nicotine_The_Ultimate_Guide.jpg';
-      }
-    }
+    const excerpt = post.excerpt || post.content?.substring(0, 200).replace(/<[^>]*>/g, '').replace(/[#*_]/g, '') || '';
 
-    const processedPost = {
-      ...post,
-      featured_image_local,
-      // Ensure we have all required fields
-      link: post.link || `https://nicotine-pouches.org/${post.slug}`,
-      excerpt: post.excerpt || '',
-      author: post.author || 'Nicotine Pouches Team'
-    };
-
-    return NextResponse.json(processedPost);
+    return NextResponse.json({
+      id: post.id,
+      wp_id: post.wp_id,
+      title: post.title,
+      slug: post.slug,
+      excerpt: excerpt,
+      content: post.content,
+      date: post.date || post.created_at,
+      author: 'Nicotine Pouches Team',
+      featured_image: post.featured_image,
+      featured_image_local: post.featured_image_local || post.featured_image,
+      status: 'published',
+      type: 'post',
+      source: 'blog_posts',
+      link: getFullUrl(`/${post.slug}`),
+      seo_meta: post.seo_meta || { title: post.title, description: excerpt }
+    });
   } catch (error) {
     console.error('Error in blog post API:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

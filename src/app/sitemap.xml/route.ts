@@ -218,7 +218,7 @@ export async function GET() {
       });
     }
 
-    // Add blog posts (UK only)
+    // Add blog posts (UK only) – canonical URL is root /slug
     if (blogPosts && blogPosts.length > 0) {
       blogPosts.forEach((post: any) => {
         // Validate blog post data
@@ -299,15 +299,46 @@ export async function GET() {
       });
 
       // Extract unique brands from US products
+      // Known multi-word brands that need special handling
+      const multiWordBrands = ['nic-s', 'juice head', 'white fox', 'on!'];
+      // Brand aliases (products stored under different name than brand page)
+      const brandAliases: Record<string, string> = {
+        '2one': 'on',
+      };
+
       const brandNames: string[] = validUSProducts.map((product: any) => {
-        // Extract brand from product title (first word before any space or hyphen)
-        return product.product_title.split(/[\s-]/)[0].toLowerCase();
+        const title = product.product_title.toLowerCase();
+
+        // Check for known multi-word brands first
+        for (const brand of multiWordBrands) {
+          if (title.startsWith(brand)) {
+            return brand;
+          }
+        }
+
+        // Default: extract first word (split on space only, not hyphen)
+        let brandName = product.product_title.split(' ')[0].toLowerCase();
+
+        // Apply brand aliases
+        if (brandAliases[brandName]) {
+          brandName = brandAliases[brandName];
+        }
+
+        return brandName;
       });
       const usBrands: string[] = Array.from(new Set(brandNames)).filter((brand: string) => brand && brand.length > 0);
 
       // Add US brand pages
       usBrands.forEach(brand => {
-        const brandSlug = brand.toLowerCase().replace(/\s+/g, '-');
+        const brandSlug = brand
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+
+        if (!brandSlug || brandSlug.length < 2) return; // Skip invalid brand slugs
+
         const usBrandUrl = `${baseUrl}/us/brand/${brandSlug}`;
         
         // Check if this brand should be excluded from sitemap (discontinued brands)

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import SignupForm from '@/components/SignupForm';
@@ -108,7 +109,8 @@ export default function WhyNicotinePouches() {
       <div id="wrapper" className="fusion-wrapper">
         {/* Header */}
         <Header />
-        
+
+        <main id="main-content">
         {/* Main Content */}
         <div className="fusion-fullwidth fullwidth-box fusion-builder-row-1 fusion-flex-container has-pattern-background has-mask-background hundred-percent-fullwidth non-hundred-percent-height-scrolling" 
              style={{
@@ -141,7 +143,7 @@ export default function WhyNicotinePouches() {
                 <nav className="fusion-menu">
                   <ul className="fusion-menu-list" style={{ listStyle: 'none', padding: '0', margin: '0' }}>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/why-nicotine-pouches" style={{ 
+                      <Link href="/why-nicotine-pouches" style={{ 
                         color: '#22c55e', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -151,10 +153,10 @@ export default function WhyNicotinePouches() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         Why Nicotine Pouches?
-                      </a>
+                      </Link>
                     </li>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/dashboard" style={{ 
+                      <Link href="/dashboard" style={{ 
                         color: '#666', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -163,10 +165,10 @@ export default function WhyNicotinePouches() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         Register your store
-                      </a>
+                      </Link>
                     </li>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/dashboard" style={{ 
+                      <Link href="/dashboard" style={{ 
                         color: '#666', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -175,10 +177,10 @@ export default function WhyNicotinePouches() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         Login for stores
-                      </a>
+                      </Link>
                     </li>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/dashboard" style={{ 
+                      <Link href="/dashboard" style={{ 
                         color: '#666', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -187,10 +189,10 @@ export default function WhyNicotinePouches() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         Register your brand
-                      </a>
+                      </Link>
                     </li>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/dashboard" style={{ 
+                      <Link href="/dashboard" style={{ 
                         color: '#666', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -199,22 +201,23 @@ export default function WhyNicotinePouches() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         Login for brands
-                      </a>
+                      </Link>
                     </li>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="#" style={{ 
-                        color: '#666', 
-                        textDecoration: 'none', 
+                      <span style={{
+                        color: '#666',
+                        textDecoration: 'none',
                         fontSize: '16px',
                         padding: '8px 0',
                         display: 'block',
-                        borderBottom: '1px solid #e5e7eb'
+                        borderBottom: '1px solid #e5e7eb',
+                        cursor: 'pointer'
                       }}>
                         Advertise with us
-                      </a>
+                      </span>
                     </li>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/nicotine-pouches-api" style={{ 
+                      <Link href="/nicotine-pouches-api" style={{ 
                         color: '#666', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -223,7 +226,7 @@ export default function WhyNicotinePouches() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         Nicotine Pouches API
-                      </a>
+                      </Link>
                     </li>
                   </ul>
                 </nav>
@@ -291,7 +294,7 @@ export default function WhyNicotinePouches() {
             </div>
           </div>
         </div>
-
+        </main>
 
         {/* Footer */}
         <Footer />

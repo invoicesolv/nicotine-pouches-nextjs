@@ -30,19 +30,81 @@ const SSRUSProductGrid = async ({ brandFilter }: SSRUSProductGridProps) => {
 
     // Get US products
     let query = supabase().from('us_products').select('*');
-    
+
     // Apply brand filter if provided
     if (brandFilter) {
       query = query.ilike('product_title', `${brandFilter}%`);
     }
-    
+
     const { data: productData, error } = await query;
-    
+
     if (error) {
       throw error;
     }
-    
+
     data = productData || [];
+
+    // Fetch US vendor product mappings to calculate real store counts
+    const { data: mappings, error: mappingsError } = await supabase()
+      .from('us_vendor_product_mapping')
+      .select('product_id');
+
+    if (mappingsError) {
+      console.error('Error fetching US mappings:', mappingsError);
+    }
+
+    // Count stores per product
+    const storeCounts = new Map<number, number>();
+    mappings?.forEach((mapping: any) => {
+      const count = storeCounts.get(mapping.product_id) || 0;
+      storeCounts.set(mapping.product_id, count + 1);
+    });
+
+    // Fetch lowest prices from us_vendor_products_new for all mapped products
+    const productIds = data.map((p: any) => p.id);
+    const lowestPrices = new Map<number, string>();
+
+    // Get all vendor products with their prices
+    const { data: vendorProducts, error: vpError } = await supabase()
+      .from('us_vendor_product_mapping')
+      .select(`
+        product_id,
+        vendor_product,
+        us_vendor_id
+      `)
+      .in('product_id', productIds);
+
+    if (!vpError && vendorProducts && vendorProducts.length > 0) {
+      // Fetch prices from us_vendor_products_new
+      const { data: priceData, error: priceError } = await supabase()
+        .from('us_vendor_products_new')
+        .select('name, us_vendor_id, price_1pack');
+
+      if (!priceError && priceData) {
+        // Create a lookup map for prices
+        const priceLookup = new Map<string, number>();
+        priceData.forEach((vp: any) => {
+          const key = `${vp.us_vendor_id}-${vp.name}`;
+          const price = parseFloat(vp.price_1pack?.toString().replace('$', '') || '0');
+          if (price > 0) {
+            priceLookup.set(key, price);
+          }
+        });
+
+        // Find lowest price for each product
+        vendorProducts.forEach((lookup: any) => {
+          const key = `${lookup.us_vendor_id}-${lookup.vendor_product}`;
+          const price = priceLookup.get(key);
+          if (price) {
+            const currentLowest = lowestPrices.get(lookup.product_id);
+            const currentPrice = currentLowest ? parseFloat(currentLowest.replace('$', '')) : Infinity;
+            if (price < currentPrice) {
+              lowestPrices.set(lookup.product_id, `$${price.toFixed(2)}`);
+            }
+          }
+        });
+      }
+    }
 
     // Function to generate watching count between 400-800, round up to nearest hundred
     const generateWatchingCount = (min: number = 400, max: number = 800) => {
@@ -57,7 +119,7 @@ const SSRUSProductGrid = async ({ brandFilter }: SSRUSProductGridProps) => {
       const flavour = product.flavour || product.product_title?.split(' ').slice(1).join(' ') || 'Unknown';
       const strength = product.strength || 'Normal';
       const format = product.format || 'Slim';
-      
+
       // Generate proper slug from product title
       const generateSlug = (name: string) => {
         return name
@@ -66,9 +128,9 @@ const SSRUSProductGrid = async ({ brandFilter }: SSRUSProductGridProps) => {
           .replace(/\s+/g, '-')
           .trim();
       };
-      
+
       const slug = generateSlug(product.product_title || 'unknown-product');
-      
+
       return {
         id: product.id,
         name: product.product_title || 'Unknown Product',
@@ -77,8 +139,8 @@ const SSRUSProductGrid = async ({ brandFilter }: SSRUSProductGridProps) => {
         strength: strength,
         format: format,
         image: product.image_url || '/placeholder-product.jpg',
-        price: product.price || 'N/A',
-        stores: Math.floor(Math.random() * 5) + 1, // Random store count 1-5
+        price: lowestPrices.get(product.id) || product.price || 'N/A', // Real lowest price or fallback
+        stores: storeCounts.get(product.id) || 0, // Real store count from mappings
         watching: generateWatchingCount(),
         link: `/us/product/${slug}`
       };

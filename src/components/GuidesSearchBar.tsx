@@ -55,7 +55,7 @@ export default function GuidesSearchBar({ onSearch, placeholder = "Search guides
               border: '2px solid #e5e7eb',
               backgroundColor: '#ffffff',
               fontSize: '16px',
-              fontFamily: 'Klarna Text, sans-serif',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
               outline: 'none',
               transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
               boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
@@ -103,7 +103,7 @@ export default function GuidesSearchBar({ onSearch, placeholder = "Search guides
               backgroundColor: '#ffffff',
               color: '#666',
               fontSize: '14px',
-              fontFamily: 'Klarna Text, sans-serif',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
               cursor: 'pointer',
               transition: 'all 0.2s ease'
             }}

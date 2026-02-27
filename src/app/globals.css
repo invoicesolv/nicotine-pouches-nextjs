@@ -1,1 +1,102 @@
-@tailwind base;@tailwind components;@tailwind utilities;:root{--background:0 0% 100%;--foreground:0 0% 20%;--card:0 0% 100%;--card-foreground:0 0% 20%;--popover:0 0% 100%;--popover-foreground:0 0% 20%;--primary:0 0% 9%;--primary-foreground:0 0% 100%;--secondary:0 0% 96%;--secondary-foreground:0 0% 20%;--muted:0 0% 40%;--muted-foreground:0 0% 40%;--accent:120 100% 33%;--accent-foreground:0 0% 100%;--destructive:0 100% 45%;--destructive-foreground:0 0% 100%;--border:0 0% 90%;--input:0 0% 90%;--ring:204 100% 40%;--radius:0.5rem;--radius-xs:0.25rem;--radius-sm:0.5rem;--radius-md:0.75rem;--radius-lg:1.25rem}*{border-color:hsl(var(--border))}body{background-color:hsl(var(--background));color:hsl(var(--foreground))}@font-face{font-display:swap;font-family:Klarna\ 400;font-style:normal;font-weight:400;src:url(/fonts/Klarna-Text-normal-400-100.ttf) format("truetype")}@font-face{font-display:swap;font-family:Klarna\ 500;font-style:normal;font-weight:500;src:url(/fonts/Klarna-Text-normal-500-100.ttf) format("truetype")}@font-face{font-display:swap;font-family:Klarna\ 700;font-style:normal;font-weight:700;src:url(/fonts/Klarna-Text-normal-700-100.ttf) format("truetype")}html{scroll-behavior:smooth}::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:#f1f1f1}::-webkit-scrollbar-thumb{background:#c1c1c1;border-radius:4px}::-webkit-scrollbar-thumb:hover{background:#a8a8a8}.transition-smooth{transition:all .2s cubic-bezier(.4,0,.2,1)}.hover-lift:hover{box-shadow:0 8px 25px rgba(0,0,0,.15);transform:translateY(-2px)}.hover-scale:hover{transform:scale(1.02)}.hover-scale-sm:hover{transform:scale(1.05)}.btn-hover{transition:all .2s ease}.btn-hover:hover{box-shadow:0 4px 12px rgba(0,0,0,.15);transform:scale(1.05)}.btn-hover:active{transform:scale(.98)}.btn-primary{@apply bg-gray-900 hover:bg-gray-800 text-white font-medium px-4 py-2 rounded-xl text-sm;@apply transition-smooth btn-hover;@apply shadow-sm hover:shadow-md}.btn-secondary{@apply bg-white hover:bg-gray-50 text-gray-900 font-medium px-4 py-2 rounded-xl text-sm;@apply transition-smooth btn-hover;@apply border border-gray-300 shadow-sm}.btn-accent{@apply bg-gray-100 hover:bg-gray-200 text-gray-900 font-medium px-4 py-2 rounded-xl text-sm;@apply transition-smooth btn-hover;@apply border border-gray-200}.card-enhanced{@apply bg-white rounded-lg shadow-sm border border-gray-200;@apply transition-smooth hover-lift;@apply p-6}.card-enhanced:hover{@apply shadow-lg border-gray-300}.price-primary{@apply text-xl font-bold text-red-600;@apply transition-colors duration-200}.price-secondary{@apply text-lg font-semibold text-gray-700}.skeleton{@apply bg-gray-200 animate-pulse rounded}.skeleton-shimmer{animation:shimmer 1.5s infinite;background:linear-gradient(90deg,hsla(0,0%,100%,0),hsla(0,0%,100%,.4) 50%,hsla(0,0%,100%,0))}@keyframes shimmer{0%{transform:translateX(-100%)}to{transform:translateX(100%)}}.fade-in{animation:fadeIn .6s ease-out}.fade-in-up{animation:fadeInUp .6s ease-out}.fade-in-delay-1{animation:fadeInUp .6s ease-out .1s both}.fade-in-delay-2{animation:fadeInUp .6s ease-out .2s both}.fade-in-delay-3{animation:fadeInUp .6s ease-out .3s both}@keyframes fadeIn{0%{opacity:0}to{opacity:1}}@keyframes fadeInUp{0%{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}.input-enhanced{@apply w-full px-4 py-3 border border-gray-300 rounded-lg;@apply focus:ring-2 focus:ring-blue-500 focus:border-transparent;@apply transition-smooth;@apply bg-white}.input-enhanced:focus{@apply shadow-md}.badge{@apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;@apply transition-smooth}.badge-primary{@apply bg-blue-100 text-blue-800}.badge-success{@apply bg-green-100 text-green-800}.badge-warning{@apply bg-yellow-100 text-yellow-800}.badge-danger{@apply bg-red-100 text-red-800}.shadow-soft{box-shadow:0 2px 8px rgba(0,0,0,.1)}.shadow-medium{box-shadow:0 4px 16px rgba(0,0,0,.12)}.shadow-strong{box-shadow:0 8px 32px rgba(0,0,0,.15)}.interactive:hover{@apply transition-smooth}.interactive:hover{@apply shadow-soft}.focus-visible:focus-visible{@apply outline-none ring-2 ring-blue-500 ring-offset-2}.page-transition{animation:pageEnter .4s ease-out}@keyframes pageEnter{0%{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 20%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 20%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 20%;
+  --primary: 0 0% 9%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 20%;
+  --muted: 0 0% 40%;
+  --muted-foreground: 0 0% 40%;
+  --accent: 120 100% 33%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 100% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 204 100% 40%;
+  --radius: 0.5rem;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.newsletter-input::placeholder {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: #999;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Footer responsive styles */
+@media (max-width: 768px) {
+  .footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+  .footer-newsletter-title {
+    font-size: 24px !important;
+  }
+  .footer-newsletter-text {
+    font-size: 14px !important;
+  }
+  .footer-bottom {
+    flex-direction: column !important;
+    gap: 16px !important;
+    text-align: center !important;
+  }
+  .footer-social {
+    justify-content: center !important;
+  }
+  .footer-company-info {
+    text-align: center !important;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .footer-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 32px !important;
+  }
+}

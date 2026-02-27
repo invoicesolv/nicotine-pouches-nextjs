@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import PriceRangeSlider from './PriceRangeSlider';
 
 interface FilterSidebarProps {
   onFiltersChange?: (filters: FilterState) => void;
@@ -318,12 +319,6 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
     { name: 'Extra Strong (13mg+)', count: 34 }
   ];
 
-  const priceRanges = [
-    { name: 'Up to £3', count: 45 },
-    { name: '£3 - £5', count: 78 },
-    { name: '£5 - £8', count: 92 },
-    { name: 'At least £8', count: 34 }
-  ];
 
   const filteredBrands = powerSourceOptions.filter(brand => 
     brand.name.toLowerCase().includes(searchTerms.brands.toLowerCase())
@@ -346,7 +341,7 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
         backgroundColor: '#fff',
         padding: '20px',
         textAlign: 'center',
-        fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif'
+        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
       }}>
         <div style={{ fontSize: '16px', color: '#666' }}>Loading filters...</div>
       </div>
@@ -788,7 +783,7 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
 
       {/* Price Section */}
       <div style={{ padding: '20px 0', borderBottom: '1px solid #e5e7eb' }}>
-        <div 
+        <div
           onClick={() => toggleSection('price')}
           style={{
             display: 'flex',
@@ -805,7 +800,7 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
           }}
         >
           <span>Price</span>
-          <span style={{ 
+          <span style={{
             fontSize: '14px',
             transform: expandedSections.price ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.2s ease'
@@ -813,192 +808,21 @@ const FilterSidebar = ({ onFiltersChange }: FilterSidebarProps) => {
             ▲
           </span>
         </div>
-        
+
         {expandedSections.price && (
-          <div style={{ marginTop: '12px' }}>
-            {/* Range Slider with Histogram */}
-            <div style={{ marginBottom: '16px', width: 'calc(100% - 24px)', margin: '0 auto 16px auto' }}>
-              <div style={{
-                height: '20px',
-                backgroundColor: '#f3f4f6',
-                borderRadius: '10px',
-                position: 'relative',
-                marginBottom: '8px'
-              }}>
-                {/* Histogram bars */}
-                <div style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '0',
-                  right: '0',
-                  height: '4px',
-                  backgroundColor: '#d1d5db',
-                  borderRadius: '2px',
-                  transform: 'translateY(-50%)'
-                }} />
-                {/* Histogram bars representing price distribution */}
-                <div style={{
-                  position: 'absolute',
-                  top: '2px',
-                  left: '10%',
-                  width: '8px',
-                  height: '16px',
-                  backgroundColor: '#1e40af',
-                  borderRadius: '1px'
-                }} />
-                <div style={{
-                  position: 'absolute',
-                  top: '4px',
-                  left: '20%',
-                  width: '8px',
-                  height: '12px',
-                  backgroundColor: '#1e40af',
-                  borderRadius: '1px'
-                }} />
-                <div style={{
-                  position: 'absolute',
-                  top: '2px',
-                  left: '30%',
-                  width: '8px',
-                  height: '16px',
-                  backgroundColor: '#1e40af',
-                  borderRadius: '1px'
-                }} />
-                <div style={{
-                  position: 'absolute',
-                  top: '6px',
-                  left: '40%',
-                  width: '8px',
-                  height: '8px',
-                  backgroundColor: '#1e40af',
-                  borderRadius: '1px'
-                }} />
-                <div style={{
-                  position: 'absolute',
-                  top: '8px',
-                  left: '50%',
-                  width: '8px',
-                  height: '4px',
-                  backgroundColor: '#1e40af',
-                  borderRadius: '1px'
-                }} />
-                <div style={{
-                  position: 'absolute',
-                  top: '10px',
-                  left: '60%',
-                  width: '8px',
-                  height: '0px',
-                  backgroundColor: '#1e40af',
-                  borderRadius: '1px'
-                }} />
-                <div style={{
-                  position: 'absolute',
-                  top: '12px',
-                  left: '70%',
-                  width: '8px',
-                  height: '0px',
-                  backgroundColor: '#1e40af',
-                  borderRadius: '1px'
-                }} />
-                <div style={{
-                  position: 'absolute',
-                  top: '14px',
-                  left: '80%',
-                  width: '8px',
-                  height: '0px',
-                  backgroundColor: '#1e40af',
-                  borderRadius: '1px'
-                }} />
-                <div style={{
-                  position: 'absolute',
-                  top: '16px',
-                  left: '90%',
-                  width: '8px',
-                  height: '0px',
-                  backgroundColor: '#1e40af',
-                  borderRadius: '1px'
-                }} />
-              </div>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '12px',
-                color: '#666'
-              }}>
-                <span>£0</span>
-                <span>£15</span>
-              </div>
-            </div>
-            
-            {/* Price Input Fields */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginBottom: '16px',
-              width: 'calc(100% - 24px)',
-              margin: '0 auto 16px auto'
-            }}>
-              <input
-                type="number"
-                placeholder="Min"
-                style={{
-                  width: '60px',
-                  padding: '6px 8px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}
-              />
-              <span style={{ color: '#666' }}>-</span>
-              <input
-                type="number"
-                placeholder="Max"
-                style={{
-                  width: '60px',
-                  padding: '6px 8px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}
-              />
-            </div>
-            
-            {/* Predefined Price Ranges */}
-            {priceRanges.map(range => (
-              <label key={range.name} style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                margin: '0 auto',
-                width: 'calc(100% - 24px)',
-                cursor: 'pointer',
-                fontSize: '14px',
-                color: '#333'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type="radio"
-                    name="price"
-                    style={{ 
-                      margin: '0',
-                      width: '16px',
-                      height: '16px',
-                      accentColor: '#1e40af'
-                    }}
-                  />
-                  <span>{range.name}</span>
-                </div>
-                <span style={{ 
-                  fontSize: '12px', 
-                  color: '#666',
-                  fontWeight: '500'
-                }}>
-                  {range.count}
-                </span>
-              </label>
-            ))}
+          <div style={{ marginTop: '12px', padding: '0 12px' }}>
+            <PriceRangeSlider
+              min={0}
+              max={15}
+              priceDistribution={[65, 90, 78, 45, 30, 20, 15, 10, 5, 3]}
+              onChange={(min, max) => handlePriceRangeChange(min, max)}
+              presetRanges={[
+                { label: 'Up to £3', min: 0, max: 3, count: 45 },
+                { label: '£3 - £5', min: 3, max: 5, count: 78 },
+                { label: '£5 - £8', min: 5, max: 8, count: 92 },
+                { label: 'At least £8', min: 8, max: 15, count: 34 }
+              ]}
+            />
           </div>
         )}
       </div>

@@ -28,7 +28,7 @@ export default function BreadcrumbNavigation({
         padding: '0 20px',
         fontSize: '14px',
         color: '#666',
-        fontFamily: 'Klarna Text, sans-serif'
+        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
       }}>
         <ol style={{
           display: 'flex',
@@ -56,7 +56,7 @@ export default function BreadcrumbNavigation({
                 <span 
                   style={{
                     color: '#0B051D',
-                    fontFamily: 'Klarna Text, sans-serif',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     fontWeight: '500'
                   }}
                   aria-current="page"
@@ -69,7 +69,7 @@ export default function BreadcrumbNavigation({
                   style={{
                     color: '#0B051D',
                     textDecoration: 'none',
-                    fontFamily: 'Klarna Text, sans-serif',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     fontWeight: '800',
                     transition: 'color 0.2s ease'
                   }}

@@ -2,11 +2,15 @@ import { notFound } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import SSRUSProductGridWithSidebar from '@/components/SSRUSProductGridWithSidebar';
+import SortDropdown from '@/components/SortDropdown';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Metadata } from 'next';
+import { Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
-import { generateBrandPageMeta, pageMetaToMetadata } from '@/lib/meta-generator';
+import { generateUSBrandPageMeta, pageMetaToMetadata } from '@/lib/meta-generator';
 import { generateBrandHreflang, generateSafeHreflang } from '@/lib/hreflang';
+import { getUSBrandLogo } from '@/lib/brand-logos';
 import './brand-page.css';
 
 // Fetch brand data from Supabase
@@ -66,8 +70,14 @@ async function getBrandData(slug: string): Promise<{ brandName: string; totalPro
   }
 }
 
-export default async function BrandPage({ params }: { params: Promise<{ slug: string }> }) {
+interface PageProps {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ sort?: string; page?: string }>;
+}
+
+export default async function BrandPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
   const brandData = await getBrandData(slug);
 
   if (!brandData) {
@@ -78,7 +88,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
   const { brandName, totalProducts } = brandData;
 
   return (
-      
+    <>
       <div id="boxed-wrapper">
         <div id="wrapper" className="fusion-wrapper">
           {/* Header */}
@@ -93,69 +103,163 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
             width: '100%'
           }}>
             
-            {/* Breadcrumb */}
+            {/* Hero Section - PriceRunner Style */}
             <div style={{
-              backgroundColor: '#f8f9fa',
-              padding: '15px 0',
-              borderBottom: '1px solid #e9ecef'
-            }}>
-              <div className="compare-container" style={{
-                maxWidth: '100%',
-                margin: '0',
-                padding: '0 15px',
-                fontSize: '14px',
-                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
-                color: '#666'
-              }}>
-                <Link href="/" style={{ color: '#666', textDecoration: 'none' }}>Home</Link>
-                <span style={{ margin: '0 8px' }}>»</span>
-                <Link href="/compare" style={{ color: '#666', textDecoration: 'none' }}>Compare Nicotine Pouches</Link>
-                <span style={{ margin: '0 8px' }}>»</span>
-                <Link href="/guides" style={{ color: '#666', textDecoration: 'none' }}>Guides</Link>
-                <span style={{ margin: '0 8px' }}>»</span>
-                <Link href="/here-we-are" style={{ color: '#666', textDecoration: 'none' }}>About Us</Link>
-                <span style={{ margin: '0 8px' }}>»</span>
-                <span>{brandName}</span>
-              </div>
-            </div>
-
-            {/* Page Header */}
-            <div className="page-header" style={{
               backgroundColor: '#ffffff',
-              padding: '40px 0',
-              borderBottom: '1px solid #e9ecef'
+              padding: '24px 20px 32px 20px',
+              maxWidth: '1400px',
+              margin: '0 auto'
             }}>
-              <div className="compare-container" style={{
-                maxWidth: '1200px',
-                margin: '0 auto',
-                padding: '0 15px',
-                textAlign: 'center'
+              {/* Breadcrumb */}
+              <nav style={{
+                marginBottom: '20px',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
               }}>
+                <Link href="/us" style={{
+                  color: '#1f2937',
+                  textDecoration: 'none',
+                  fontSize: '15px',
+                  fontWeight: '400'
+                }}>Start</Link>
+                <span style={{
+                  margin: '0 10px',
+                  color: '#9ca3af',
+                  fontSize: '15px'
+                }}>/</span>
+                <Link href="/us/compare" style={{
+                  color: '#1f2937',
+                  textDecoration: 'none',
+                  fontSize: '15px',
+                  fontWeight: '400'
+                }}>Compare</Link>
+                <span style={{
+                  margin: '0 10px',
+                  color: '#9ca3af',
+                  fontSize: '15px'
+                }}>/</span>
+                <span style={{
+                  color: '#6b7280',
+                  fontSize: '15px'
+                }}>{brandName}</span>
+              </nav>
+
+              {/* Brand Logo and Title Row */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '24px',
+                marginBottom: '16px'
+              }}>
+                {/* Brand Logo */}
+                {getUSBrandLogo(brandName) && (
+                  <div style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '16px',
+                    backgroundColor: '#f9fafb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <Image
+                      src={getUSBrandLogo(brandName)!}
+                      alt={`${brandName} logo`}
+                      width={60}
+                      height={60}
+                      style={{
+                        objectFit: 'contain'
+                      }}
+                      unoptimized
+                    />
+                  </div>
+                )}
                 <h1 style={{
-                  fontSize: '2.5rem',
-                  fontWeight: 800,
+                  fontSize: '42px',
+                  fontWeight: '800',
+                  color: '#1f2937',
+                  margin: '0',
                   fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
-                  color: '#333',
-                  margin: '0 0 15px 0'
+                  letterSpacing: '-0.5px',
+                  lineHeight: '1.1'
                 }}>
                   {brandName} Nicotine Pouches
                 </h1>
-                <p style={{
-                  fontSize: '18px',
-                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
-                  color: '#666',
-                  maxWidth: '600px',
-                  margin: '0 auto',
-                  lineHeight: '1.6'
-                }}>
-                  Find the best prices for {brandName} nicotine pouches from top US vendors. 
-                  Compare ratings, strengths, and flavors to find your perfect match.
-                </p>
+              </div>
+
+              {/* Description */}
+              <p style={{
+                fontSize: '17px',
+                color: '#4b5563',
+                maxWidth: '800px',
+                margin: '0',
+                lineHeight: '1.7',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+              }}>
+                Find the best prices for {brandName} nicotine pouches from top US vendors.
+                Compare ratings, strengths, and flavors to find your perfect match.
+              </p>
+            </div>
+
+          {/* Filter Bar */}
+            <div style={{
+              backgroundColor: '#f4f5f9',
+              padding: '16px 20px',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                maxWidth: '1400px',
+                margin: '0 auto'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                  <span style={{
+                    fontSize: '20px',
+                    fontWeight: '700',
+                    color: '#1f2937'
+                  }}>
+                    Filter
+                  </span>
+                  <span style={{
+                    fontSize: '15px',
+                    color: '#6b7280',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    {totalProducts}+ products
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 16v-4M12 8h.01"/>
+                    </svg>
+                  </span>
+                </div>
+                <Suspense fallback={<span style={{ fontSize: '14px', color: '#1f2937' }}>Sort by popularity</span>}>
+                  <SortDropdown basePath={`/us/brand/${slug}`} />
+                </Suspense>
               </div>
             </div>
 
             {/* US Products Section with Sidebar - Responsive */}
-            <SSRUSProductGridWithSidebar brandFilter={brandName} isUSRoute={true} />
+            <SSRUSProductGridWithSidebar
+              brandFilter={brandName}
+              isUSRoute={true}
+              filters={{
+                brand: brandName,
+                vendor: '',
+                flavour: '',
+                strength: '',
+                minPrice: '',
+                maxPrice: '',
+                format: '',
+                sort: resolvedSearchParams.sort || 'popularity'
+              }}
+              currentPage={parseInt(resolvedSearchParams.page || '1', 10)}
+            />
 
           </main>
 
@@ -163,6 +267,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
         <Footer showBrandsLink={false} isUSRoute={true} />
       </div>
     </div>
+    </>
   );
 }
 
@@ -178,7 +283,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     };
   }
 
-  const metaData = pageMetaToMetadata(generateBrandPageMeta(
+  const metaData = pageMetaToMetadata(generateUSBrandPageMeta(
     String(brandData.brandName),
     brandData.totalProducts
   ));
@@ -189,7 +294,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const usBrandUrl = `${baseUrl}/us/brand/${slug}`;
   
   // Generate hreflang using the fixed function (only US, no cross-region links)
-  const hreflang = generateSafeHreflang(generateBrandHreflang(slug, true));
+  const hreflang = generateSafeHreflang(generateBrandHreflang(slug, true, false));
   const languages: Record<string, string> = {};
   hreflang.forEach(entry => {
     languages[entry.lang] = entry.url;

@@ -72,15 +72,15 @@ async function getProductComparisonData(brand: string, flavour: string) {
     // Override specific values for comparison page
     seoInputs.brand = brand;
     seoInputs.flavour = flavour;
-    seoInputs.page_url = `https://nicotinepouches.co.uk/product-comparison/${brand.toLowerCase()}/${flavour.toLowerCase()}`;
+    seoInputs.page_url = `https://nicotine-pouches.org/product-comparison/${brand.toLowerCase()}/${flavour.toLowerCase()}`;
     
     // Update breadcrumbs for comparison page
     seoInputs.breadcrumbs = [
-      { name: 'Home', url: 'https://nicotinepouches.co.uk' },
-      { name: 'Nicotine Pouches', url: 'https://nicotinepouches.co.uk/compare' },
-      { name: 'Flavours', url: 'https://nicotinepouches.co.uk/flavours' },
-      { name: flavour, url: `https://nicotinepouches.co.uk/flavours/${flavour.toLowerCase().replace(/\s+/g, '-')}` },
-      { name: `${brand} Comparison`, url: `https://nicotinepouches.co.uk/product-comparison/${brand.toLowerCase()}/${flavour.toLowerCase()}` }
+      { name: 'Home', url: 'https://nicotine-pouches.org' },
+      { name: 'Nicotine Pouches', url: 'https://nicotine-pouches.org/compare' },
+      { name: 'Flavours', url: 'https://nicotine-pouches.org/flavours' },
+      { name: flavour, url: `https://nicotine-pouches.org/flavours/${flavour.toLowerCase().replace(/\s+/g, '-')}` },
+      { name: `${brand} Comparison`, url: `https://nicotine-pouches.org/product-comparison/${brand.toLowerCase()}/${flavour.toLowerCase()}` }
     ];
 
     const seoData = generateProductSEO(seoInputs);
@@ -148,7 +148,7 @@ export default async function ProductComparisonPage({ params }: ProductCompariso
                   color: '#0B051D',
                   margin: '0 0 20px 0',
                   lineHeight: '1.1',
-                  fontFamily: 'Klarna Text, sans-serif',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                   letterSpacing: '-0.05em'
                 }}>
                   {seoData.on_page_copy_scaffold?.h1 || `${brand} ${flavour} Comparison`}

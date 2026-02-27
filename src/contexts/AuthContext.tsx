@@ -63,10 +63,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Default values for when provider is not available (SSR)
+const defaultAuthContext: AuthContextType = {
+  user: null,
+  loading: false,
+  signOut: async () => {},
+  triggerLoginModal: () => {},
+  loginModalTrigger: 0
+};
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    // Return defaults instead of throwing - handles SSR case
+    console.warn('useAuth called outside AuthProvider, using defaults');
+    return defaultAuthContext;
   }
   return context;
 }

@@ -1,8 +1,19 @@
+import { Metadata } from 'next';
+import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import VendorLogo from '@/components/VendorLogo';
 import ReviewBalls from '@/components/ReviewBalls';
 import { supabase } from '@/lib/supabase';
+
+export const metadata: Metadata = {
+  title: 'Where to Buy Nicotine Pouches UK | Trusted Online Shops Compared',
+  description: 'Compare trusted UK nicotine pouch retailers. Find the best online shops for ZYN, VELO, Nordic Spirit with verified reviews, fast shipping, and price comparisons.',
+  keywords: 'where to buy nicotine pouches uk, nicotine pouch shops uk, buy nicotine pouches online uk, best nicotine pouch retailers, trusted nicotine pouch vendors',
+  alternates: {
+    canonical: 'https://nicotine-pouches.org/vendors',
+  },
+};
 
 // Fetch all vendors
 async function getVendors() {
@@ -31,7 +42,8 @@ export default async function VendorsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
+      <main id="main-content">
       {/* Breadcrumb */}
       <div style={{
         backgroundColor: '#333',
@@ -43,9 +55,9 @@ export default async function VendorsPage() {
           <nav className="flex" aria-label="Breadcrumb">
             <ol className="flex items-center space-x-2">
               <li>
-                <a href="/" className="text-white hover:text-gray-300 text-sm">
+                <Link href="/" className="text-white hover:text-gray-300 text-sm">
                   Home
-                </a>
+                </Link>
               </li>
               <li>
                 <span className="text-gray-400 text-sm">/</span>
@@ -64,11 +76,11 @@ export default async function VendorsPage() {
         {/* Page Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Our Trusted Vendors
+            Where to Buy Nicotine Pouches UK
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Discover the best nicotine pouch vendors with competitive prices, 
-            fast shipping, and excellent customer service.
+            Compare trusted UK nicotine pouch shops. We've verified each retailer for fast shipping,
+            competitive prices, and reliable customer service.
           </p>
         </div>
 
@@ -129,13 +141,12 @@ export default async function VendorsPage() {
 
                 {/* Action Buttons */}
                 <div className="space-y-2">
-                  <a
+                  <Link
                     href={`/vendor/${vendor.name.toLowerCase().replace(/\s+/g, '-')}`}
-                    rel="nofollow"
                     className="block w-full bg-gray-900 text-white py-1.5 px-3 rounded-xl hover:bg-gray-800 transition-colors text-xs font-medium"
                   >
                     View Products
-                  </a>
+                  </Link>
                   {vendor.website && (
                     <a
                       href={vendor.website}
@@ -160,6 +171,7 @@ export default async function VendorsPage() {
           </div>
         )}
       </div>
+      </main>
 
       <Footer />
     </div>

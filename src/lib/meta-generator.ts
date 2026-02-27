@@ -71,6 +71,26 @@ export function generateBrandPageMeta(brandName: string, productCount: number): 
   };
 }
 
+// Generate meta tags for US brand page
+export function generateUSBrandPageMeta(brandName: string, productCount: number): PageMeta {
+  const brandSlug = brandName.toLowerCase().replace(/\s+/g, '-');
+  return {
+    title: `${brandName} Nicotine Pouches - Compare Prices & Reviews US`,
+    description: `Compare all ${brandName} nicotine pouches by price, strength, and flavor. ${productCount} products available from top US vendors with live price updates.`,
+    keywords: `${brandName} nicotine pouches, ${brandName} pouches US, ${brandName} comparison, best ${brandName} deals, ${brandName} USA`,
+    ogTitle: `${brandName} Nicotine Pouches - Compare Prices & Reviews US`,
+    ogDescription: `Compare all ${brandName} nicotine pouches by price, strength, and flavor. ${productCount} products available from top US vendors with live price updates.`,
+    ogImage: `https://nicotine-pouches.org/brand-images/${brandSlug}-og.jpg`,
+    ogUrl: `https://nicotine-pouches.org/us/brand/${brandSlug}`,
+    twitterTitle: `${brandName} Nicotine Pouches - Compare Prices & Reviews US`,
+    twitterDescription: `Compare all ${brandName} nicotine pouches by price, strength, and flavor. ${productCount} products available from top US vendors with live price updates.`,
+    twitterImage: `https://nicotine-pouches.org/brand-images/${brandSlug}-og.jpg`,
+    canonical: `https://nicotine-pouches.org/us/brand/${brandSlug}`,
+    robots: 'index,follow',
+    geoRegion: 'US'
+  };
+}
+
 // Generate meta tags for about page
 export function generateAboutPageMeta(): PageMeta {
   return {
@@ -162,23 +182,6 @@ export function generateBecomeMemberPageMeta(): PageMeta {
 }
 
 // Generate meta tags for US become a member page
-export function generateUSGuidesPageMeta(): PageMeta {
-  return {
-    title: 'Guides - Nicotine Pouches US',
-    description: 'Expert guides on nicotine pouches in the US. Learn about different brands, strengths, flavors, and find the perfect pouch for your needs.',
-    keywords: 'nicotine pouches guides, nicotine pouch tips, best nicotine pouches, US guides',
-    ogTitle: 'Guides - Nicotine Pouches US',
-    ogDescription: 'Expert guides on nicotine pouches in the US. Learn about different brands, strengths, flavors, and find the perfect pouch for your needs.',
-    ogImage: 'https://nicotine-pouches.org/us-guides-og-image.jpg',
-    ogUrl: 'https://nicotine-pouches.org/us/guides',
-    twitterTitle: 'Guides - Nicotine Pouches US',
-    twitterDescription: 'Expert guides on nicotine pouches in the US. Learn about different brands, strengths, flavors, and find the perfect pouch for your needs.',
-    twitterImage: 'https://nicotine-pouches.org/us-guides-og-image.jpg',
-    canonical: 'https://nicotine-pouches.org/us/guides',
-    robots: 'index,follow'
-  };
-}
-
 export function generateUSBecomeMemberPageMeta(): PageMeta {
   return {
     title: 'Become a Member - Nicotine Pouches US',
@@ -193,6 +196,44 @@ export function generateUSBecomeMemberPageMeta(): PageMeta {
     twitterImage: 'https://nicotine-pouches.org/us-member-og-image.jpg',
     canonical: 'https://nicotine-pouches.org/us/become-a-member',
     robots: 'index,follow'
+  };
+}
+
+// Generate meta tags for guides page
+export function generateGuidesPageMeta(): PageMeta {
+  return {
+    title: 'Nicotine Pouch Guides UK | How-To Tutorials & Expert Tips',
+    description: 'Expert UK guides on nicotine pouches. Learn how to use them, understand strengths, compare brands, and find the best products. Complete tutorials for beginners and experienced users.',
+    keywords: 'nicotine pouches guides uk, how to use nicotine pouches, nicotine pouches tutorial, nicotine pouches tips uk, nicotine pouches beginners guide',
+    ogTitle: 'Nicotine Pouch Guides UK | How-To Tutorials & Expert Tips',
+    ogDescription: 'Expert UK guides on nicotine pouches. Learn how to use them, understand strengths, and find the best products.',
+    ogImage: 'https://nicotine-pouches.org/guides-og-image.jpg',
+    ogUrl: 'https://nicotine-pouches.org/guides',
+    twitterTitle: 'Nicotine Pouch Guides UK | How-To Tutorials & Expert Tips',
+    twitterDescription: 'Expert UK guides on nicotine pouches. Learn how to use them, understand strengths, and find the best products.',
+    twitterImage: 'https://nicotine-pouches.org/guides-og-image.jpg',
+    canonical: 'https://nicotine-pouches.org/guides',
+    robots: 'index,follow',
+    geoRegion: 'UK'
+  };
+}
+
+// Generate meta tags for US guides page
+export function generateUSGuidesPageMeta(): PageMeta {
+  return {
+    title: 'Nicotine Pouches Guides US - Complete Tutorials & How-To Guides',
+    description: 'Guides to help you understand nicotine pouches, their benefits, and how to use them effectively. Learn everything you need to know about nicotine pouches in the US.',
+    keywords: 'nicotine pouches guides US, how to use nicotine pouches, nicotine pouches tutorial, nicotine pouches tips, nicotine pouches benefits',
+    ogTitle: 'Nicotine Pouches Guides US - Complete Tutorials & How-To Guides',
+    ogDescription: 'Guides to help you understand nicotine pouches, their benefits, and how to use them effectively.',
+    ogImage: 'https://nicotine-pouches.org/guides-og-image.jpg',
+    ogUrl: 'https://nicotine-pouches.org/us/guides',
+    twitterTitle: 'Nicotine Pouches Guides US - Complete Tutorials & How-To Guides',
+    twitterDescription: 'Guides to help you understand nicotine pouches, their benefits, and how to use them effectively.',
+    twitterImage: 'https://nicotine-pouches.org/guides-og-image.jpg',
+    canonical: 'https://nicotine-pouches.org/us/guides',
+    robots: 'index,follow',
+    geoRegion: 'US'
   };
 }
 
@@ -214,20 +255,20 @@ export function generateBlogPostMeta(title: string, excerpt: string, slug: strin
   };
 }
 
-// Generate meta tags for location pages
+// Generate meta tags for location pages (UK cities - no US alternate)
 export function generateLocationMeta(cityData: {
   name: string;
   region: string;
   population: string;
   description: string;
   image: string;
-}): PageMeta {
+}): PageMeta & { skipUSAlternate: boolean } {
   const cityName = cityData.name;
   const region = cityData.region;
-  
+
   // Convert city name to slug format (same as used in CITY_SLUGS array)
   const citySlug = cityName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-  
+
   return {
     title: `Nicotine Pouches in ${cityName} - Compare Prices & Find Best Deals`,
     description: `Find the best nicotine pouches in ${cityName}, ${region}. Compare prices from top UK brands including ZYN, VELO, and Nordic Spirit. Local availability and delivery options.`,
@@ -241,12 +282,56 @@ export function generateLocationMeta(cityData: {
     twitterImage: cityData.image,
     canonical: `https://nicotine-pouches.org/${citySlug}`,
     robots: 'index,follow',
-    geoRegion: 'UK'
+    geoRegion: 'UK',
+    // UK city pages should NOT have en-US alternate since they don't exist in the US section
+    skipUSAlternate: true
   };
 }
 
+// UK-only paths that should NOT have US alternates (these pages don't exist in /us/)
+const UK_ONLY_PATH_PATTERNS = [
+  '/blog',
+  '/blog/',
+  '/blog-posts',
+  '/vendors',
+  '/digital-services-act',
+  '/features',
+  '/news',
+  '/press',
+  '/here-we-are'
+];
+
 // Convert PageMeta to Next.js Metadata format
-export function pageMetaToMetadata(meta: PageMeta) {
+// Note: skipUSAlternate can be passed to prevent generating en-US hreflang for UK-only content
+export function pageMetaToMetadata(meta: PageMeta & { skipUSAlternate?: boolean }) {
+  // Build language alternates - only include en-US if not UK-only content
+  const languageAlternates: Record<string, string> = {
+    'en-GB': meta.canonical || 'https://nicotine-pouches.org',
+    'x-default': meta.canonical || 'https://nicotine-pouches.org',
+  };
+
+  // Check if this is a UK-only path by checking the canonical URL
+  const canonicalUrl = meta.canonical || 'https://nicotine-pouches.org';
+  const urlPath = canonicalUrl.replace('https://nicotine-pouches.org', '');
+  const isUSPath = urlPath.startsWith('/us/') || urlPath === '/us';
+  const isUKOnlyPath = UK_ONLY_PATH_PATTERNS.some(pattern =>
+    urlPath === pattern || urlPath.startsWith(`${pattern}/`)
+  );
+
+  // For US pages: add en-GB alternate pointing to UK version (remove /us prefix)
+  // For UK pages: add en-US alternate pointing to US version (add /us prefix)
+  if (isUSPath) {
+    // This is a US page - add en-GB alternate pointing to UK version
+    const ukAlternate = canonicalUrl.replace('/us/', '/').replace('/us', '');
+    languageAlternates['en-GB'] = ukAlternate;
+    languageAlternates['en-US'] = canonicalUrl;
+    languageAlternates['x-default'] = canonicalUrl; // US pages default to themselves
+  } else if (!meta.skipUSAlternate && !isUKOnlyPath) {
+    // This is a UK page - add en-US alternate pointing to US version
+    const usAlternate = canonicalUrl.replace('https://nicotine-pouches.org', 'https://nicotine-pouches.org/us');
+    languageAlternates['en-US'] = usAlternate;
+  }
+
   const metadata = {
     title: meta.title,
     description: meta.description,
@@ -256,11 +341,7 @@ export function pageMetaToMetadata(meta: PageMeta) {
     publisher: 'Nicotine Pouches UK',
     alternates: {
       canonical: meta.canonical,
-      languages: {
-        'en-GB': meta.canonical || 'https://nicotine-pouches.org',
-        'en-US': 'https://nicotine-pouches.org/us',
-        'x-default': meta.canonical || 'https://nicotine-pouches.org',
-      },
+      languages: languageAlternates,
     },
     openGraph: {
       title: meta.ogTitle || meta.title,

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import BlogContentProcessor from '@/components/BlogContentProcessor';
 import { getSEOTags, renderSchemaTag, generateBreadcrumbSchema } from '@/lib/seo-core';
 import { getBlogSEOTemplate, generateBreadcrumbData } from '@/lib/seo-templates';
 import { getFullUrl } from '@/config/seo-config';
@@ -18,7 +19,7 @@ interface BlogPostPageProps {
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
   const post = getBlogPostBySlug(slug);
-  
+
   if (!post) {
     return {
       title: 'Blog Post Not Found',
@@ -27,7 +28,6 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   }
 
   const seoData = getBlogSEOTemplate(post);
-  // Add all new fields
   seoData.keywords = post.keywords?.join(', ');
   seoData.dateModified = post.dateModified || post.date;
   seoData.itemReviewed = post.itemReviewed;
@@ -45,12 +45,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     notFound();
   }
 
-  const recentPosts = getRecentBlogPosts(3);
+  const recentPosts = getRecentBlogPosts(4);
   const breadcrumbs = generateBreadcrumbData('blog', post);
 
   return (
     <>
-      {/* Enhanced Article Schema with all properties */}
       {renderSchemaTag('article', {
         title: post.title,
         description: post.description,
@@ -65,11 +64,114 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         rating: post.rating
       })}
       {generateBreadcrumbSchema(breadcrumbs)}
-      
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .blog-content-container {
+            width: calc(100% - 80px);
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+          }
+          @media (max-width: 768px) {
+            .blog-content-container {
+              width: 100%;
+              padding: 0 16px;
+            }
+            .blog-hero-grid {
+              grid-template-columns: 1fr !important;
+              gap: 24px !important;
+            }
+            .blog-featured-image {
+              max-width: 100% !important;
+            }
+            .blog-title {
+              font-size: 1.75rem !important;
+            }
+            .blog-meta-row {
+              flex-direction: column !important;
+              align-items: flex-start !important;
+              gap: 12px !important;
+            }
+            .related-products-grid {
+              gap: 12px !important;
+            }
+            .related-articles-grid {
+              grid-template-columns: 1fr !important;
+            }
+          }
+          .article-content h2 {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #0B051D;
+            margin: 2.5rem 0 1rem 0;
+            line-height: 1.3;
+          }
+          .article-content h3 {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 2rem 0 0.75rem 0;
+            line-height: 1.4;
+          }
+          .article-content p {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #374151;
+            margin-bottom: 1.25rem;
+          }
+          .article-content ul, .article-content ol {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #374151;
+            margin-bottom: 1.25rem;
+            padding-left: 1.5rem;
+          }
+          .article-content li {
+            margin-bottom: 0.5rem;
+          }
+          .article-content a {
+            color: #4F46E5;
+            text-decoration: none;
+            font-weight: 500;
+          }
+          .article-content a:hover {
+            text-decoration: underline;
+          }
+          .article-content blockquote {
+            border-left: 4px solid #4F46E5;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            background: #f8fafc;
+            border-radius: 0 8px 8px 0;
+            font-style: italic;
+            color: #4b5563;
+          }
+          .article-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+          }
+          .product-card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+          }
+          .article-card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+          }
+        `
+      }} />
+
       <div id="boxed-wrapper">
         <div id="wrapper" className="fusion-wrapper">
           <Header />
-          
+
           <main id="main" className="clearfix" style={{
             backgroundColor: '#ffffff',
             minHeight: '100vh',
@@ -77,247 +179,279 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             margin: '0',
             width: '100%'
           }}>
-            
-            {/* Breadcrumb */}
+
+            {/* Breadcrumb - Modern Style */}
             <div style={{
-              backgroundColor: '#f8f9fa',
-              padding: '15px 0',
-              borderBottom: '1px solid #e9ecef'
+              backgroundColor: '#ffffff',
+              padding: '0'
             }}>
-              <div style={{
-                maxWidth: '1200px',
-                margin: '0 auto',
-                padding: '0 20px',
-                fontSize: '14px',
-                color: '#666'
+              <div className="blog-content-container" style={{
+                padding: '16px 0',
+                fontSize: '15px',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
               }}>
-                <Link href="/" style={{ color: '#666', textDecoration: 'none' }}>Home</Link>
-                <span style={{ margin: '0 8px' }}>›</span>
-                <Link href="/blog" style={{ color: '#666', textDecoration: 'none' }}>Blog</Link>
-                <span style={{ margin: '0 8px' }}>›</span>
-                <span style={{ color: '#333' }}>{post.title}</span>
+                <Link href="/" style={{
+                  color: '#1f2937',
+                  textDecoration: 'none',
+                  fontWeight: '600'
+                }}>Home</Link>
+                <span style={{ margin: '0 12px', color: '#9ca3af' }}>/</span>
+                <Link href="/blog" style={{
+                  color: '#6b7280',
+                  textDecoration: 'none',
+                  fontWeight: '400'
+                }}>Blog</Link>
+                <span style={{ margin: '0 12px', color: '#9ca3af' }}>/</span>
+                <span style={{ color: '#6b7280', fontWeight: '400' }}>{post.title.length > 50 ? post.title.substring(0, 50) + '...' : post.title}</span>
               </div>
             </div>
 
-            {/* Article Header */}
+            {/* Article Hero Section */}
             <div style={{
               backgroundColor: '#ffffff',
-              padding: '60px 0',
-              borderBottom: '1px solid #e9ecef'
+              padding: '24px 0 40px 0'
             }}>
-              <div style={{
-                maxWidth: '800px',
-                margin: '0 auto',
-                padding: '0 20px',
-                textAlign: 'center'
-              }}>
-                <div style={{
-                  display: 'inline-block',
-                  backgroundColor: '#007cba',
-                  color: 'white',
-                  padding: '6px 16px',
-                  borderRadius: '20px',
-                  fontSize: '0.9rem',
-                  fontWeight: '500',
-                  marginBottom: '20px'
+              <div className="blog-content-container">
+                <div className="blog-hero-grid" style={{
+                  display: 'grid',
+                  gridTemplateColumns: '380px 1fr',
+                  gap: '48px',
+                  alignItems: 'start'
                 }}>
-                  {post.category}
-                </div>
-                
-                <h1 style={{
-                  fontSize: '2.5rem',
-                  fontWeight: 'bold',
-                  color: '#333',
-                  margin: '0 0 20px 0',
-                  lineHeight: '1.2',
-                  fontFamily: 'Klarna Text, sans-serif'
-                }}>
-                  {post.title}
-                </h1>
-                
-                <p style={{
-                  fontSize: '1.2rem',
-                  color: '#666',
-                  lineHeight: '1.6',
-                  marginBottom: '30px'
-                }}>
-                  {post.description}
-                </p>
-
-                {/* Author and Meta Info */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '20px',
-                  flexWrap: 'wrap'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px'
+                  {/* Featured Image */}
+                  <div className="blog-featured-image" style={{
+                    position: 'relative',
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    backgroundColor: '#f8fafc'
                   }}>
                     <Image
-                      src={post.author.avatar}
-                      alt={post.author.name}
-                      width={40}
-                      height={40}
+                      src={post.image}
+                      alt={post.title}
+                      width={380}
+                      height={280}
                       style={{
-                        borderRadius: '50%',
-                        objectFit: 'cover'
+                        width: '100%',
+                        height: 'auto',
+                        objectFit: 'cover',
+                        borderRadius: '16px'
                       }}
                     />
-                    <div>
+                  </div>
+
+                  {/* Article Info */}
+                  <div>
+                    {/* Category Badge */}
+                    <div style={{
+                      display: 'inline-block',
+                      backgroundColor: '#EEF2FF',
+                      color: '#4F46E5',
+                      padding: '6px 14px',
+                      borderRadius: '100px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      marginBottom: '16px',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                    }}>
+                      {post.category}
+                    </div>
+
+                    {/* Title */}
+                    <h1 className="blog-title" style={{
+                      fontSize: '2.25rem',
+                      fontWeight: '800',
+                      color: '#0B051D',
+                      margin: '0 0 16px 0',
+                      lineHeight: '1.2',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                      letterSpacing: '-0.02em'
+                    }}>
+                      {post.title}
+                    </h1>
+
+                    {/* Description */}
+                    <p style={{
+                      fontSize: '17px',
+                      color: '#4b5563',
+                      lineHeight: '1.7',
+                      marginBottom: '24px',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                    }}>
+                      {post.description}
+                    </p>
+
+                    {/* Meta Row */}
+                    <div className="blog-meta-row" style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '24px',
+                      flexWrap: 'wrap'
+                    }}>
+                      {/* Author */}
                       <div style={{
-                        fontSize: '1rem',
-                        fontWeight: '600',
-                        color: '#333'
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
                       }}>
-                        {post.author.name}
+                        <Image
+                          src={post.author.avatar}
+                          alt={post.author.name}
+                          width={44}
+                          height={44}
+                          style={{
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                            border: '2px solid #f3f4f6'
+                          }}
+                        />
+                        <div>
+                          <div style={{
+                            fontSize: '15px',
+                            fontWeight: '600',
+                            color: '#1f2937',
+                            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                          }}>
+                            {post.author.name}
+                          </div>
+                          <div style={{
+                            fontSize: '14px',
+                            color: '#6b7280',
+                            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                          }}>
+                            {new Date(post.date).toLocaleDateString('en-GB', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </div>
+                        </div>
                       </div>
+
+                      {/* Divider */}
                       <div style={{
-                        fontSize: '0.9rem',
-                        color: '#666'
+                        width: '1px',
+                        height: '32px',
+                        backgroundColor: '#e5e7eb'
+                      }} />
+
+                      {/* Read Time */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '14px',
+                        color: '#6b7280',
+                        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                       }}>
-                        {new Date(post.date).toLocaleDateString('en-GB', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10"/>
+                          <polyline points="12,6 12,12 16,14"/>
+                        </svg>
+                        {post.readTime} min read
                       </div>
                     </div>
                   </div>
-                  
-                  <div style={{
-                    fontSize: '0.9rem',
-                    color: '#666',
-                    padding: '8px 16px',
-                    backgroundColor: '#f8f9fa',
-                    borderRadius: '20px'
-                  }}>
-                    {post.readTime} min read
-                  </div>
                 </div>
               </div>
-            </div>
-
-            {/* Featured Image */}
-            <div style={{
-              maxWidth: '800px',
-              margin: '0 auto',
-              padding: '40px 20px'
-            }}>
-              <Image
-                src={post.image}
-                alt={post.title}
-                width={800}
-                height={400}
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                }}
-              />
             </div>
 
             {/* Article Content */}
             <div style={{
-              maxWidth: '800px',
-              margin: '0 auto',
-              padding: '0 20px 60px 20px'
+              backgroundColor: '#ffffff',
+              padding: '0 0 60px 0'
             }}>
-              <div className="article-content">
+              <div className="blog-content-container" style={{
+                maxWidth: '800px'
+              }}>
+                {/* Summary Box */}
                 <div className="summary speakable" style={{
-                  fontSize: '1.1rem',
+                  fontSize: '1.05rem',
                   lineHeight: '1.8',
-                  color: '#333',
-                  marginBottom: '30px',
-                  padding: '20px',
-                  backgroundColor: '#f8f9fa',
-                  borderRadius: '8px',
-                  borderLeft: '4px solid #007cba'
+                  color: '#374151',
+                  marginBottom: '40px',
+                  padding: '24px',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '12px',
+                  borderLeft: '4px solid #4F46E5',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                 }}>
-                  {post.description}
+                  <strong style={{ color: '#1f2937' }}>Summary:</strong> {post.description}
                 </div>
-                <div
-                  style={{
-                    fontSize: '1.1rem',
-                    lineHeight: '1.8',
-                    color: '#333'
-                  }}
-                  dangerouslySetInnerHTML={{ __html: post.content }}
+
+                {/* Main Content - Using BlogContentProcessor for Related Products */}
+                <BlogContentProcessor
+                  content={post.content}
+                  title={post.title}
+                  post={post}
                 />
-              </div>
-            </div>
 
-            {/* Tags */}
-            <div style={{
-              maxWidth: '800px',
-              margin: '0 auto',
-              padding: '0 20px 40px 20px',
-              borderTop: '1px solid #e9ecef',
-              paddingTop: '40px'
-            }}>
-              <h3 style={{
-                fontSize: '1.2rem',
-                fontWeight: '600',
-                color: '#333',
-                marginBottom: '15px'
-              }}>
-                Tags
-              </h3>
-              <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '8px'
-              }}>
-                {post.tags.map(tag => (
-                  <span
-                    key={tag}
-                    style={{
-                      backgroundColor: '#f1f3f4',
-                      color: '#666',
-                      padding: '6px 12px',
-                      borderRadius: '20px',
-                      fontSize: '0.9rem',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.3s ease'
-                    }}
-                    className="hover:bg-gray-200"
-                  >
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Related Posts */}
-            {recentPosts.length > 0 && (
-              <div style={{
-                backgroundColor: '#f8f9fa',
-                padding: '60px 0'
-              }}>
+                {/* Tags */}
                 <div style={{
-                  maxWidth: '1200px',
-                  margin: '0 auto',
-                  padding: '0 20px'
+                  marginTop: '48px',
+                  paddingTop: '32px',
+                  borderTop: '1px solid #e5e7eb'
                 }}>
                   <h3 style={{
-                    fontSize: '2rem',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#6b7280',
+                    marginBottom: '16px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                  }}>
+                    Tags
+                  </h3>
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '10px'
+                  }}>
+                    {post.tags.map((tag: string) => (
+                      <Link
+                        key={tag}
+                        href={`/blog?tag=${encodeURIComponent(tag)}`}
+                        style={{
+                          backgroundColor: '#f3f4f6',
+                          color: '#4b5563',
+                          padding: '8px 16px',
+                          borderRadius: '100px',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          textDecoration: 'none',
+                          transition: 'all 0.2s ease',
+                          fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                        }}
+                      >
+                        #{tag}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Related Articles */}
+            {recentPosts.length > 0 && (
+              <div style={{
+                backgroundColor: '#f8fafc',
+                padding: '64px 0'
+              }}>
+                <div className="blog-content-container">
+                  <h2 style={{
+                    fontSize: '1.75rem',
                     fontWeight: '700',
-                    color: '#333',
-                    marginBottom: '40px',
-                    textAlign: 'center'
+                    color: '#0B051D',
+                    marginBottom: '32px',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                   }}>
                     Related Articles
-                  </h3>
-                  
-                  <div style={{
+                  </h2>
+
+                  <div className="related-articles-grid" style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                    gap: '30px'
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '24px'
                   }}>
                     {recentPosts.filter(p => p.slug !== post.slug).slice(0, 3).map((relatedPost) => (
                       <Link
@@ -328,18 +462,22 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                           color: 'inherit'
                         }}
                       >
-                        <article style={{
-                          backgroundColor: '#fff',
-                          borderRadius: '12px',
-                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                          overflow: 'hidden',
-                          transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                          cursor: 'pointer'
-                        }}
-                        className="hover:transform hover:scale-105 hover:shadow-lg">
+                        <article
+                          className="article-card-hover"
+                          style={{
+                            backgroundColor: '#ffffff',
+                            borderRadius: '16px',
+                            overflow: 'hidden',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+                            transition: 'all 0.3s ease',
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column'
+                          }}
+                        >
                           <div style={{
                             width: '100%',
-                            height: '150px',
+                            height: '180px',
                             position: 'relative',
                             overflow: 'hidden'
                           }}>
@@ -348,45 +486,72 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                               alt={relatedPost.title}
                               fill
                               style={{
-                                objectFit: 'cover',
-                                transition: 'transform 0.3s ease'
+                                objectFit: 'cover'
                               }}
-                              className="hover:scale-110"
                             />
                           </div>
-                          
-                          <div style={{ padding: '20px' }}>
-                            <h4 style={{
-                              fontSize: '1.2rem',
+
+                          <div style={{
+                            padding: '24px',
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column'
+                          }}>
+                            {/* Category */}
+                            <span style={{
+                              fontSize: '12px',
                               fontWeight: '600',
-                              color: '#333',
-                              margin: '0 0 10px 0',
-                              lineHeight: '1.3',
+                              color: '#4F46E5',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                              marginBottom: '8px',
+                              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                            }}>
+                              {relatedPost.category}
+                            </span>
+
+                            <h3 style={{
+                              fontSize: '1.1rem',
+                              fontWeight: '600',
+                              color: '#0B051D',
+                              margin: '0 0 12px 0',
+                              lineHeight: '1.4',
                               display: '-webkit-box',
                               WebkitLineClamp: 2,
                               WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden'
+                              overflow: 'hidden',
+                              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                             }}>
                               {relatedPost.title}
-                            </h4>
-                            
+                            </h3>
+
                             <p style={{
-                              fontSize: '0.9rem',
-                              color: '#666',
-                              lineHeight: '1.5',
-                              margin: '0 0 15px 0',
+                              fontSize: '14px',
+                              color: '#6b7280',
+                              lineHeight: '1.6',
+                              margin: '0 0 16px 0',
                               display: '-webkit-box',
                               WebkitLineClamp: 2,
                               WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden'
+                              overflow: 'hidden',
+                              flex: 1,
+                              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                             }}>
                               {relatedPost.description}
                             </p>
-                            
+
                             <div style={{
-                              fontSize: '0.8rem',
-                              color: '#999'
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              fontSize: '13px',
+                              color: '#9ca3af',
+                              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                             }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12,6 12,12 16,14"/>
+                              </svg>
                               {relatedPost.readTime} min read
                             </div>
                           </div>
@@ -398,11 +563,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               </div>
             )}
 
-            {/* Newsletter CTA */}
+            {/* Newsletter CTA - Modern Style */}
             <div style={{
-              backgroundColor: '#007cba',
+              background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
               color: 'white',
-              padding: '60px 0',
+              padding: '72px 0',
               textAlign: 'center'
             }}>
               <div style={{
@@ -413,21 +578,23 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 <h3 style={{
                   fontSize: '2rem',
                   fontWeight: '700',
-                  marginBottom: '15px'
+                  marginBottom: '12px',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                 }}>
-                  Enjoyed This Article?
+                  Stay Updated
                 </h3>
                 <p style={{
                   fontSize: '1.1rem',
-                  marginBottom: '30px',
-                  opacity: 0.9
+                  marginBottom: '32px',
+                  opacity: 0.9,
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                 }}>
-                  Subscribe to our newsletter for more expert insights, reviews, and exclusive deals.
+                  Get the latest reviews, price alerts, and exclusive deals delivered to your inbox.
                 </p>
                 <div style={{
                   display: 'flex',
-                  gap: '10px',
-                  maxWidth: '400px',
+                  gap: '12px',
+                  maxWidth: '440px',
                   margin: '0 auto'
                 }}>
                   <input
@@ -435,22 +602,25 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                     placeholder="Enter your email"
                     style={{
                       flex: 1,
-                      padding: '12px 16px',
+                      padding: '14px 20px',
                       border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '1rem'
+                      borderRadius: '12px',
+                      fontSize: '15px',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                      outline: 'none'
                     }}
                   />
                   <button style={{
-                    backgroundColor: 'white',
-                    color: '#007cba',
+                    backgroundColor: '#0B051D',
+                    color: 'white',
                     border: 'none',
-                    padding: '12px 24px',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
+                    padding: '14px 28px',
+                    borderRadius: '12px',
+                    fontSize: '15px',
                     fontWeight: '600',
                     cursor: 'pointer',
-                    transition: 'opacity 0.3s ease'
+                    transition: 'transform 0.2s ease, opacity 0.2s ease',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                   }}>
                     Subscribe
                   </button>

@@ -528,6 +528,17 @@ export async function POST(request: NextRequest) {
           const existingProduct = await findUSVendorProduct(productName, usVendorId);
 
           if (existingProduct) {
+            const mappedName = existingProduct.mappedName || productName;
+
+            // Fetch current stock status before updating
+            const { data: currentUSProduct } = await supabaseAdmin()
+              .from('us_vendor_products_new')
+              .select('stock_status')
+              .eq('us_vendor_id', usVendorId)
+              .eq('name', mappedName)
+              .limit(1)
+              .single();
+
             // Check for price drop
             if (price1Pack !== null && existingProduct.price_1pack) {
               const oldPrice = parseFloat(existingProduct.price_1pack);
@@ -563,8 +574,36 @@ export async function POST(request: NextRequest) {
               updateData.stock_status = 'in_stock';
             }
 
-            // Update all products with matching vendor_id and name (handles duplicates)
-            const mappedName = existingProduct.mappedName || productName;
+            // Check for back-in-stock: was out_of_stock, now in_stock (US)
+            if (currentUSProduct &&
+                currentUSProduct.stock_status === 'out_of_stock' &&
+                updateData.stock_status === 'in_stock') {
+              console.log(`🔔 US Back in stock detected for "${productName}" - triggering notification`);
+              try {
+                const triggerResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://nicotine-pouches.org'}/api/notifications/trigger`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': CRAWLER_API_KEY
+                  },
+                  body: JSON.stringify({
+                    type: 'back-in-stock',
+                    productName: mappedName,
+                    vendorName: vendorName,
+                    price: price1Pack,
+                    productSlug: mappedName.toLowerCase().replace(/\s+/g, '-'),
+                    region: 'US'
+                  })
+                });
+                if (triggerResponse.ok) {
+                  console.log(`✅ US Back-in-stock notification queued for "${productName}"`);
+                } else {
+                  console.error(`❌ Failed to queue US back-in-stock notification for "${productName}"`);
+                }
+              } catch (triggerError) {
+                console.error(`❌ Error triggering US back-in-stock notification:`, triggerError);
+              }
+            }
             const { data: updatedProducts, error: updateError } = await supabaseAdmin()
               .from('us_vendor_products_new')
               .update(updateData)
@@ -719,8 +758,10 @@ export async function POST(request: NextRequest) {
         // Find existing vendor product
         const existingProduct = await findVendorProduct(productName, finalVendorId);
 
-        const updateData: any = {};
-        
+        const updateData: any = {
+          updated_at: new Date().toISOString()  // Always update timestamp when scraper touches this product
+        };
+
         // Update prices if provided
         if (price1Pack !== null) updateData.price_1pack = price1Pack;
         if (price3Pack !== null) updateData.price_3pack = price3Pack;
@@ -824,10 +865,10 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // Fetch current prices BEFORE updating to detect price drops
+          // Fetch current prices and stock status BEFORE updating to detect price drops and stock changes
           const { data: currentProduct } = await supabaseAdmin()
             .from('vendor_products')
-            .select('id, name, url, price_1pack, price_5pack, price_10pack, price_15pack, price_30pack')
+            .select('id, name, url, price_1pack, price_5pack, price_10pack, price_15pack, price_30pack, stock_status')
             .eq('vendor_id', finalVendorId)
             .eq('name', mappedProductName)
             .limit(1)
@@ -846,6 +887,36 @@ export async function POST(request: NextRequest) {
                 newPrice: `€${newPrice.toFixed(2)}`,
                 url: url || currentProduct.url || ''
               });
+            }
+          }
+
+          // Check for back-in-stock: was out_of_stock, now in_stock
+          if (currentProduct &&
+              currentProduct.stock_status === 'out_of_stock' &&
+              updateData.stock_status === 'in_stock') {
+            console.log(`🔔 Back in stock detected for "${productName}" - triggering notification`);
+            try {
+              const triggerResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://nicotine-pouches.org'}/api/notifications/trigger`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-api-key': CRAWLER_API_KEY
+                },
+                body: JSON.stringify({
+                  type: 'back-in-stock',
+                  productName: mappedProductName,
+                  vendorName: vendorName,
+                  price: price1Pack,
+                  productSlug: mappedProductName.toLowerCase().replace(/\s+/g, '-')
+                })
+              });
+              if (triggerResponse.ok) {
+                console.log(`✅ Back-in-stock notification queued for "${productName}"`);
+              } else {
+                console.error(`❌ Failed to queue back-in-stock notification for "${productName}"`);
+              }
+            } catch (triggerError) {
+              console.error(`❌ Error triggering back-in-stock notification:`, triggerError);
             }
           }
 

@@ -36,19 +36,38 @@ export default function RelatedPosts({
   useEffect(() => {
     const fetchRelatedPosts = async () => {
       try {
-        const response = await fetch('/api/blog-posts');
+        // Use AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+        const response = await fetch('/api/blog-posts?limit=20', {
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
+
+        clearTimeout(timeoutId);
+
         if (response.ok) {
           const allPosts = await response.json();
-          
+
           // Filter out the current post
           const otherPosts = allPosts.filter((post: BlogPost) => post.slug !== currentPostSlug);
-          
+
           // Simple keyword-based matching for related posts
           const related = findRelatedPosts(otherPosts, currentPostTitle, limit);
           setRelatedPosts(related);
         }
       } catch (error) {
-        console.error('Error fetching related posts:', error);
+        // Silently handle errors - don't log to console in production
+        // Related posts are non-critical, so we just show nothing on error
+        if (error instanceof Error && error.name !== 'AbortError') {
+          // Only log non-abort errors in development
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error fetching related posts:', error);
+          }
+        }
       } finally {
         setLoading(false);
       }
@@ -70,7 +89,7 @@ export default function RelatedPosts({
           fontWeight: '600',
           color: '#1a1a1a',
           margin: '0 0 20px 0',
-          fontFamily: 'Klarna Text, sans-serif'
+          fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
         }}>
           Related Articles
         </h3>
@@ -143,7 +162,7 @@ export default function RelatedPosts({
             fontWeight: '600',
             color: '#1a1a1a',
             margin: '0 0 30px 0',
-            fontFamily: 'Klarna Text, sans-serif',
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
             textAlign: 'center'
           }}>
             Related Articles
@@ -162,8 +181,8 @@ export default function RelatedPosts({
           const displayImage = post.featured_image_local || post.featured_image || '/placeholder-product.jpg';
           
           return (
-            <Link 
-              key={post.wp_id} 
+            <Link
+              key={post.id || post.wp_id || post.slug}
               href={`/${post.slug}`}
               style={{ textDecoration: 'none', color: 'inherit' }}
             >
@@ -230,7 +249,7 @@ export default function RelatedPosts({
                     lineHeight: '1.3',
                     width: '100%',
                     maxWidth: '100%',
-                    fontFamily: 'Klarna Text, sans-serif',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     wordWrap: 'break-word',
                     overflowWrap: 'break-word'
                   }}>
@@ -246,7 +265,7 @@ export default function RelatedPosts({
                     whiteSpace: 'normal',
                     wordWrap: 'break-word',
                     overflowWrap: 'break-word',
-                    fontFamily: 'Klarna Text, sans-serif',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     width: '100%',
                     maxWidth: '100%'
                   }}>
@@ -274,7 +293,7 @@ export default function RelatedPosts({
                     fontSize: '12px',
                     color: '#999',
                     marginTop: 'auto',
-                    fontFamily: 'Klarna Text, sans-serif',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     width: '100%',
                     maxWidth: '100%',
                     flexWrap: 'wrap',

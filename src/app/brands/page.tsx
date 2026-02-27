@@ -2,7 +2,9 @@ import { Metadata } from 'next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
+import { getBrandLogo, getUSBrandLogo } from '@/lib/brand-logos';
 
 // Fetch all brands from both UK and US products
 async function getAllBrands() {
@@ -151,75 +153,65 @@ export default async function BrandsPage() {
                 gap: '20px',
                 marginTop: '20px'
               }}>
-                {brands.map((brand) => (
-                  <div key={brand.slug} style={{
-                    backgroundColor: '#f8f9fa',
-                    border: '1px solid #e9ecef',
-                    borderRadius: '8px',
-                    padding: '20px',
-                    textAlign: 'center',
-                    transition: 'all 0.3s ease',
-                    cursor: 'pointer'
-                  }}>
-                    <h3 style={{
-                      fontSize: '1.5rem',
-                      fontWeight: 'bold',
-                      color: '#333',
-                      margin: '0 0 10px 0'
-                    }}>
-                      {brand.name}
-                    </h3>
-                    
+                {brands.filter(brand => brand.hasUK).map((brand) => {
+                  const logoUrl = getBrandLogo(brand.name);
+
+                  return (
+                  <Link
+                    key={brand.slug}
+                    href={`/brand/${brand.slug}`}
+                    style={{ textDecoration: 'none' }}
+                  >
                     <div style={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e9ecef',
+                      borderRadius: '16px',
+                      padding: '20px',
+                      textAlign: 'center',
+                      transition: 'all 0.3s ease',
+                      cursor: 'pointer',
                       display: 'flex',
+                      alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '10px',
-                      marginBottom: '15px'
+                      minHeight: '150px'
                     }}>
-                      {brand.hasUK && (
-                        <Link 
-                          href={`/brand/${brand.slug}`}
-                          style={{
-                            backgroundColor: '#007bff',
-                            color: 'white',
-                            padding: '5px 10px',
-                            borderRadius: '4px',
-                            textDecoration: 'none',
-                            fontSize: '12px',
-                            fontWeight: '500'
-                          }}
-                        >
-                          UK
-                        </Link>
-                      )}
-                      {brand.hasUS && (
-                        <Link 
-                          href={`/us/brand/${brand.slug}`}
-                          style={{
-                            backgroundColor: '#28a745',
-                            color: 'white',
-                            padding: '5px 10px',
-                            borderRadius: '4px',
-                            textDecoration: 'none',
-                            fontSize: '12px',
-                            fontWeight: '500'
-                          }}
-                        >
-                          US
-                        </Link>
-                      )}
+                      {/* Brand Logo */}
+                      <div style={{
+                        width: '120px',
+                        height: '120px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#ffffff',
+                        borderRadius: '50%',
+                        overflow: 'hidden'
+                      }}>
+                        {logoUrl ? (
+                          <Image
+                            src={logoUrl}
+                            alt={`${brand.name} logo`}
+                            width={100}
+                            height={100}
+                            style={{
+                              objectFit: 'contain',
+                              maxWidth: '100%',
+                              maxHeight: '100%'
+                            }}
+                          />
+                        ) : (
+                          <span style={{
+                            fontSize: '28px',
+                            fontWeight: 'bold',
+                            color: '#333'
+                          }}>
+                            {brand.name}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    
-                    <p style={{
-                      fontSize: '14px',
-                      color: '#666',
-                      margin: '0'
-                    }}>
-                      {brand.hasUK && brand.hasUS ? 'Available in UK & US' : 
-                       brand.hasUK ? 'Available in UK' : 'Available in US'}
-                    </p>
-                  </div>
-                ))}
+                  </Link>
+                  );
+                })}
               </div>
             </div>
           </div>

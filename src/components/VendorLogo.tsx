@@ -28,7 +28,21 @@ export default function VendorLogo({ logo, name, size = 50 }: VendorLogoProps) {
       'Nicokick': '/vendor-logos/Nicokick.png',
       'Nicokick (55788)': '/vendor-logos/Nicokick.png',
       'Snus Vikings': '/vendor-logos/Snus-viking.png',
+      'Snusifer': '/vendor-logos/Snusifer.png',
       'Pouches EU': '/vendor-logos/NICPOUCHUK.jpg', // Using NICPOUCHUK as placeholder
+      'GotPouches': '/vendor-logos/gotpouches.png',
+      'SnusDirect': '/vendor-logos/snusdirekt.avif',
+      'SnusDaddy': '/vendor-logos/pouchdaddy.png',
+      'Prime Nic Pouches': '/vendor-logos/PrimeNicPouches.png',
+      'NicoUK': '/vendor-logos/NicoUK.png',
+      'NicPouches': '/vendor-logos/NicPouches.svg',
+      'SnusBoys': '/vendor-logos/SnusBoys.png',
+      'NicPouchesDirect': '/vendor-logos/NicPouchesDirect.png',
+      'PrimeVapes': '/vendor-logos/PrimeVapes.png',
+      'Emeraldpods': '/vendor-logos/Emeraldpods.webp',
+      'Emerald': '/vendor-logos/Emeraldpods.webp',
+      'Prime': '/vendor-logos/PrimeNicPouches.png',
+      'PrimeNicPouches': '/vendor-logos/PrimeNicPouches.png',
     };
     
     return logoMap[vendorName] || null;
@@ -51,13 +65,14 @@ export default function VendorLogo({ logo, name, size = 50 }: VendorLogoProps) {
   };
 
   const localLogoPath = getLocalLogoPath(name);
+  const isSnusifer = name.toLowerCase().includes('snusifer');
 
   return (
     <div style={{
       width: `${size}px`,
       height: `${size}px`,
-      borderRadius: '50%',
-      backgroundColor: localLogoPath ? 'transparent' : getVendorColor(name),
+      borderRadius: localLogoPath ? (isSnusifer ? '8px' : '50%') : '50%',
+      backgroundColor: localLogoPath ? '#f8f9fa' : getVendorColor(name),
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -65,20 +80,20 @@ export default function VendorLogo({ logo, name, size = 50 }: VendorLogoProps) {
       fontWeight: 'bold',
       color: 'white',
       textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      overflow: 'hidden'
+      overflow: isSnusifer ? 'visible' : 'hidden',
+      border: localLogoPath && !isSnusifer ? '1px solid #e5e7eb' : 'none'
     }}>
       {localLogoPath && !imageError ? (
-        <Image 
-          src={localLogoPath} 
+        <Image
+          src={localLogoPath}
           alt={name}
           width={size}
           height={size}
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'cover',
-            borderRadius: '50%'
+            objectFit: isSnusifer ? 'contain' : 'cover',
+            borderRadius: isSnusifer ? '0' : '50%'
           }}
           onError={() => {
             console.log('Local logo failed to load:', localLogoPath, 'for vendor:', name);

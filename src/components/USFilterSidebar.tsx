@@ -225,7 +225,7 @@ const USFilterSidebar = ({ onFiltersChange }: USFilterSidebarProps) => {
         backgroundColor: '#fff',
         padding: '20px',
         textAlign: 'center',
-        fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif'
+        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
       }}>
         <div style={{ fontSize: '16px', color: '#666' }}>Loading US filters...</div>
       </div>

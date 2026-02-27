@@ -1,9 +1,9 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import fs from 'fs';
-import path from 'path';
 import { supabase } from '@/lib/supabase';
+import { getFullUrl } from '@/config/seo-config';
 
 interface BlogPost {
   wp_id: number;
@@ -42,30 +42,61 @@ interface BlogPost {
   };
 }
 
-// Get blog post by slug
-// Load blog posts from JSON file
-const loadBlogPosts = (): BlogPost[] => {
+// Single source of truth: blog_posts table only
+async function getBlogPost(slug: string): Promise<BlogPost | null> {
   try {
-    const filePath = path.join(process.cwd(), 'all_blog_posts_merged.json');
-    const fileContents = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(fileContents);
-  } catch (error) {
-    console.error('Error loading blog posts:', error);
-    return [];
-  }
-};
+    const { data, error } = await supabase()
+      .from('blog_posts')
+      .select('id, wp_id, title, slug, excerpt, content, date, created_at, updated_at, featured_image, featured_image_local, seo_meta, status')
+      .eq('slug', slug)
+      .in('status', ['publish', 'published'])
+      .single();
 
-// Get blog post by slug
-const getBlogPost = (slug: string): BlogPost | null => {
-  try {
-    const posts = loadBlogPosts();
-    const post = posts.find((p: BlogPost) => p.slug === slug);
-    return post || null;
+    if (error || !data) return null;
+
+    const excerpt = data.excerpt || (data.content ? data.content.substring(0, 300).replace(/<[^>]*>/g, '').replace(/[#*_]/g, '') + '...' : '');
+    const seo = (data.seo_meta as Record<string, unknown>) || {};
+
+    return {
+      wp_id: data.wp_id ?? data.id,
+      title: data.title,
+      link: getFullUrl(`/${data.slug}`),
+      excerpt: excerpt,
+      content: data.content ?? undefined,
+      fullContent: data.content ?? undefined,
+      date: data.date ?? data.created_at,
+      modified: data.updated_at ?? data.date ?? data.created_at,
+      slug: data.slug,
+      featured_media: 0,
+      categories: [],
+      tags: [],
+      status: data.status ?? 'published',
+      type: 'post',
+      format: 'standard',
+      sticky: false,
+      featured_image_local: (data.featured_image_local || data.featured_image) ?? undefined,
+      seo_meta: {
+        url: getFullUrl(`/${data.slug}`),
+        title: (seo.title as string) ?? data.title,
+        description: (seo.description as string) ?? excerpt,
+        keywords: (seo.keywords as string) ?? '',
+        og_title: (seo.og_title as string) ?? data.title,
+        og_description: (seo.og_description as string) ?? excerpt,
+        og_image: (seo.og_image as string) ?? data.featured_image ?? data.featured_image_local ?? '',
+        canonical: getFullUrl(`/${data.slug}`),
+        robots: 'index, follow',
+        author: 'Nicotine Pouches Team',
+        published_time: data.date ?? data.created_at,
+        modified_time: data.updated_at ?? data.date ?? '',
+        article_section: 'Guides',
+        article_tags: []
+      }
+    };
   } catch (error) {
-    console.error('Error loading blog post:', error);
+    console.error('Error loading blog post from DB:', error);
     return null;
   }
-};
+}
 
 // Get products by brand name
 const getProductsByBrand = async (brandName: string) => {
@@ -217,7 +248,7 @@ const createProductCard = (product: any) => {
           font-weight: 600;
           color: #1a1a1a;
           margin: 0 0 8px 0;
-          font-family: 'Klarna Text', sans-serif;
+          font-family: 'Plus Jakarta Sans', sans-serif;
         ">
           ${product.name}
         </h3>
@@ -225,7 +256,7 @@ const createProductCard = (product: any) => {
           font-size: 16px;
           color: #666;
           margin: 0 0 12px 0;
-          font-family: 'Klarna Text', sans-serif;
+          font-family: 'Plus Jakarta Sans', sans-serif;
         ">
           ${product.brand || product.name.split(' ')[0]} • Normal • Slim
         </p>
@@ -238,7 +269,7 @@ const createProductCard = (product: any) => {
             font-size: 18px;
             font-weight: 600;
             color: #1a1a1a;
-            font-family: 'Klarna Text', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
           ">
             £3.99
           </span>
@@ -250,7 +281,7 @@ const createProductCard = (product: any) => {
             text-decoration: none;
             font-size: 14px;
             font-weight: 500;
-            font-family: 'Klarna Text', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
           ">
             View Product
           </a>
@@ -349,8 +380,8 @@ const cleanHtmlContent = (html: string): string => {
 
 export default async function GuidePost({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
-  const post = getBlogPost(resolvedParams.slug);
-  
+  const post = await getBlogPost(resolvedParams.slug);
+
   if (!post) {
     notFound();
   }
@@ -395,7 +426,8 @@ export default async function GuidePost({ params }: { params: Promise<{ slug: st
     <div style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
       {/* Header */}
       <Header />
-      
+
+      <main id="main-content">
       {/* Main Content Container - Centered like Klarna */}
       <div style={{
         maxWidth: '1200px',
@@ -416,7 +448,7 @@ export default async function GuidePost({ params }: { params: Promise<{ slug: st
             margin: '0 0 8px 0',
             lineHeight: '1.2',
             letterSpacing: '-0.02em',
-            fontFamily: 'Klarna Text, sans-serif'
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
           }}>
             {displayTitle}
           </h1>
@@ -426,7 +458,7 @@ export default async function GuidePost({ params }: { params: Promise<{ slug: st
             color: '#666', 
             marginBottom: '20px',
             fontWeight: '400',
-            fontFamily: 'Klarna Text, sans-serif'
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
           }}>
             by {post.seo_meta?.author || 'Nicotine Pouches Team'} • {formatDate(post.date)}
           </div>
@@ -437,14 +469,18 @@ export default async function GuidePost({ params }: { params: Promise<{ slug: st
           <div style={{
             padding: '20px 0',
             maxWidth: '800px',
-            margin: '0 auto'
+            margin: '0 auto',
+            position: 'relative',
+            aspectRatio: '16/9'
           }}>
-            <img 
+            <Image
               src={finalDisplayImage}
               alt={displayTitle}
+              fill
+              priority
+              sizes="(max-width: 800px) 100vw, 800px"
               style={{
-                width: '100%',
-                height: 'auto',
+                objectFit: 'cover',
                 borderRadius: '12px',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
               }}
@@ -465,7 +501,7 @@ export default async function GuidePost({ params }: { params: Promise<{ slug: st
               color: '#666',
               marginBottom: '30px',
               lineHeight: '1.6',
-              fontFamily: 'Klarna Text, sans-serif',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
               fontStyle: 'italic'
             }}>
               {displayDescription}
@@ -478,7 +514,7 @@ export default async function GuidePost({ params }: { params: Promise<{ slug: st
               color: '#333', 
               lineHeight: '1.8', 
               fontSize: '18px',
-              fontFamily: 'Klarna Text, sans-serif'
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
             }}
             dangerouslySetInnerHTML={{ 
               __html: (() => {
@@ -488,23 +524,23 @@ export default async function GuidePost({ params }: { params: Promise<{ slug: st
                 let finalContent = cleanedContent
                   .replace(
                     /<h2>/g, 
-                    '<h2 style="font-size: 32px; font-weight: 700; color: #1a1a1a; margin: 50px 0 20px 0; font-family: \'Klarna Text\', sans-serif; line-height: 1.3; display: block;">'
+                    '<h2 style="font-size: 32px; font-weight: 700; color: #1a1a1a; margin: 50px 0 20px 0; font-family: \'Plus Jakarta Sans\', sans-serif; line-height: 1.3; display: block;">'
                   )
                   .replace(
                     /<h3>/g, 
-                    '<h3 style="font-size: 20px; font-weight: 600; color: #1a1a1a; margin: 30px 0 12px 0; font-family: \'Klarna Text\', sans-serif; line-height: 1.4; display: block;">'
+                    '<h3 style="font-size: 20px; font-weight: 600; color: #1a1a1a; margin: 30px 0 12px 0; font-family: \'Plus Jakarta Sans\', sans-serif; line-height: 1.4; display: block;">'
                   )
                   .replace(
                     /<h4>/g, 
-                    '<h4 style="font-size: 18px; font-weight: 600; color: #1a1a1a; margin: 25px 0 10px 0; font-family: \'Klarna Text\', sans-serif; line-height: 1.4; display: block;">'
+                    '<h4 style="font-size: 18px; font-weight: 600; color: #1a1a1a; margin: 25px 0 10px 0; font-family: \'Plus Jakarta Sans\', sans-serif; line-height: 1.4; display: block;">'
                   )
                   .replace(
                     /<ul>/g, 
-                    '<ul style="margin: 20px 0; padding-left: 20px; font-family: \'Klarna Text\', sans-serif;">'
+                    '<ul style="margin: 20px 0; padding-left: 20px; font-family: \'Plus Jakarta Sans\', sans-serif;">'
                   )
                   .replace(
                     /<ol>/g, 
-                    '<ol style="margin: 20px 0; padding-left: 20px; font-family: \'Klarna Text\', sans-serif;">'
+                    '<ol style="margin: 20px 0; padding-left: 20px; font-family: \'Plus Jakarta Sans\', sans-serif;">'
                   )
                   .replace(
                     /<li>/g, 
@@ -512,11 +548,11 @@ export default async function GuidePost({ params }: { params: Promise<{ slug: st
                   )
                   .replace(
                     /<p>/g, 
-                    '<p style="margin: 15px 0; font-size: 18px; line-height: 1.8; color: #333; font-family: \'Klarna Text\', sans-serif;">'
+                    '<p style="margin: 15px 0; font-size: 18px; line-height: 1.8; color: #333; font-family: \'Plus Jakarta Sans\', sans-serif;">'
                   )
                   .replace(
                     /<table>/g, 
-                    '<table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-family: \'Klarna Text\', sans-serif; border: 1px solid #e5e7eb;">'
+                    '<table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-family: \'Plus Jakarta Sans\', sans-serif; border: 1px solid #e5e7eb;">'
                   )
                   .replace(
                     /<th>/g, 
@@ -550,7 +586,7 @@ export default async function GuidePost({ params }: { params: Promise<{ slug: st
                     console.log('Generated product cards HTML length:', productCards.length);
                     const productSection = `
                       <div style="margin: 40px 0; padding: 20px; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb;">
-                        <h3 style="font-size: 24px; font-weight: 700; color: #1a1a1a; margin: 0 0 20px 0; font-family: 'Klarna Text', sans-serif;">
+                        <h3 style="font-size: 24px; font-weight: 700; color: #1a1a1a; margin: 0 0 20px 0; font-family: 'Plus Jakarta Sans', sans-serif;">
                           Related ${brandsInTitle[0]} Products
                         </h3>
                         ${productCards}
@@ -567,6 +603,7 @@ export default async function GuidePost({ params }: { params: Promise<{ slug: st
           />
         </div>
       </div>
+      </main>
 
       {/* Footer */}
       <Footer />

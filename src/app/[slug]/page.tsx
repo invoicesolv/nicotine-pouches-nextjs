@@ -17,9 +17,6 @@ import { supabase } from '@/lib/supabase';
 // Enable ISR with 1 hour cache for better performance
 export const revalidate = 3600;
 
-// Allow on-demand generation for slugs not in generateStaticParams
-export const dynamicParams = true;
-
 // List of city slugs that should be handled as city pages
 const CITY_SLUGS = [
   'aberdeen', 'armagh', 'bangor-wales', 'bangor-northern-ireland', 'bath', 'belfast', 'birmingham', 'bradford', 'brighton-and-hove', 'bristol',
@@ -1336,9 +1333,4 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
       </div>
     </>
   );
-}
-
-// Pre-generate city pages at build time; blog posts render on-demand via ISR
-export async function generateStaticParams() {
-  return CITY_SLUGS.map(city => ({ slug: city }));
 }

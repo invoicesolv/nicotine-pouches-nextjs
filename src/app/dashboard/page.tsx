@@ -8,6 +8,7 @@ import { Sidebar, SidebarBody, SidebarLink } from '@/components/ui/sidebar';
 import { Heart, Bell, Settings, LogOut, Package } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
+import DashboardAlertCard from '@/components/DashboardAlertCard';
 import LoginModal from '@/components/LoginModal';
 import PriceAlertModal from '@/components/PriceAlertModal';
 
@@ -420,21 +421,22 @@ export default function Dashboard() {
             {/* Logo */}
             <Link
               href="/"
-              className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20"
+              className="font-normal flex items-center text-sm text-black py-1 relative z-20"
             >
-              <img
-                src="/product-images/us/logo-1.png"
-                alt="Nicotine Pouches Logo"
-                className="h-8 w-auto flex-shrink-0"
-                style={{ maxHeight: '32px' }}
-              />
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: sidebarOpen ? 1 : 0 }}
-                className="font-medium text-black whitespace-pre"
-              >
-                Nicotine Pouches
-              </motion.span>
+              {sidebarOpen ? (
+                <img
+                  src="/product-images/us/logo-1.png"
+                  alt="Nicotine Pouches Logo"
+                  className="h-8 w-auto"
+                  style={{ maxHeight: '32px' }}
+                />
+              ) : (
+                <img
+                  src="/favicon.ico"
+                  alt="Nicotine Pouches"
+                  className="h-7 w-7"
+                />
+              )}
             </Link>
 
             {/* Navigation Links */}
@@ -468,7 +470,7 @@ export default function Dashboard() {
       </Sidebar>
 
       {/* Main Content */}
-      <div className="md:ml-[300px] ml-0 min-h-screen bg-white pt-10 md:pt-0">
+      <div className={`min-h-screen bg-white pt-10 md:pt-0 transition-all duration-300 ${sidebarOpen ? 'md:ml-[300px]' : 'md:ml-[70px]'}`}>
         <div className="p-8">
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
@@ -511,7 +513,7 @@ export default function Dashboard() {
                   </Link>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 ${sidebarOpen ? 'xl:grid-cols-5' : 'xl:grid-cols-6 2xl:grid-cols-7'}`}>
                   {favourites.map((product) => (
                     <ProductCard
                       key={product.id}
@@ -559,64 +561,14 @@ export default function Dashboard() {
                   </Link>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-                  {priceAlerts.map((alert) => {
-                    if (!alert.products) return null;
-                    return (
-                      <div key={alert.id} className="relative">
-                        <ProductCard
-                          product={alert.products}
-                          priceAlerts={priceAlertsSet}
-                          wishlist={wishlistSet}
-                          onPriceAlertClick={handlePriceAlertClick}
-                          onHeartClick={handleHeartClick}
-                          onPriceAlertFromHeart={handlePriceAlertFromHeart}
-                          onAddToListFromHeart={handleAddToListFromHeart}
-                          showActions={true}
-                          activePopup={activePopup}
-                          onSetActivePopup={setActivePopup}
-                        />
-                        
-                        {/* Alert Info Overlay */}
-                        <div className="absolute top-2 left-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                          {alert.alert_type === 'price_drop' ? 'Price Drop' : 'Target Price'}
-                        </div>
-                        
-                        {/* Alert Details Overlay */}
-                        <div className="absolute bottom-2 left-2 right-2 bg-white bg-opacity-95 rounded-lg p-2 text-xs shadow-sm border border-gray-200">
-                          {alert.alert_type === 'target_price' && alert.target_price && (
-                            <div className="text-center space-y-1">
-                              <div className="font-semibold text-gray-900">
-                                Target: £{alert.target_price}
-                              </div>
-                              {alert.pack_size && (
-                                <div className="text-gray-600 text-xs">
-                                  Pack: {alert.pack_size}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {alert.alert_type === 'price_drop' && alert.min_price_reduction && (
-                            <div className="text-center">
-                              <div className="font-semibold text-gray-900">
-                                Alert: £{alert.min_price_reduction}+ drop
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Remove Alert Button */}
-                        <button
-                          onClick={() => removePriceAlert(alert.id)}
-                          className="absolute top-2 right-2 w-6 h-6 bg-red-100 text-red-600 rounded-full flex items-center justify-center hover:bg-red-200 transition-colors"
-                        >
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                          </svg>
-                        </button>
-                      </div>
-                    );
-                  })}
+                <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 ${sidebarOpen ? 'xl:grid-cols-5' : 'xl:grid-cols-6 2xl:grid-cols-7'}`}>
+                  {priceAlerts.map((alert) => (
+                    <DashboardAlertCard
+                      key={alert.id}
+                      alert={alert}
+                      onRemove={removePriceAlert}
+                    />
+                  ))}
                 </div>
               )}
             </div>

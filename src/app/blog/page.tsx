@@ -47,7 +47,7 @@ export default function BlogPage() {
                 fontWeight: 'bold',
                 color: '#333',
                 margin: '0 0 20px 0',
-                fontFamily: 'Klarna Text, sans-serif'
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
               }}>
                 Nicotine Pouches Blog
               </h1>

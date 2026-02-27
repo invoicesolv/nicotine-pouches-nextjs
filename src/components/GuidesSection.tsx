@@ -124,7 +124,7 @@ export default function GuidesSection() {
           <div style={{
             fontSize: '18px',
             color: '#666',
-            fontFamily: 'Klarna Text, sans-serif'
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
           }}>
             Loading guides...
           </div>
@@ -187,7 +187,7 @@ export default function GuidesSection() {
             fontWeight: 'bold',
             color: '#1a1a1a',
             margin: '0 0 15px 0',
-            fontFamily: 'Klarna Text, sans-serif'
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
           }}>
             Latest Guides
           </h2>
@@ -195,7 +195,7 @@ export default function GuidesSection() {
             fontSize: '1.125rem',
             color: '#666',
             margin: '0 0 30px 0',
-            fontFamily: 'Klarna Text, sans-serif'
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
           }}>
             Expert insights and tips for nicotine pouch users
           </p>
@@ -208,7 +208,7 @@ export default function GuidesSection() {
             textDecoration: 'none',
             fontSize: '16px',
             fontWeight: '600',
-            fontFamily: 'Klarna Text, sans-serif',
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
             transition: 'background-color 0.2s ease'
           }}
           onMouseEnter={(e) => {
@@ -241,8 +241,8 @@ export default function GuidesSection() {
                 }) : null) || '/blog-images/post_28580_What_is_Nicotine_The_Ultimate_Guide.jpg';
             
             return (
-              <Link 
-                key={post.wp_id} 
+              <Link
+                key={post.id || post.wp_id || post.slug}
                 href={`/${post.slug}`}
                 style={{ textDecoration: 'none', color: 'inherit' }}
               >
@@ -284,7 +284,7 @@ export default function GuidesSection() {
                       fontWeight: '700',
                       color: '#1a1a1a',
                       margin: '0 0 15px 0',
-                      fontFamily: 'Klarna Text, sans-serif',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                       lineHeight: '1.3'
                     }}>
                       {displayTitle}
@@ -294,7 +294,7 @@ export default function GuidesSection() {
                       fontSize: '16px',
                       color: '#666',
                       margin: '0 0 20px 0',
-                      fontFamily: 'Klarna Text, sans-serif',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                       lineHeight: '1.6'
                     }}>
                       {displayDescription}
@@ -306,7 +306,7 @@ export default function GuidesSection() {
                       alignItems: 'center',
                       fontSize: '14px',
                       color: '#999',
-                      fontFamily: 'Klarna Text, sans-serif'
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                     }}>
                       <span>{formatDate(post.date)}</span>
                       <span>Read more →</span>

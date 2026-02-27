@@ -196,7 +196,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     color: '#0B051D',
                     margin: '0 0 15px 0',
                     lineHeight: '1.1',
-                    fontFamily: 'Klarna Text, sans-serif',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     letterSpacing: '-0.05em'
                   }}>
                     {product.title}
@@ -239,7 +239,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     fontWeight: '600',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
-                    fontFamily: 'Klarna Text, sans-serif'
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                   }}>
                     Compare prices
                   </button>

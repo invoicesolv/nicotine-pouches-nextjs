@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
+import Script from 'next/script';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Image from 'next/image';
@@ -18,6 +19,10 @@ import { generateProductHreflang, generateSafeHreflang } from '@/lib/hreflang';
 import { generateProductSEO, extractProductDataFromDB } from '@/lib/seo';
 import { generateLLMSEO, extractLLMSEODataFromDB } from '@/lib/llm-seo';
 import ExpandableUSVendorCard from '@/components/ExpandableUSVendorCard';
+import ProductHeroActions from '@/components/ProductHeroActions';
+import ProductSectionNav from '@/components/ProductSectionNav';
+import StrengthSelector from '@/components/StrengthSelector';
+import PackSizeForm from '@/components/PackSizeForm';
 
 // Fetch US product data from Supabase
 async function getUSProduct(slug: string) {
@@ -179,20 +184,15 @@ async function getUSProduct(slug: string) {
           .from('us_vendor_products_new')
           .select(`
             *,
-            us_vendors!inner(
-              id,
-              name,
-              website,
-              status
-            )
+            us_vendors(*)
           `)
           .eq('us_vendor_id', mapping.us_vendor_id)
           .eq('name', mapping.vendor_product)
-          .single();
+          .maybeSingle();
 
-        if (vpError) {
+        if (vpError && vpError.code !== 'PGRST116') {
+          // Only log actual errors, not "no rows found"
           console.error(`❌ Error fetching vendor product "${mapping.vendor_product}":`, vpError);
-          console.error('VP error details:', JSON.stringify(vpError, null, 2));
         } else if (vpData) {
           console.log(`✅ Found vendor product:`, {
             name: vpData.name,
@@ -231,27 +231,32 @@ async function getUSProduct(slug: string) {
       const key = `${vp.us_vendor_id}-${product.name}`;
       if (!storesMap.has(key)) {
         storesMap.set(key, {
-          name: vendor.name,
-          logo: vendor.name, // Pass vendor name instead of broken logo URL
-          rating: 4.2 + Math.random() * 0.6, // Random rating between 4.2-4.8 for variety
-          shipping: 'Standard shipping', // Default shipping since us_vendors doesn't have shipping_info
+          name: vendor?.name || 'Unknown',
+          logo: vendor?.name || 'Unknown', // Pass vendor name instead of broken logo URL
+          rating: vendor?.rating || null,
+          trustpilot_score: vendor?.trustpilot_score || null,
+          review_count: vendor?.review_count || 0,
+          shipping: vendor?.shipping_info || 'Standard shipping',
           product: vp.name, // Use the actual vendor product name
           price: formatPrice(vp.price_1pack),
           link: vp.url || '#',
           vendorId: vp.us_vendor_id,
-        prices: {
-          '1pack': formatPrice(vp.price_1pack),
-          '3pack': formatPrice(vp.price_3pack),
-          '5pack': formatPrice(vp.price_5pack),
-          '10pack': formatPrice(vp.price_10pack),
-          '15pack': formatPrice(vp.price_15pack),
-          '20pack': formatPrice(vp.price_20pack),
-          '25pack': formatPrice(vp.price_25pack),
-          '30pack': formatPrice(vp.price_30pack),
-          '50pack': formatPrice(vp.price_50pack),
-          '100pack': formatPrice(vp.price_100pack)
-        }
-      });
+          updated_at: vp.updated_at, // Add updated_at for "Updated X ago" display
+          stock_status: vp.stock_status,
+          in_stock: vp.stock_status !== 'out_of_stock',
+          prices: {
+            '1pack': formatPrice(vp.price_1pack),
+            '3pack': formatPrice(vp.price_3pack),
+            '5pack': formatPrice(vp.price_5pack),
+            '10pack': formatPrice(vp.price_10pack),
+            '15pack': formatPrice(vp.price_15pack),
+            '20pack': formatPrice(vp.price_20pack),
+            '25pack': formatPrice(vp.price_25pack),
+            '30pack': formatPrice(vp.price_30pack),
+            '50pack': formatPrice(vp.price_50pack),
+            '100pack': formatPrice(vp.price_100pack)
+          }
+        });
       }
     });
     
@@ -400,7 +405,7 @@ async function getUSProduct(slug: string) {
         { name: 'US Products', url: '/us' },
         { name: product.product_title || 'Unknown Product', url: product.page_url || `https://nicotine-pouches.org/us/product/${slug}` }
       ],
-      hreflang: generateSafeHreflang(generateProductHreflang(slug, true)),
+      hreflang: generateSafeHreflang(generateProductHreflang(slug, true, false)),
       related_entities: {
         brand_hub: `/us/brand/${brand.toLowerCase()}`,
         flavour_hub: `/us/flavour/${flavour.toLowerCase()}`,
@@ -452,7 +457,7 @@ async function getUSProduct(slug: string) {
         { name: 'US Products', url: '/us' },
         { name: product.product_title || 'Unknown Product', url: product.page_url || `https://nicotine-pouches.org/us/product/${slug}` }
       ],
-      hreflang: generateSafeHreflang(generateProductHreflang(slug, true)),
+      hreflang: generateSafeHreflang(generateProductHreflang(slug, true, false)),
       related_entities: {
         brand_hub: `/us/brand/${brand.toLowerCase()}`,
         flavour_hub: `/us/flavour/${flavour.toLowerCase()}`,
@@ -460,7 +465,7 @@ async function getUSProduct(slug: string) {
         alternatives: ['ZYN', 'Velo', 'Skruf']
       }
     });
-    
+
     console.log('US LLM SEO Data generated:', {
       hasData: !!llmSeoData,
       metaTitle: llmSeoData?.meta?.title || 'N/A',
@@ -469,10 +474,24 @@ async function getUSProduct(slug: string) {
       schemaGenerated: !!llmSeoData?.schema_json_ld
     });
     
+    // Calculate available pack sizes from all stores
+    // A pack size is "available" if at least one vendor has a valid price for it
+    const allPackSizes = ['1pack', '3pack', '5pack', '10pack', '15pack', '20pack', '25pack', '30pack', '50pack', '100pack'];
+    const availablePackSizes = allPackSizes.filter(packSizeKey => {
+      return stores.some((store: any) => {
+        const price = store.prices?.[packSizeKey];
+        // Valid if price exists and is not 'N/A'
+        return price && price !== 'N/A' && price !== '$NaN';
+      });
+    });
+
+    console.log('US Available pack sizes:', availablePackSizes);
+
     return {
       ...transformedProduct,
       regularSeoData,
-      llmSeoData
+      llmSeoData,
+      availablePackSizes: availablePackSizes.length > 0 ? availablePackSizes : ['1pack']
     };
   } catch (error) {
     console.error('Error fetching US product:', error);
@@ -483,6 +502,11 @@ async function getUSProduct(slug: string) {
 interface USProductPageProps {
   params: Promise<{
     slug: string;
+  }>;
+  searchParams: Promise<{
+    pack?: string;
+    sort?: string;
+    shipping?: string;
   }>;
 }
 
@@ -536,49 +560,137 @@ export async function generateMetadata({ params }: USProductPageProps): Promise<
   };
 }
 
-export default async function USProductPage({ params }: USProductPageProps) {
+export default async function USProductPage({ params, searchParams }: USProductPageProps) {
   const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
+  const selectedPack = resolvedSearchParams.pack || '1pack';
   const product = await getUSProduct(resolvedParams.slug);
 
   if (!product) {
     notFound();
   }
 
+  // Add selectedPack to product for use in the template
+  product.selectedPack = selectedPack;
+
 
   return (
     <>
+      {/* Google AdSense - only loaded on product pages */}
+      <Script
+        async
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9898973838473500"
+        crossOrigin="anonymous"
+        strategy="lazyOnload"
+      />
       <style dangerouslySetInnerHTML={{
         __html: `
+          .content-container {
+            width: calc(100% - 80px);
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+          }
+          @media (min-width: 1536px) {
+            .content-container {
+              max-width: 90%;
+            }
+          }
+          @media (max-width: 1024px) {
+            .hero-ad-sidebar,
+            .adsense-sidebar,
+            .reviews-ad-sidebar,
+            .details-ad-sidebar {
+              display: none !important;
+            }
+          }
           @media (max-width: 768px) {
+            .content-container {
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+            }
+            .comparison-section-wrapper {
+              padding: 0 !important;
+            }
             .product-hero-grid {
-              grid-template-columns: 1fr !important;
-              gap: 30px !important;
+              display: block !important;
               padding: 0 15px !important;
             }
+            .product-hero-top-row {
+              display: flex !important;
+              gap: 16px !important;
+              align-items: flex-start !important;
+            }
             .product-image-container {
-              min-height: 300px !important;
-              padding: 20px !important;
+              flex: 0 0 100px !important;
+              min-height: auto !important;
+              padding: 8px !important;
+              max-width: 100px !important;
+              position: relative !important;
+            }
+            .product-image-container img {
+              width: 100% !important;
+              height: auto !important;
+              max-width: 100px !important;
+              max-height: 100px !important;
+              object-fit: contain !important;
+            }
+            .product-info-mobile {
+              flex: 1 !important;
+              min-width: 0 !important;
             }
             .product-title {
-              font-size: 2rem !important;
+              font-size: 1.2rem !important;
               word-wrap: break-word !important;
               overflow-wrap: break-word !important;
-              hyphens: auto !important;
+              margin-bottom: 10px !important;
+              line-height: 1.35 !important;
+              font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
+              font-weight: 700 !important;
+              color: #202124 !important;
+            }
+            .product-hero p {
+              font-size: 14px !important;
+              line-height: 1.5 !important;
+              font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
+              color: #5f6368 !important;
             }
             .product-hero {
-              padding: 40px 0 !important;
+              padding: 12px 0 !important;
+            }
+            .product-description-desktop {
+              display: block !important;
+              font-size: 14px !important;
+              margin-bottom: 0 !important;
+              -webkit-line-clamp: 2 !important;
+              display: -webkit-box !important;
+              -webkit-box-orient: vertical !important;
+              overflow: hidden !important;
+              color: #5f6368 !important;
+            }
+            .product-action-row {
+              display: none !important;
             }
             .main-content-layout {
               flex-direction: column !important;
               gap: 20px !important;
-              margin: 40px auto 20px auto !important;
-              padding: 0 15px !important;
+              margin: 0 !important;
+              padding: 16px 0 0 0 !important;
+              max-width: 100% !important;
             }
             .vendor-comparison {
               order: 1 !important;
               flex: none !important;
               min-width: 100% !important;
               width: 100% !important;
+              padding: 0 !important;
+            }
+            .vendor-cards-container {
+              padding: 0 !important;
+              gap: 8px !important;
+              width: 95% !important;
+              margin: 0 auto !important;
             }
             .product-info-sidebar {
               order: 2 !important;
@@ -592,15 +704,26 @@ export default async function USProductPage({ params }: USProductPageProps) {
               max-width: 100% !important;
             }
             .comparison-table-filters {
-              flex-direction: column !important;
-              gap: 10px !important;
-              align-items: stretch !important;
-            }
-            .comparison-table-filters > div {
+              flex-direction: row !important;
+              gap: 8px !important;
+              align-items: center !important;
+              overflow-x: auto !important;
+              overflow-y: hidden !important;
+              -webkit-overflow-scrolling: touch !important;
+              scrollbar-width: none !important;
+              -ms-overflow-style: none !important;
+              padding: 12px 15px !important;
+              margin: 0 0 0 0 !important;
+              flex-wrap: nowrap !important;
               width: 100% !important;
+              background: transparent !important;
             }
-            .vendor-card {
-              margin-bottom: 15px !important;
+            .comparison-table-filters::-webkit-scrollbar {
+              display: none !important;
+            }
+            .comparison-table-filters > * {
+              flex-shrink: 0 !important;
+              width: auto !important;
             }
             .vendor-info {
               flex-direction: column !important;
@@ -651,14 +774,40 @@ export default async function USProductPage({ params }: USProductPageProps) {
             }
           }
           @media (max-width: 480px) {
+            .product-hero-grid {
+              display: block !important;
+              padding: 0 12px !important;
+            }
+            .product-hero-top-row {
+              display: flex !important;
+              gap: 12px !important;
+              align-items: flex-start !important;
+            }
+            .product-image-container {
+              min-height: auto !important;
+              padding: 6px !important;
+              flex: 0 0 80px !important;
+              max-width: 80px !important;
+            }
+            .product-image-container img {
+              max-width: 80px !important;
+              max-height: 80px !important;
+            }
+            .product-info-mobile {
+              flex: 1 !important;
+              min-width: 0 !important;
+            }
             .product-title {
-              font-size: 1.5rem !important;
+              font-size: 1.1rem !important;
+              margin-bottom: 4px !important;
+              line-height: 1.2 !important;
+            }
+            .product-hero p {
+              font-size: 12px !important;
+              line-height: 1.3 !important;
             }
             .product-hero {
-              padding: 30px 0 !important;
-            }
-            .product-hero-grid {
-              padding: 0 10px !important;
+              padding: 12px 0 !important;
             }
             .vendor-card {
               padding: 0 !important;
@@ -684,10 +833,10 @@ export default async function USProductPage({ params }: USProductPageProps) {
               font-size: 0.8rem !important;
             }
             .comparison-table-filters {
-              padding: 10px !important;
+              padding: 10px 12px !important;
             }
             .main-content-layout {
-              padding: 0 10px !important;
+              padding: 0 !important;
             }
           }
         `
@@ -736,9 +885,9 @@ export default async function USProductPage({ params }: USProductPageProps) {
           </div>
         )}
         
-        {/* Hreflang Meta Tags */}
-        {generateSafeHreflang(generateProductHreflang(resolvedParams.slug, true)).map((entry) => (
-          <link key={entry.lang} rel="alternate" {...({ hreflang: entry.lang } as any)} href={entry.url} />
+        {/* Hreflang Meta Tags - US products only, no cross-region links (UK/US have different product catalogs) */}
+        {generateSafeHreflang(generateProductHreflang(resolvedParams.slug, true, false)).map((entry) => (
+          <link key={entry.lang} rel="alternate" hrefLang={entry.lang} href={entry.url} />
         ))}
       <div id="boxed-wrapper">
         <div id="wrapper" className="fusion-wrapper">
@@ -756,112 +905,134 @@ export default async function USProductPage({ params }: USProductPageProps) {
             backgroundColor: '#ffffff',
             padding: '0'
           }}>
-            <div style={{
-              maxWidth: '1200px',
-              margin: '0 auto',
-              padding: '0 20px',
+            <div className="content-container" style={{
+              padding: '12px 15px',
               fontSize: '14px',
-              color: '#666',
-              fontFamily: 'Klarna Text, sans-serif',
+              color: '#6b7280',
+              fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
               textAlign: 'left'
             }}>
-              <a href="/" style={{ color: '#0B051D', textDecoration: 'none', fontFamily: 'Klarna Text, sans-serif', fontWeight: '800' }}>Start</a>
-              <span style={{ margin: '0 8px' }}>/</span>
-              <a href="/us" style={{ color: '#0B051D', textDecoration: 'none', fontFamily: 'Klarna Text, sans-serif', fontWeight: '800' }}>US Products</a>
-              <span style={{ margin: '0 8px' }}>/</span>
-                <span style={{ color: '#333' }}>{product.name}</span>
+              <a href="/us" className="breadcrumb-link" style={{ color: '#1f2937', textDecoration: 'none', fontWeight: '600' }}>Home</a>
+              <span style={{ margin: '0 8px', color: '#9ca3af' }}>/</span>
+              <a href="/us" className="breadcrumb-link" style={{ color: '#6b7280', textDecoration: 'none', fontWeight: '400' }}>Products</a>
+              <span style={{ margin: '0 8px', color: '#9ca3af' }}>/</span>
+              <span style={{ color: '#6b7280', fontWeight: '400' }}>{product.name}</span>
             </div>
           </div>
 
           {/* Product Hero Section */}
           <div className="product-hero" style={{
             backgroundColor: '#ffffff',
-            padding: '60px 0',
-            borderBottom: '1px solid #e9ecef'
+            padding: '16px 0 0 0',
+            marginBottom: '0'
           }}>
-            <div className="product-hero-grid" style={{
-              maxWidth: '1200px',
-              margin: '0 auto',
-              padding: '0 20px',
-              display: 'grid',
-              gridTemplateColumns: '400px 1fr',
-              gap: '60px',
-              alignItems: 'center'
+            {/* Hero with Ad Sidebar */}
+            <div className="content-container" style={{
+              display: 'flex',
+              gap: '24px',
+              alignItems: 'flex-start'
             }}>
-              
-              {/* Product Image */}
-              <div className="product-image-container" style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '20px',
-                padding: '40px',
-                minHeight: '400px'
-              }}>
-                <Image
-                    src={product.image || '/placeholder-product.jpg'}
-                    alt={product.name}
-                  width={300}
-                  height={300}
-                    style={getImageStyles(product.image || '/placeholder-product.jpg')}
+              {/* Left - Product Content */}
+              <div style={{ flex: '1', minWidth: 0 }}>
+                <div className="product-hero-grid" style={{
+                  display: 'grid',
+                  gridTemplateColumns: '280px 1fr',
+                  gap: '32px',
+                  alignItems: 'start',
+                  justifyContent: 'start'
+                }}>
+                  {/* Mobile: Top row with image and info side by side */}
+                  <div className="product-hero-top-row" style={{ display: 'contents' }}>
+                    {/* Product Image */}
+                    <div className="product-image-container" style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      backgroundColor: '#fafafa',
+                      borderRadius: '8px',
+                      padding: '6px',
+                      minHeight: 'auto',
+                      position: 'relative'
+                    }}>
+                      <Image
+                        src={product.image || '/placeholder-product.jpg'}
+                        alt={product.name}
+                        width={280}
+                        height={280}
+                        style={getImageStyles(product.image || '/placeholder-product.jpg')}
+                      />
+                    </div>
+
+                    {/* Product Info */}
+                    <div className="product-info product-info-mobile">
+                      <h1 className="product-title" style={{
+                        fontSize: '2rem',
+                        fontWeight: '800',
+                        color: '#0B051D',
+                        margin: '0 0 12px 0',
+                        lineHeight: '1.2',
+                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        letterSpacing: '-0.02em'
+                      }}>
+                        {product.name}
+                      </h1>
+
+                      {/* Use ProductHeroActions component for consistent icons */}
+                      <ProductHeroActions product={product} ratingData={null} isUS={true} />
+
+                      {/* Short Description */}
+                      <p className="product-description-desktop" style={{
+                        fontSize: '14px',
+                        color: '#6b7280',
+                        lineHeight: '1.6',
+                        marginBottom: '16px'
+                      }}>
+                        {(product.excerpt || product.description || '').replace(/<[^>]*>/g, '').replace(/\\n/g, '').trim().substring(0, 200)}
+                        {(product.excerpt || product.description || '').length > 200 && '...'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Right - Hero Ad */}
+              <div className="hero-ad-sidebar" style={{ flex: '0 0 300px', maxWidth: '300px', alignSelf: 'flex-start' }}>
+                <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Advertisement
+                </div>
+                <ins
+                  className="adsbygoogle"
+                  style={{ display: 'block', minHeight: '400px' }}
+                  data-ad-client="ca-pub-9898973838473500"
+                  data-ad-slot="4889694434"
+                  data-ad-format="vertical"
                 />
               </div>
+            </div>
 
-              {/* Product Info */}
-              <div>
-                <h1 className="product-title" style={{
-                  fontSize: '3rem',
-                  fontWeight: '1000',
-                  color: '#0B051D',
-                  margin: '0 0 15px 0',
-                  lineHeight: '1.1',
-                  fontFamily: 'Klarna Text, sans-serif',
-                  letterSpacing: '-0.05em'
-                }}>
-                    {product.name}
-                </h1>
-
-
-                  {/* Short Description */}
-                <p style={{
-                  fontSize: '18px',
-                  color: '#666',
-                  lineHeight: '1.6',
-                  marginBottom: '30px'
-                }}>
-                    {(product.description || '').replace(/<[^>]*>/g, '').replace(/\\n/g, '').trim()}
-                </p>
-
-                <button style={{
-                  backgroundColor: '#000',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '25px',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  fontFamily: 'Klarna Text, sans-serif'
-                }}>
-                  Compare prices
-                </button>
+            {/* Section Navigation - Aligned with left content */}
+            <div className="content-container" style={{ display: 'flex', gap: '24px' }}>
+              <div style={{ flex: '1', minWidth: 0 }}>
+                <ProductSectionNav />
               </div>
+              <div style={{ flex: '0 0 300px', maxWidth: '300px' }} />
             </div>
           </div>
 
-            {/* Main Content Layout - Two Columns */}
-            <div className="main-content-layout" style={{
-              maxWidth: '100%',
-              margin: '60px auto 40px auto',
-              padding: '0 20px',
+            {/* Main Content Layout - Two Columns with Grey Background */}
+            <div className="comparison-section-wrapper" style={{
+              backgroundColor: '#f5f5f7',
+              padding: '0 0 32px 0'
+            }}>
+            <div className="main-content-layout content-container" style={{
+              paddingTop: '16px',
               display: 'flex',
               gap: '2rem'
             }}>
               
               {/* Left Column - Vendor Price Comparison */}
-              <div className="vendor-comparison" style={{ flex: '1', minWidth: '0' }}>
+              <div className="vendor-comparison" suppressHydrationWarning style={{ flex: '1', minWidth: '0' }}>
                 {/* Filter Options */}
                 <div className="comparison-table-filters" style={{
                   marginBottom: '1.5rem',
@@ -883,13 +1054,6 @@ export default async function USProductPage({ params }: USProductPageProps) {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/>
                     </svg>
-                    <span style={{
-                      fontSize: '0.85rem',
-                      fontWeight: '500',
-                      color: '#495057'
-                    }}>
-                      Filters
-                    </span>
                   </div>
                   
                   {/* Sort Filter */}
@@ -912,34 +1076,8 @@ export default async function USProductPage({ params }: USProductPageProps) {
                     <option value="low-high">Lowest Price</option>
                   </select>
                   
-                  {/* Pack Size Filter */}
-                  <select id="pack-size" style={{
-                    padding: '6px 12px',
-                    border: '1px solid #e9ecef',
-                    borderRadius: '20px',
-                    fontSize: '0.85rem',
-                    backgroundColor: '#fff',
-                    color: '#495057',
-                    cursor: 'pointer',
-                    fontWeight: '500',
-                    appearance: 'none',
-                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='https://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
-                    backgroundPosition: 'right 8px center',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundSize: '16px',
-                    paddingRight: '32px'
-                  }}>
-                    <option value="1pack">1 Pack</option>
-                    <option value="3pack">3 Pack</option>
-                    <option value="5pack">5 Pack</option>
-                    <option value="10pack">10 Pack</option>
-                    <option value="15pack">15 Pack</option>
-                    <option value="20pack">20 Pack</option>
-                    <option value="25pack">25 Pack</option>
-                    <option value="30pack">30 Pack</option>
-                    <option value="50pack">50 Pack</option>
-                    <option value="100pack">100 Pack</option>
-                  </select>
+                  {/* Pack Size Filter - Only shows available pack sizes */}
+                  <PackSizeForm selectedPack={product.selectedPack} availablePackSizes={product.availablePackSizes} />
                   
                 {/* Shipping Filter */}
                   <select id="shipping-sort" style={{
@@ -963,41 +1101,129 @@ export default async function USProductPage({ params }: USProductPageProps) {
                 
                 </div>
 
+                {/* No Results Message - Hidden by default, shown via JS */}
+                <div
+                  id="no-results-message"
+                  suppressHydrationWarning
+                  style={{
+                    display: 'none',
+                    textAlign: 'center',
+                    padding: '40px 20px',
+                    color: '#666',
+                    fontSize: '16px',
+                    background: '#f8f9fa',
+                    borderRadius: '12px',
+                    margin: '20px 0'
+                  }}
+                >
+                  No vendors found for this pack size. Try selecting a different pack size.
+                </div>
+
                 {/* Vendor List */}
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px'
-                }}>
+                <div
+                  className="vendor-cards-container"
+                  suppressHydrationWarning
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}
+                >
                 {product.stores.map((store: any, index: number) => (
                   <ExpandableUSVendorCard
-                    key={index}
+                    key={store.vendorId || store.name || index}
                     store={store}
                     storeIndex={index}
+                    selectedPack={product.selectedPack}
                   />
                 ))}
                 </div>
               </div>
 
-              {/* Right Column - Product Info Sidebar */}
-              <div className="product-info-sidebar" style={{ flex: '0 0 280px', maxWidth: '280px' }}>
+              {/* Right Column - Ad Sidebar */}
+              <div className="adsense-sidebar" style={{ flex: '0 0 300px', maxWidth: '300px' }}>
                 <div style={{
-                  background: '#ffffff',
-                  borderRadius: '12px',
-                  padding: '1.5rem',
-                  boxShadow: '0 2px 8px 0 rgba(0, 0, 0, 0.06)',
                   position: 'sticky',
                   top: '2rem',
-                  maxWidth: '280px'
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '20px'
                 }}>
-                  <ProductDetailsCard product={product} />
-                    </div>
+                  <div style={{
+                    fontSize: '11px',
+                    color: '#9ca3af',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Advertisement
+                  </div>
+                  <ins
+                    className="adsbygoogle"
+                    style={{ display: 'block', minHeight: '600px' }}
+                    data-ad-client="ca-pub-9898973838473500"
+                    data-ad-slot="4889694434"
+                    data-ad-format="vertical"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
+          {/* Product Details Section */}
+          <div id="product-details" style={{
+            backgroundColor: '#ffffff',
+            padding: '40px 0',
+            marginBottom: '0'
+          }}>
+            <div className="content-container" style={{
+              display: 'flex',
+              gap: '24px'
+            }}>
+              {/* Left - Product Details Content */}
+              <div style={{ flex: '1', minWidth: 0 }}>
+                <h3 style={{
+                  fontSize: '1.5rem',
+                  fontWeight: '600',
+                  color: '#1a1a1a',
+                  marginBottom: '1.5rem',
+                  fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
+                }}>
+                  Product Details
+                </h3>
+                <ProductDetailsCard product={product} />
+              </div>
+
+              {/* Right - Ad Sidebar */}
+              <div className="details-ad-sidebar" style={{ flex: '0 0 300px', maxWidth: '300px' }}>
+                <div style={{
+                  position: 'sticky',
+                  top: '2rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '20px'
+                }}>
+                  <div style={{
+                    fontSize: '11px',
+                    color: '#9ca3af',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Advertisement
+                  </div>
+                  <ins
+                    className="adsbygoogle"
+                    style={{ display: 'block', minHeight: '400px' }}
+                    data-ad-client="ca-pub-9898973838473500"
+                    data-ad-slot="4889694434"
+                    data-ad-format="vertical"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
 
             {/* FAQ Section */}
-            <div style={{ marginBottom: '40px' }}>
+            <div id="features" style={{ marginBottom: '40px' }}>
               <FAQSection faqs={product.regularSeoData?.faq_plaintext || product.llmSeoData?.faq_plaintext || []} />
             </div>
         </main>
@@ -1061,13 +1287,18 @@ export default async function USProductPage({ params }: USProductPageProps) {
               // Function to update prices
               window.updatePrices = function(selectedPack) {
                 if (!window.storesData) return;
-                
-                const priceDisplays = document.querySelectorAll('.price-display');
-                priceDisplays.forEach((priceDisplay, index) => {
-                  const store = window.storesData[index];
+
+                // Update prices for each vendor card by finding the store by vendor name
+                const vendorCards = document.querySelectorAll('.vendor-card');
+                vendorCards.forEach((card) => {
+                  const vendorName = card.getAttribute('data-vendor-name');
+                  const store = window.storesData.find(s => s.name === vendorName);
                   if (store && store.prices) {
-                    const price = store.prices[selectedPack] || 'N/A';
-                    priceDisplay.textContent = price;
+                    const priceDisplay = card.querySelector('.price-display');
+                    if (priceDisplay) {
+                      const price = store.prices[selectedPack] || 'N/A';
+                      priceDisplay.textContent = price;
+                    }
                   }
                 });
               };
@@ -1083,10 +1314,9 @@ export default async function USProductPage({ params }: USProductPageProps) {
                 const visibleStores = [];
                 
                 vendorCards.forEach((card, index) => {
-                  // Find the store by matching the vendor name in the card
-                  const vendorNameElement = card.querySelector('.vendor-name');
-                  const vendorName = vendorNameElement ? vendorNameElement.textContent.trim() : '';
-                  
+                  // Find the store by matching the vendor name in the card's data attribute
+                  const vendorName = card.getAttribute('data-vendor-name') || '';
+
                   const store = window.storesData.find(s => s.name === vendorName);
                   if (!store) {
                     card.style.display = 'none';
@@ -1139,30 +1369,13 @@ export default async function USProductPage({ params }: USProductPageProps) {
                   });
                 }
                 
-                // Show/hide no results message
-                let noResultsMsg = document.getElementById('no-results-message');
+                // Show/hide no results message (using existing element in DOM)
+                const noResultsMsg = document.getElementById('no-results-message');
                 if (visibleStores.length === 0) {
-                  if (!noResultsMsg) {
-                    noResultsMsg = document.createElement('div');
-                    noResultsMsg.id = 'no-results-message';
-                    noResultsMsg.style.cssText = \`
-                      text-align: center;
-                      padding: 40px 20px;
-                      color: #666;
-                      font-size: 16px;
-                      background: #f8f9fa;
-                      border-radius: 12px;
-                      margin: 20px 0;
-                    \`;
+                  if (noResultsMsg) {
                     noResultsMsg.innerHTML = \`No vendors found for \${selectedPack.replace('pack', '')} pack size. Try selecting a different pack size.\`;
-                    
-                    // Insert after the filter section
-                    const filterSection = document.querySelector('.comparison-table-filters');
-                    if (filterSection) {
-                      filterSection.parentNode.insertBefore(noResultsMsg, filterSection.nextSibling);
-                    }
+                    noResultsMsg.style.display = 'block';
                   }
-                  noResultsMsg.style.display = 'block';
                 } else {
                   if (noResultsMsg) {
                     noResultsMsg.style.display = 'none';
@@ -1216,43 +1429,46 @@ export default async function USProductPage({ params }: USProductPageProps) {
               // PACK FILTER INITIALIZATION - After React hydration
               (function initUSPackFilter() {
                 let initialized = false;
-                
+
+                // Get initial pack from URL or default to 1pack
+                const urlParams = new URLSearchParams(window.location.search);
+                const initialPack = urlParams.get('pack') || '1pack';
+
                 function setupAndRun() {
                   if (initialized) return;
-                  
+
                   const packSizeSelect = document.getElementById('pack-size');
                   const vendorCards = document.querySelectorAll('.vendor-card');
-                  
+
                   // Only proceed if both exist
                   if (!packSizeSelect || vendorCards.length === 0) {
                     return;
                   }
-                  
+
                   initialized = true;
-                  
+
                   // Set up event listener
                   packSizeSelect.removeEventListener('change', window.handleUSPackSizeChange);
                   packSizeSelect.addEventListener('change', window.handleUSPackSizeChange);
-                  
-                  // Run initial coordination immediately
-                  const defaultPack = packSizeSelect.value || '1pack';
-                  if (typeof window.coordinateFilters === 'function') {
-                    window.coordinateFilters(defaultPack);
+
+                  // Apply initial filtering if pack is specified in URL (not default 1pack)
+                  // Note: Server already renders correct pack display, so we only need to filter cards
+                  if (initialPack && initialPack !== '1pack') {
+                    console.log('✅ US Pack filter initialized with URL pack:', initialPack);
+                    // Only filter cards - display and prices are already server-rendered correctly
+                    if (typeof window.filterVendorCards === 'function') {
+                      window.filterVendorCards(initialPack);
+                    }
+                  } else {
+                    console.log('✅ US Pack filter initialized (default 1pack)');
                   }
-                  
-                  console.log('✅ US Pack filter initialized and ran with:', defaultPack);
                 }
-                
+
                 // Try on load event (after React hydration)
                 window.addEventListener('load', setupAndRun);
-                
-                // Also try with requestAnimationFrame (right after next paint)
-                requestAnimationFrame(() => {
-                  requestAnimationFrame(setupAndRun);
-                });
-                
-                // Fallback: try after 200ms
-                setTimeout(setupAndRun, 200);
+
+                // Fallback: try after 500ms to ensure React has hydrated
+                setTimeout(setupAndRun, 500);
               })();
               
               // US Pack size change handler

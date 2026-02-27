@@ -280,11 +280,11 @@ const convertMarkdownToHtml = (content: string): string => {
   result = result.replace(/\[(.*?)\]\((.*?)\)/g, (match, text, url) => {
     const isInternal = url.startsWith('/') || url.includes('nicotine-pouches.org');
     if (isInternal) {
-      // Convert absolute internal URLs to relative and strip trailing slashes
-      const relativeUrl = url.replace('https://nicotine-pouches.org', '').replace('http://nicotine-pouches.org', '').replace(/\/+$/, '') || '/';
-      return `<a href="${relativeUrl}" style="color: #2563eb; text-decoration: underline; font-weight: 500;">${text}</a>`;
+      // Convert absolute internal URLs to relative
+      const relativeUrl = url.replace('https://nicotine-pouches.org', '').replace('http://nicotine-pouches.org', '');
+      return `<a href="${relativeUrl}">${text}</a>`;
     }
-    return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-weight: 500;">${text}</a>`;
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`;
   });
 
   // Convert bold and italic
@@ -323,11 +323,11 @@ const cleanHtmlContent = (html: string): string => {
       // Check if internal link
       const isInternal = href.startsWith('/') || href.includes('nicotine-pouches.org');
       if (isInternal) {
-        // Convert absolute internal URLs to relative and strip trailing slashes
-        const relativeUrl = href.replace('https://nicotine-pouches.org', '').replace('http://nicotine-pouches.org', '').replace(/\/+$/, '') || '/';
-        return `<a href="${relativeUrl}" style="color: #2563eb; text-decoration: underline; font-weight: 500;">`;
+        // Convert absolute internal URLs to relative
+        const relativeUrl = href.replace('https://nicotine-pouches.org', '').replace('http://nicotine-pouches.org', '');
+        return `<a href="${relativeUrl}">`;
       }
-      return `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-weight: 500;">`;
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer">`;
     })
     .replace(/<img[^>]*>/g, (match) => {
       // Try data-src first (WordPress lazy-loading), then fall back to regular src

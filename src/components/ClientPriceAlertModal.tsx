@@ -24,36 +24,50 @@ const ClientPriceAlertModal = () => {
 
   useEffect(() => {
     const handlePriceAlertModal = (event: CustomEvent) => {
-      const { productId } = event.detail;
-      
+      const { productId, product: eventProduct } = event.detail;
+
       // Prevent opening if already open
       if (isOpen) return;
-      
-      console.log('Opening price alert modal for product:', productId);
-      
-      // Find the product data from the page
+
+      // Use product data from event if available (sent by ProductCardWithDropdown)
+      if (eventProduct) {
+        const product: Product = {
+          id: eventProduct.id || productId,
+          name: eventProduct.name || 'Unknown Product',
+          brand: eventProduct.brand || 'Unknown Brand',
+          flavour: eventProduct.flavour || eventProduct.name || 'Unknown Flavour',
+          strength_group: eventProduct.strength_group || eventProduct.strength || 'Normal',
+          format: eventProduct.format || 'Pouch',
+          image_url: eventProduct.image_url || eventProduct.image || undefined,
+          store_count: eventProduct.store_count || eventProduct.stores || 5
+        };
+
+        setSelectedProduct(product);
+        setIsOpen(true);
+        return;
+      }
+
+      // Fallback: Try to find product data from DOM
       const productElement = document.querySelector(`[data-product-id="${productId}"]`);
       if (productElement) {
         const productCard = productElement.closest('.product-card');
         if (productCard) {
-          const titleElement = productCard.querySelector('.product-title');
+          const titleElement = productCard.querySelector('.product-title, h3');
           const brandElement = productCard.querySelector('.product-brand');
           const strengthElement = productCard.querySelector('.product-strength-label');
-          const imageElement = productCard.querySelector('.product-image img');
-          
-          // Extract brand from the product title or look for brand-specific elements
+          const imageElement = productCard.querySelector('.product-image img, img');
+
           let brand = 'Unknown Brand';
           if (brandElement?.textContent) {
             brand = brandElement.textContent;
           } else if (titleElement?.textContent) {
-            // Try to extract brand from title (e.g., "VELO Ruby Berry" -> "VELO")
             const titleText = titleElement.textContent;
-            const brandMatch = titleText.match(/^([A-Z]+)\s/);
+            const brandMatch = titleText.match(/^([A-Z][a-zA-Z]+)\s/);
             if (brandMatch) {
               brand = brandMatch[1];
             }
           }
-          
+
           const product: Product = {
             id: productId,
             name: titleElement?.textContent || 'Unknown Product',
@@ -64,7 +78,7 @@ const ClientPriceAlertModal = () => {
             image_url: imageElement?.getAttribute('src') || undefined,
             store_count: 5
           };
-          
+
           setSelectedProduct(product);
           setIsOpen(true);
         }
@@ -72,7 +86,7 @@ const ClientPriceAlertModal = () => {
     };
 
     window.addEventListener('triggerPriceAlertModal', handlePriceAlertModal as EventListener);
-    
+
     return () => {
       window.removeEventListener('triggerPriceAlertModal', handlePriceAlertModal as EventListener);
     };
@@ -86,7 +100,7 @@ const ClientPriceAlertModal = () => {
       userId={user?.id || ''}
       onAlertCreated={() => {
         console.log('Price alert created');
-        setIsOpen(false);
+        // Don't close here - let PriceAlertModal show success state first
       }}
     />
   );

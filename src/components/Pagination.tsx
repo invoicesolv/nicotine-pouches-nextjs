@@ -89,7 +89,7 @@ export default function Pagination({
           display: 'flex',
           alignItems: 'center',
           gap: '4px',
-          fontFamily: 'Klarna Text, sans-serif'
+          fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
         }}
         onMouseEnter={() => currentPage !== 1 && setHoveredPage(-1)}
         onMouseLeave={() => setHoveredPage(null)}
@@ -116,7 +116,7 @@ export default function Pagination({
                 padding: '8px 4px',
                 color: '#6c757d',
                 fontSize: '14px',
-                fontFamily: 'Klarna Text, sans-serif'
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
               }}>
                 ...
               </span>
@@ -135,7 +135,7 @@ export default function Pagination({
                   fontWeight: currentPage === page ? '600' : '500',
                   transition: 'all 0.2s ease',
                   minWidth: '40px',
-                  fontFamily: 'Klarna Text, sans-serif',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                   transform: hoveredPage === page ? 'translateY(-1px)' : 'translateY(0)',
                   boxShadow: hoveredPage === page ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
                 }}
@@ -166,7 +166,7 @@ export default function Pagination({
           display: 'flex',
           alignItems: 'center',
           gap: '4px',
-          fontFamily: 'Klarna Text, sans-serif'
+          fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
         }}
         onMouseEnter={() => currentPage !== totalPages && setHoveredPage(-2)}
         onMouseLeave={() => setHoveredPage(null)}

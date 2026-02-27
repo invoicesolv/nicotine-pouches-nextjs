@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import Header from '@/components/Header';
-import HomepageGrid from '@/components/HomepageGrid';
+import HomepageHero from '@/components/HomepageHero';
+import { CTASection } from '@/components/ui/hero-dithering-card';
+import HomepageBrandLogos from '@/components/HomepageBrandLogos';
 import DynamicProductSections from '@/components/DynamicProductSections';
 import SymmetricalContentSection from '@/components/SymmetricalContentSection';
 import GuidesSection from '@/components/GuidesSection';
@@ -35,13 +37,13 @@ async function getHomepageProducts() {
       .select('product_id')
       .in('vendor_id', priorityVendorIds);
     
-    // Fetch all products with full details for schema
+    // Fetch products for schema - only need 20 displayed, fetch 30 for filtering buffer
     const { data: wpProducts, error: wpError } = await supabase()
       .from('wp_products')
       .select('id, name, image_url, price, content')
       .not('image_url', 'is', null)
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(30);
     
     if (wpError) {
       console.error('Error fetching products for ItemList:', wpError);
@@ -185,26 +187,25 @@ export default async function Home() {
           
           {/* Header */}
           <Header />
-        
-        {/* Homepage Grid Layout */}
-        <div className="fade-in">
-          <HomepageGrid />
-        </div>
 
-        {/* Product Section */}
-        <div className="fade-in-delay-1">
+        <main id="main-content">
+          {/* Homepage Hero */}
+          <div className="fade-in">
+            <CTASection />
+          </div>
+
+          {/* Brand Logos */}
+          <HomepageBrandLogos />
+
+          {/* Product Section */}
           <DynamicProductSections />
-        </div>
 
-        {/* Symmetrical Content Section with TOC */}
-        <div className="fade-in-delay-2">
+          {/* Symmetrical Content Section with TOC */}
           <SymmetricalContentSection />
-        </div>
 
-        {/* Guides Section */}
-        <div className="fade-in-delay-3">
+          {/* Guides Section */}
           <GuidesSection />
-        </div>
+        </main>
 
         {/* Footer */}
         <Footer />

@@ -218,7 +218,7 @@ export default function ReviewForm({ productId, productName, vendors, onReviewSu
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
                 fontSize: '0.875rem',
-                fontFamily: '"Klarna Text", system-ui, -apple-system, sans-serif',
+                fontFamily: '"Plus Jakarta Sans", system-ui, -apple-system, sans-serif',
                 resize: 'vertical',
                 minHeight: '80px'
               }}

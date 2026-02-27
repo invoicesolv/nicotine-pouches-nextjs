@@ -8,6 +8,8 @@ export interface PageData {
   canonical?: string;
   image?: string;
   url?: string;
+  /** Set to true to skip generating en-US alternate (for UK-only content) */
+  skipUSAlternate?: boolean;
   [key: string]: any;
 }
 
@@ -28,10 +30,25 @@ export function getSEOTags(pageType: PageType, pageData: PageData): Metadata {
   
   // Generate canonical URL
   const canonical = pageData.canonical || getFullUrl(pageData.url || '/');
-  
+
   // Generate Open Graph image
   const ogImage = pageData.image || SEO_CONFIG.defaultImages.ogImage;
-  
+
+  // Determine if we should include en-US alternate
+  // Skip for: location pages (UK cities), blog pages (UK-only content), brand pages (UK/US have different products), product pages, or when explicitly flagged as UK-only content
+  const shouldIncludeUSAlternate = pageType !== 'location' && pageType !== 'blog' && pageType !== 'brand' && pageType !== 'product' && !pageData.skipUSAlternate;
+
+  // Build language alternates
+  const languageAlternates: Record<string, string> = {
+    'en-GB': canonical,
+    'x-default': canonical,
+  };
+
+  // Only add en-US alternate if the content exists in the US section
+  if (shouldIncludeUSAlternate) {
+    languageAlternates['en-US'] = canonical.replace('/us/', '/').replace(SEO_CONFIG.domain, `${SEO_CONFIG.domain}/us`);
+  }
+
   return {
     title,
     description,
@@ -42,11 +59,7 @@ export function getSEOTags(pageType: PageType, pageData: PageData): Metadata {
     metadataBase: new URL(SEO_CONFIG.domain),
     alternates: {
       canonical,
-      languages: {
-        'en-GB': canonical,
-        'en-US': canonical.replace('/us/', '/').replace(SEO_CONFIG.domain, `${SEO_CONFIG.domain}/us`),
-        'x-default': canonical,
-      },
+      languages: languageAlternates,
     },
     openGraph: {
       title: pageData.ogTitle || title,

@@ -3,129 +3,154 @@ import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import GuidesGridWithSearch from '@/components/GuidesGridWithSearch';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { Metadata } from 'next';
+import { generateGuidesPageMeta, pageMetaToMetadata } from '@/lib/meta-generator';
 
-// Get total post count from DB (head-only, no data transferred)
-const getTotalPostCount = async (searchQuery?: string): Promise<number> => {
-  try {
-    let query = supabase()
-      .from('blog_posts')
-      .select('*', { count: 'exact', head: true });
+// Enable ISR with 1 hour cache for better performance
+export const revalidate = 3600;
 
-    if (searchQuery) {
-      query = query.or(`title.ilike.%${searchQuery}%,excerpt.ilike.%${searchQuery}%`);
+const POSTS_PER_PAGE = 12;
+
+// Raw row shape from blog_posts select
+interface BlogPostRow {
+  id?: number;
+  wp_id?: number;
+  title?: string;
+  slug?: string;
+  excerpt?: string;
+  date?: string;
+  created_at?: string;
+  updated_at?: string;
+  featured_image?: string;
+  featured_image_local?: string;
+  seo_meta?: { title?: string; description?: string } | null;
+}
+
+// Build minimal post object from DB row (avoid passing full seo_meta to prevent serialization issues)
+function mapPostRow(post: BlogPostRow): BlogPost {
+  const excerptText = post.excerpt?.replace(/<[^>]*>/g, '').replace(/[#*_]/g, '').trim().slice(0, 300) || '';
+  const rawSeo = post.seo_meta && typeof post.seo_meta === 'object' ? post.seo_meta : null;
+  return {
+    id: post.id,
+    wp_id: post.wp_id,
+    title: post.title,
+    slug: post.slug,
+    excerpt: excerptText,
+    date: post.date || post.created_at,
+    author: 'Nicotine Pouches Team',
+    featured_image: post.featured_image,
+    featured_image_local: post.featured_image_local || post.featured_image,
+    status: 'published',
+    type: 'post',
+    source: 'blog_posts',
+    seo_meta: {
+      title: typeof rawSeo?.title === 'string' ? rawSeo.title : post.title,
+      description: typeof rawSeo?.description === 'string' ? rawSeo.description : excerptText
     }
+  };
+}
 
-    const { count, error } = await query;
-    if (error) {
-      console.error('Error getting post count:', error);
-      return 0;
-    }
-    return count || 0;
-  } catch (error) {
-    console.error('Error in getTotalPostCount:', error);
-    return 0;
+// Fetch one page of posts from DB + total count (no over-fetching)
+const getPaginatedPosts = async (page: number, search?: string) => {
+  const client = supabaseAdmin();
+  if (!client) {
+    console.error('[Guides Page] Supabase admin client not available');
+    return { posts: [], featuredPost: null, totalPosts: 0, totalPages: 1, currentPage: page };
   }
-};
 
-// Load only the posts needed for the current page
-const loadPaginatedPosts = async (
-  page: number,
-  perPage: number,
-  sortOrder: string = 'newest',
-  searchQuery?: string
-): Promise<{ featured: BlogPost | null; posts: BlogPost[]; totalCount: number }> => {
-  try {
-    const ascending = sortOrder === 'oldest';
+  const searchTerm = search?.trim();
+  const baseQuery = client
+    .from('blog_posts')
+    .select('id, wp_id, title, slug, excerpt, date, created_at, updated_at, featured_image, featured_image_local, seo_meta', { count: 'exact' })
+    .in('status', ['publish', 'published'])
+    .order('date', { ascending: false });
 
-    // Get total count
-    const totalCount = await getTotalPostCount(searchQuery);
+  // Optional search filter (title or excerpt)
+  const query = searchTerm
+    ? baseQuery.or(`title.ilike.%${searchTerm}%,excerpt.ilike.%${searchTerm}%`)
+    : baseQuery;
 
-    // Fetch featured post (first post by sort order)
-    let featuredQuery = supabase()
-      .from('blog_posts')
-      .select('*')
-      .order('date', { ascending })
-      .limit(1);
+  // Page 1: featured (1) + grid (12) = 13 rows; other pages: 12 rows
+  const pageSize = page === 1 ? POSTS_PER_PAGE + 1 : POSTS_PER_PAGE;
+  const rangeStart = page === 1 ? 0 : (page - 1) * POSTS_PER_PAGE;
+  const rangeEnd = rangeStart + pageSize - 1;
 
-    if (searchQuery) {
-      featuredQuery = featuredQuery.or(`title.ilike.%${searchQuery}%,excerpt.ilike.%${searchQuery}%`);
-    }
+  const { data: rows, error, count } = await query.range(rangeStart, rangeEnd);
 
-    const { data: featuredData } = await featuredQuery;
-    const featured = featuredData?.[0] || null;
-
-    // Fetch paginated posts (offset by 1 to skip featured)
-    const offset = (page - 1) * perPage + 1; // +1 to skip featured post
-    let postsQuery = supabase()
-      .from('blog_posts')
-      .select('*')
-      .order('date', { ascending })
-      .range(offset, offset + perPage - 1);
-
-    if (searchQuery) {
-      postsQuery = postsQuery.or(`title.ilike.%${searchQuery}%,excerpt.ilike.%${searchQuery}%`);
-    }
-
-    const { data: posts, error } = await postsQuery;
-
-    if (error) {
-      console.error('Error fetching paginated posts:', error);
-      return { featured, posts: [], totalCount };
-    }
-
-    return { featured, posts: posts || [], totalCount };
-  } catch (error) {
-    console.error('Error in loadPaginatedPosts:', error);
-    return { featured: null, posts: [], totalCount: 0 };
+  if (error) {
+    console.error('[Guides Page] Error fetching from blog_posts:', error?.message ?? error?.code ?? JSON.stringify(error));
+    return { posts: [], featuredPost: null, totalPosts: 0, totalPages: 1, currentPage: page };
   }
+
+  const totalPosts = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalPosts / POSTS_PER_PAGE));
+  const mapped = (rows || []).map(mapPostRow);
+
+  const featuredPost = page === 1 && mapped.length > 0 ? mapped[0] : null;
+  const postsToShow = page === 1 && mapped.length > 1 ? mapped.slice(1, POSTS_PER_PAGE + 1) : mapped;
+
+  console.log(`[Guides Page] Fetched ${mapped.length} posts for page ${page}/${totalPages} (total ${totalPosts})`);
+  return {
+    posts: postsToShow,
+    featuredPost,
+    totalPosts,
+    totalPages,
+    currentPage: page
+  };
 };
 
 interface BlogPost {
-  wp_id: number;
+  id?: number;
+  wp_id?: number;
   title: string;
   slug: string;
   excerpt: string;
   date: string;
   author: string;
-  featured_image: string;
+  featured_image?: string;
   featured_image_local?: string;
   seo_meta?: {
     title?: string;
     description?: string;
   };
+  status?: string;
+  type?: string;
+  source?: string;
 }
 
-interface PageProps {
+interface GuidesPageProps {
   searchParams: Promise<{
     page?: string;
     search?: string;
-    sort?: string;
   }>;
 }
 
-export default async function GuidesPage({ searchParams }: PageProps) {
-  const params = await searchParams;
-  const currentPage = Math.max(1, parseInt(params.page || '1', 10));
-  const searchQuery = params.search || '';
-  const sortOrder = params.sort || 'newest';
-  const postsPerPage = 12;
+export default async function GuidesPage({ searchParams }: GuidesPageProps) {
+  const resolvedParams = await searchParams;
+  const currentPage = Math.max(1, parseInt(resolvedParams.page || '1', 10));
+  const searchQuery = resolvedParams.search || '';
 
-  // Server-side pagination: only fetch the posts we need
-  const { featured: featuredPost, posts: paginatedPosts, totalCount } = await loadPaginatedPosts(
-    currentPage,
-    postsPerPage,
-    sortOrder,
-    searchQuery || undefined
-  );
+  let paginatedPosts: BlogPost[] = [];
+  let featuredPost: BlogPost | null = null;
+  let totalPosts = 0;
+  let totalPages = 1;
 
-  const totalPosts = Math.max(0, totalCount - 1); // -1 for featured post
-  const totalPages = Math.ceil(totalPosts / postsPerPage);
+  try {
+    const result = await getPaginatedPosts(currentPage, searchQuery);
+    paginatedPosts = Array.isArray(result.posts) ? result.posts : [];
+    featuredPost = result.featuredPost ?? null;
+    totalPosts = typeof result.totalPosts === 'number' ? result.totalPosts : 0;
+    totalPages = Math.max(1, typeof result.totalPages === 'number' ? result.totalPages : 1);
+  } catch (err) {
+    console.error('[Guides Page] Error loading posts:', err);
+  }
+
+  console.log(`[Guides Page] Page ${currentPage}/${totalPages}, showing ${paginatedPosts.length} posts`);
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{
+      <style suppressHydrationWarning dangerouslySetInnerHTML={{
         __html: `
           @media (max-width: 768px) {
             .guides-page-grid {
@@ -171,9 +196,20 @@ export default async function GuidesPage({ searchParams }: PageProps) {
               margin-top: 0 !important;
               margin-left: 0 !important;
             }
+            .discover-more-header {
+              flex-direction: column !important;
+              align-items: flex-start !important;
+              gap: 20px !important;
+            }
             .discover-more-title {
               font-size: 1.8rem !important;
               margin: 0 !important;
+            }
+            .filter-controls {
+              width: 100% !important;
+              flex-direction: row !important;
+              gap: 15px !important;
+              flex-wrap: wrap !important;
             }
             .breadcrumb {
               padding: 0 20px !important;
@@ -211,7 +247,7 @@ export default async function GuidesPage({ searchParams }: PageProps) {
         `
       }} />
       <div id="boxed-wrapper">
-      <div id="wrapper" className="fusion-wrapper">
+      <div id="wrapper" className="fusion-wrapper" suppressHydrationWarning>
         <Header />
         
         <main id="main" className="clearfix" style={{
@@ -228,12 +264,12 @@ export default async function GuidesPage({ searchParams }: PageProps) {
               padding: '0 20px 0 70px', // 20px container padding + 50px marginLeft = 70px total
               fontSize: '14px',
               color: '#666',
-              fontFamily: 'Klarna Text, sans-serif',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
               textAlign: 'left'
             }}>
-              <a href="/" style={{ color: '#0B051D', textDecoration: 'none', fontFamily: 'Klarna Text, sans-serif', fontWeight: '800' }}>Start</a>
+              <Link href="/" style={{ color: '#0B051D', textDecoration: 'none', fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif", fontWeight: '800' }}>Start</Link>
               <span style={{ margin: '0 8px' }}>/</span>
-              <span style={{ fontFamily: 'Klarna Text, sans-serif' }}>Guides</span>
+              <span style={{ fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" }}>Guides</span>
             </div>
           </div>
 
@@ -272,7 +308,7 @@ export default async function GuidesPage({ searchParams }: PageProps) {
                     color: '#0B051D',
                     margin: '0 0 20px 0',
                     lineHeight: '0.9',
-                    fontFamily: 'Klarna Text, sans-serif',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                     letterSpacing: '-0.05em'
                   }}>
                     {featuredPost.seo_meta?.title || featuredPost.title || 'Nicotine Pouches'}
@@ -305,7 +341,7 @@ export default async function GuidesPage({ searchParams }: PageProps) {
                       color: '#666',
                       fontSize: '16px',
                       marginRight: '12px',
-                      fontFamily: 'Klarna Text, sans-serif'
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                     }}>
                       {featuredPost.author}
                     </span>
@@ -313,7 +349,7 @@ export default async function GuidesPage({ searchParams }: PageProps) {
                       color: '#f3accc',
                       fontSize: '16px',
                       fontWeight: '500',
-                      fontFamily: 'Klarna Text, sans-serif'
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                     }}>
                       Guides
                     </span>
@@ -324,7 +360,7 @@ export default async function GuidesPage({ searchParams }: PageProps) {
                     color: '#666',
                     lineHeight: '1.6',
                     marginBottom: '30px',
-                    fontFamily: 'Klarna Text, sans-serif'
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                   }}>
                     {(() => {
                       const content = featuredPost.seo_meta?.description || featuredPost.excerpt || '';
@@ -342,7 +378,7 @@ export default async function GuidesPage({ searchParams }: PageProps) {
                     fontWeight: '600',
                     textDecoration: 'none',
                     transition: 'all 0.3s ease',
-                    fontFamily: 'Klarna Text, sans-serif'
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                   }}>
                     Read more
                   </Link>
@@ -389,15 +425,13 @@ export default async function GuidesPage({ searchParams }: PageProps) {
               width: '100%',
               padding: '0 20px'
             }}>
-              
-              {/* Posts Grid with Search, Sort & Pagination */}
+              {/* Posts Grid with Server-Side Pagination */}
               <GuidesGridWithSearch
                 posts={paginatedPosts}
                 totalPosts={totalPosts}
                 totalPages={totalPages}
                 currentPage={currentPage}
                 searchQuery={searchQuery}
-                sortOrder={sortOrder}
                 isServerPaginated={true}
               />
             </div>
@@ -413,43 +447,5 @@ export default async function GuidesPage({ searchParams }: PageProps) {
 
 // Generate metadata for SEO
 export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: 'Nicotine Pouches Guides - Complete Tutorials & How-To Guides',
-    description: 'Comprehensive guides to help you understand nicotine pouches, their benefits, and how to use them effectively. Learn everything you need to know about nicotine pouches.',
-    keywords: 'nicotine pouches guides, how to use nicotine pouches, nicotine pouches tutorial, nicotine pouches tips, nicotine pouches benefits',
-    robots: 'index, follow',
-    authors: [{ name: 'Nicotine Pouches Team' }],
-    openGraph: {
-      title: 'Nicotine Pouches Guides - Complete Tutorials & How-To Guides',
-      description: 'Comprehensive guides to help you understand nicotine pouches, their benefits, and how to use them effectively.',
-      url: 'https://nicotine-pouches.org/guides',
-      siteName: 'Nicotine Pouches',
-      images: [
-        {
-          url: '/guides-og-image.jpg',
-          width: 1200,
-          height: 630,
-          alt: 'Nicotine Pouches Guides',
-        },
-      ],
-      locale: 'en-GB',
-      type: 'website',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: 'Nicotine Pouches Guides - Complete Tutorials & How-To Guides',
-      description: 'Comprehensive guides to help you understand nicotine pouches, their benefits, and how to use them effectively.',
-      images: ['/guides-og-image.jpg'],
-      creator: '@nicotinepouches',
-      site: '@nicotinepouches',
-    },
-    alternates: {
-      canonical: 'https://nicotine-pouches.org/guides',
-      languages: {
-        'en-GB': 'https://nicotine-pouches.org/guides',
-        'en-US': 'https://nicotine-pouches.org/us/guides',
-        'x-default': 'https://nicotine-pouches.org/guides',
-      },
-    },
-  };
+  return pageMetaToMetadata(generateGuidesPageMeta());
 }

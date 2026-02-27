@@ -20,21 +20,12 @@ const Header = () => {
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
   
-  // Safely get auth context - handle case where AuthProvider might not be available
-  let user = null;
-  let signOut = async () => {};
-  let loginModalTrigger = 0;
-  try {
-    const auth = useAuth();
-    user = auth.user;
-    signOut = auth.signOut;
-    loginModalTrigger = auth.loginModalTrigger;
-  } catch (error) {
-    // AuthProvider not available, use defaults
-    console.warn('AuthProvider not available in Header');
-  }
-  
+  // Get auth context (returns defaults if provider not available)
+  const { user, signOut, loginModalTrigger } = useAuth();
+
+  // Get language context (returns defaults if provider not available)
   const { getLocalizedPath, isUSRoute } = useLanguage();
+
   const pathname = usePathname();
   
   // Check if we're on the homepage
@@ -95,116 +86,43 @@ const Header = () => {
     };
   }, []);
 
+  const headerStyles = `
+    @media (max-width: 768px) {
+      .fusion-tb-header .desktop-nav { display: none !important; }
+      .fusion-tb-header .mobile-nav { display: flex !important; }
+      .fusion-tb-header .mobile-left.mobile-nav { display: flex !important; }
+      .fusion-tb-header .mobile-right.mobile-nav { display: flex !important; }
+      .fusion-tb-header .header-container { display: flex !important; align-items: center !important; justify-content: space-between !important; padding: 10px 15px !important; flex-wrap: nowrap !important; width: 100% !important; max-width: none !important; margin: 0 !important; }
+      .fusion-tb-header .header-inner { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+      .fusion-tb-header .mobile-left { flex: 0 0 auto !important; }
+      .fusion-tb-header .mobile-center { flex: 1 !important; display: flex !important; justify-content: center !important; align-items: center !important; }
+      .fusion-tb-header .mobile-center img { max-height: 40px !important; width: auto !important; }
+      .fusion-tb-header .mobile-right { flex: 0 0 auto !important; }
+      .fusion-tb-header .logo-container { flex: none !important; position: static !important; transform: none !important; }
+      .fusion-tb-header .logo-container img { max-height: 40px !important; width: auto !important; }
+      .fusion-tb-header .search-container { display: none !important; }
+      .fusion-tb-header .mobile-search { display: none !important; }
+      .fusion-tb-header .mobile-search-icon { display: block !important; }
+    }
+    .fusion-tb-header .header-container { display: flex; align-items: center; justify-content: space-between; width: 100% !important; }
+    .fusion-tb-header .header-inner { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+    @media (min-width: 769px) {
+      .fusion-tb-header .mobile-nav { display: none !important; }
+      .fusion-tb-header .desktop-nav { display: flex !important; }
+      .fusion-tb-header .mobile-search { display: none !important; }
+      .fusion-tb-header .header-container { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+      .fusion-tb-header .header-inner { width: calc(100% - 80px) !important; max-width: 1400px !important; margin: 0 auto !important; padding-left: 0 !important; padding-right: 0 !important; position: relative; }
+      .fusion-tb-header .logo-container { position: static; transform: none; }
+    }
+    @media (min-width: 1536px) {
+      .fusion-tb-header .header-inner { max-width: 90% !important; }
+    }
+  `;
+
   return (
     <>
-      <style jsx>{`
-        @media (max-width: 768px) {
-          .desktop-nav {
-            display: none !important;
-          }
-          .mobile-nav {
-            display: flex !important;
-          }
-          .mobile-left.mobile-nav {
-            display: flex !important;
-          }
-          .mobile-right.mobile-nav {
-            display: flex !important;
-          }
-          .header-container {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            padding: 10px 15px !important;
-            flex-wrap: nowrap !important;
-            width: 100% !important;
-            maxWidth: none !important;
-            margin: 0 !important;
-          }
-          .header-inner {
-            width: 100% !important;
-            max-width: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          .mobile-left {
-            flex: 0 0 auto !important;
-          }
-          .mobile-center {
-            flex: 1 !important;
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
-          }
-          .mobile-center img {
-            max-height: 40px !important;
-            width: auto !important;
-          }
-          .mobile-right {
-            flex: 0 0 auto !important;
-          }
-          .logo-container {
-            flex: none !important;
-            position: static !important;
-            transform: none !important;
-          }
-          .logo-container img {
-            max-height: 40px !important;
-            width: auto !important;
-          }
-          .search-container {
-            display: none !important;
-          }
-          .mobile-search {
-            display: none !important;
-          }
-          .mobile-search-icon {
-            display: block !important;
-          }
-        }
-        .header-container {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          width: 100% !important;
-        }
-        .header-inner {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          width: 100%;
-        }
-        @media (min-width: 769px) {
-          .mobile-nav {
-            display: none !important;
-          }
-          .desktop-nav {
-            display: flex !important;
-          }
-          .mobile-search {
-            display: none !important;
-          }
-          .header-container {
-            width: 100% !important;
-            max-width: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          .header-inner {
-            width: calc(100% - 80px) !important;
-            max-width: 1400px !important;
-            margin: 0 auto !important;
-            padding-left: 0px !important;
-            padding-right: 0px !important;
-            position: relative;
-          }
-          .logo-container {
-            position: static;
-            transform: none;
-          }
-        }
-      `}</style>
-      <div className="fusion-tb-header" style={{ width: '100vw' }}>
+      <style dangerouslySetInnerHTML={{ __html: headerStyles }} suppressHydrationWarning />
+      <div className="fusion-tb-header" style={{ width: '100vw' }} suppressHydrationWarning>
         <header className="fusion-fullwidth fullwidth-box fusion-builder-row-1 fusion-flex-container has-pattern-background has-mask-background my-sticky-header hundred-percent-fullwidth non-hundred-percent-height-scrolling"
                 style={{
                   width: '100vw',
@@ -277,7 +195,7 @@ const Header = () => {
           {/* Left Section: Logo + Navigation Links */}
           <div className="desktop-nav" style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
             {/* Logo */}
-            <div className="logo-container" style={{ flex: '0 0 auto', marginRight: '20px' }}>
+            <div className="logo-container" style={{ flex: '0 0 auto', marginRight: '8px' }}>
               <Link href={isUSRoute ? "/us" : "/"} aria-label="logo" style={{ display: 'flex', alignItems: 'center' }}>
                 <Image
                   src="/product-images/us/logo-1.png"
@@ -300,10 +218,10 @@ const Header = () => {
               <Link href={getLocalizedPath('/guides')} style={{
                 color: '#1f2544',
                 textDecoration: 'none',
-                fontSize: '15px',
+                fontSize: '16px',
                 fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
                 fontWeight: '600',
-                padding: '8px 16px',
+                padding: '8px 12px',
                 transition: 'all 0.2s ease'
               }}>
                 Guides
@@ -312,10 +230,10 @@ const Header = () => {
               <Link href={getLocalizedPath('/how-to-use')} style={{
                 color: '#1f2544',
                 textDecoration: 'none',
-                fontSize: '15px',
+                fontSize: '16px',
                 fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
                 fontWeight: '600',
-                padding: '8px 16px',
+                padding: '8px 12px',
                 transition: 'all 0.2s ease'
               }}>
                 How to use
@@ -324,10 +242,10 @@ const Header = () => {
               <Link href={getLocalizedPath('/compare')} style={{
                 color: '#1f2544',
                 textDecoration: 'none',
-                fontSize: '15px',
+                fontSize: '16px',
                 fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
                 fontWeight: '600',
-                padding: '8px 16px',
+                padding: '8px 12px',
                 transition: 'all 0.2s ease'
               }}>
                 Compare
@@ -336,15 +254,43 @@ const Header = () => {
               <Link href={getLocalizedPath('/about-us')} style={{
                 color: '#1f2544',
                 textDecoration: 'none',
-                fontSize: '15px',
+                fontSize: '16px',
                 fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
                 fontWeight: '600',
-                padding: '8px 16px',
+                padding: '8px 12px',
                 transition: 'all 0.2s ease'
               }}>
                 About us
               </Link>
             </nav>
+          </div>
+
+          {/* Center: Search Bar */}
+          <div className="desktop-nav search-container" style={{ flex: '1', display: 'flex', justifyContent: 'center', maxWidth: '400px', margin: '0 20px' }}>
+            <button
+              onClick={toggleSearch}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                width: '100%',
+                padding: '10px 16px',
+                backgroundColor: '#f5f5f5',
+                border: '1px solid #e5e7eb',
+                borderRadius: '25px',
+                fontSize: '14px',
+                fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
+                color: '#9ca3af',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+              <span>Search products...</span>
+            </button>
           </div>
 
           {/* Right Section: Country Switcher + Sign In Button */}
@@ -444,7 +390,7 @@ const Header = () => {
                     alignItems: 'center',
                     gap: '8px',
                     padding: '8px 16px',
-                    backgroundColor: 'transparent',
+                    backgroundColor: '#ffffff',
                     border: '1px solid #e5e7eb',
                     borderRadius: '100px',
                     fontSize: '14px',
@@ -459,7 +405,7 @@ const Header = () => {
                   <div style={{
                     width: '24px',
                     height: '24px',
-                    backgroundColor: '#8b5cf6',
+                    backgroundColor: '#1f2544',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
@@ -654,7 +600,7 @@ const Header = () => {
                       <div style={{
                         width: '32px',
                         height: '32px',
-                        backgroundColor: '#8b5cf6',
+                        backgroundColor: '#1f2544',
                         borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
@@ -679,7 +625,7 @@ const Header = () => {
                         padding: '12px 20px',
                         borderRadius: '12px',
                         fontSize: '16px',
-                        fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                         fontWeight: '500',
                         cursor: 'pointer',
                         transition: 'all 0.3s ease',
@@ -703,7 +649,7 @@ const Header = () => {
                       padding: '12px 20px',
                       borderRadius: '12px',
                       fontSize: '16px',
-                      fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                       fontWeight: '500',
                       cursor: 'pointer',
                       transition: 'all 0.3s ease',

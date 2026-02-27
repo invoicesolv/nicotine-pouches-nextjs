@@ -140,7 +140,7 @@ export function generateLLMSEO(inputs: LLMSEOInputs): LLMSEOOutput {
   const description = `Live comparison for ${product_name} — packs, price per pouch, strength (${strength_mg}), format (${format}), stock & reviews.`;
 
   // Generate stable @graph for LLM consumption
-  const schemaGraph = [
+  const schemaGraph: any[] = [
     {
       "@type": "WebPage",
       "@id": `${page_url}#webpage`,
@@ -212,6 +212,48 @@ export function generateLLMSEO(inputs: LLMSEOInputs): LLMSEOOutput {
     }
   ];
 
+  // Generate FAQ content for schema (must be before adding to graph)
+  const faqItems = [
+    {
+      question: `How do I find the cheapest ${product_name}?`,
+      answer: "Sort by price per pouch and check retailer shipping thresholds; larger packs often reduce cost per pouch."
+    },
+    {
+      question: "Which pack size is best value?",
+      answer: "Use the price per pouch column; 10-packs typically win unless a retailer has a time-limited promo."
+    },
+    {
+      question: "How often is pricing updated?",
+      answer: `${new_vendor_policy} Check each row's 'last seen' timestamp.`
+    },
+    {
+      question: `What affects price per pouch for ${product_name}?`,
+      answer: "Pack size, promotions, shipping thresholds, and pouch count per can. Always review retailer delivery terms."
+    },
+    {
+      question: `What is the nicotine strength of ${product_name}?`,
+      answer: `${product_name} contains ${strength_mg}mg of nicotine per pouch, which is considered ${strength_mg <= 6 ? 'mild' : strength_mg <= 12 ? 'medium' : 'strong'} strength.`
+    },
+    {
+      question: `How many pouches are in a can of ${product_name}?`,
+      answer: `Each can of ${product_name} contains ${pouch_count} pouches in ${format} format.`
+    }
+  ];
+
+  // Add FAQPage schema to graph for +40% AI visibility (Princeton GEO research)
+  schemaGraph.push({
+    "@type": "FAQPage",
+    "@id": `${page_url}#faq`,
+    "mainEntity": faqItems.map(faq => ({
+      "@type": "Question",
+      "name": faq.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.answer
+      }
+    }))
+  });
+
   // Generate table data attributes for LLM consumption
   const tableColumns = [
     { key: "pack_size", label: "Pack size", scope: "col" },
@@ -255,25 +297,11 @@ export function generateLLMSEO(inputs: LLMSEOInputs): LLMSEOOutput {
     ]
   }));
 
-  // Generate FAQ content
-  const faqPlaintext = [
-    {
-      q: `How do I find the cheapest ${product_name}?`,
-      a: "Sort by price per pouch and check retailer shipping thresholds; larger packs often reduce cost per pouch."
-    },
-    {
-      q: "Which pack size is best value?",
-      a: "Use the price per pouch column; 10-packs typically win unless a retailer has a time-limited promo."
-    },
-    {
-      q: "How often is pricing updated?",
-      a: `${new_vendor_policy} Check each row's 'last seen' timestamp.`
-    },
-    {
-      q: `What affects price per pouch for ${product_name}?`,
-      a: "Pack size, promotions, shipping thresholds, and pouch count per can. Always review retailer delivery terms."
-    }
-  ];
+  // Convert FAQ items to plaintext format for UI display
+  const faqPlaintext = faqItems.map(faq => ({
+    q: faq.question,
+    a: faq.answer
+  }));
 
   // Generate freshness signals
   const freshnessSignals = {

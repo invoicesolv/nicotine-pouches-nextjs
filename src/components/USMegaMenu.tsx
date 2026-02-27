@@ -175,7 +175,7 @@ const USMegaMenu = () => {
         }
       `}</style>
       <div className="relative">
-      {/* All Categories Button */}
+      {/* All Brands Button */}
       <button
         className="mega-menu-button"
         onClick={() => {
@@ -186,11 +186,11 @@ const USMegaMenu = () => {
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
-          padding: '8px 16px',
+          padding: '8px 12px',
           backgroundColor: 'transparent',
           border: 'none',
           borderRadius: '8px',
-          fontSize: '15px',
+          fontSize: '16px',
           fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
           fontWeight: '600',
           color: '#1f2544',
@@ -199,15 +199,23 @@ const USMegaMenu = () => {
           position: 'relative'
         }}
       >
-        All categories
-        <span style={{
-          fontSize: '1.1rem',
-          color: '#6b7280',
-          transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-          transition: 'transform 0.3s ease'
-        }}>
-          ▼
-        </span>
+        All brands
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s ease'
+          }}
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
       </button>
 
       {/* Mega Menu Dropdown */}
@@ -216,10 +224,10 @@ const USMegaMenu = () => {
           className="mega-menu-dropdown"
           style={{
             position: 'fixed',
-            top: '80px',
+            top: '56px',
             left: '0',
             width: '100vw',
-            height: 'calc(100vh - 80px)',
+            height: 'calc(100vh - 56px)',
             backgroundColor: '#fff',
             border: 'none',
             borderRadius: '0',
@@ -238,9 +246,9 @@ const USMegaMenu = () => {
                 color: '#1f2937', 
                 marginBottom: '20px',
                 paddingBottom: '12px',
-                borderBottom: '3px solid #3b82f6'
+                borderBottom: 'none'
               }}>
-                🇺🇸 US Brands
+                Brands
               </h3>
               <nav className="mega-menu-categories" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {categories.map((category) => (
@@ -300,7 +308,7 @@ const USMegaMenu = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                       <Link 
-                        href={`/us/brand/${category.name.toLowerCase().replace(/\s+/g, '-')}`}
+                        href={`/us/brand/${category.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`}
                         onClick={(e) => e.stopPropagation()}
                         style={{ 
                           fontSize: '16px', 
@@ -332,6 +340,30 @@ const USMegaMenu = () => {
                     )}
                   </div>
                 ))}
+                {/* Show more brands link */}
+                <Link
+                  href="/us/brands"
+                  onClick={() => setIsOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '12px 16px',
+                    marginTop: '8px',
+                    borderRadius: '8px',
+                    backgroundColor: '#f3f4f6',
+                    color: '#1e40af',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    textDecoration: 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <span>Show all brands</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
+                </Link>
               </nav>
             </div>
 

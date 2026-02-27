@@ -22,10 +22,6 @@ export default function ProductComparisonTable({ product }: ProductComparisonTab
   const [shippingFilter, setShippingFilter] = useState<string>('fastest');
   const [reviewSort, setReviewSort] = useState<string>('reviews');
 
-  console.log('ProductComparisonTable - Product:', product);
-  console.log('ProductComparisonTable - Stores:', product?.stores);
-  console.log('ProductComparisonTable - Stores length:', product?.stores?.length);
-
   const handlePackSizeChange = (packSize: string) => {
     setSelectedPackSize(packSize);
   };
@@ -42,34 +38,40 @@ export default function ProductComparisonTable({ product }: ProductComparisonTab
     setReviewSort(sort);
   };
 
-  // Animate vendors in one by one
+  // Animate vendors in one by one (capped to avoid RESULT_CODE_HUNG / main-thread hang)
+  const MAX_ANIMATED = 25;
   useEffect(() => {
-    console.log('useEffect - Product:', product);
-    console.log('useEffect - Stores:', product?.stores);
-    if (product && product.stores) {
-      console.log('Setting up vendor animation for', product.stores.length, 'stores');
-      setVisibleVendors(new Set()); // Reset visibility
-      
-      // Animate each vendor in with a delay
-      product.stores.forEach((_: any, index: number) => {
-        setTimeout(() => {
-          console.log('Making vendor', index, 'visible');
-          setVisibleVendors(prev => new Set([...Array.from(prev), index]));
-        }, index * 150); // 150ms delay between each vendor
-      });
-    } else {
-      console.log('No product or stores found');
-    }
-  }, [product]);
+    if (!product?.stores?.length) return;
+    setVisibleVendors(new Set());
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
+    const count = product.stores.length;
+    const animateCount = Math.min(count, MAX_ANIMATED);
 
-  console.log('ProductComparisonTable render - visibleVendors:', Array.from(visibleVendors));
-  console.log('ProductComparisonTable render - stores length:', product?.stores?.length);
-  
+    for (let index = 0; index < animateCount; index++) {
+      const t = setTimeout(() => {
+        setVisibleVendors(prev => new Set([...Array.from(prev), index]));
+      }, index * 150);
+      timeouts.push(t);
+    }
+    // Show remaining vendors immediately after last animated one
+    if (count > animateCount) {
+      const t = setTimeout(() => {
+        setVisibleVendors(prev => {
+          const next = new Set(prev);
+          for (let i = animateCount; i < count; i++) next.add(i);
+          return next;
+        });
+      }, animateCount * 150);
+      timeouts.push(t);
+    }
+
+    return () => {
+      timeouts.forEach(clearTimeout);
+    };
+  }, [product?.stores?.length, product?.slug]);
+
   return (
     <>
-      <div style={{ padding: '10px', backgroundColor: '#f0f0f0', margin: '10px 0' }}>
-        <strong>Debug Info:</strong> Stores: {product?.stores?.length || 0}, Visible: {visibleVendors.size}
-      </div>
       <style jsx>{`
         @media (max-width: 768px) {
           .vendor-comparison {
@@ -325,52 +327,9 @@ export default function ProductComparisonTable({ product }: ProductComparisonTab
                 padding: '20px 24px 16px 24px',
                 borderBottom: '1px solid #f8f9fa'
               }}>
-                {/* Snusifer 15% Discount Badge - Always show for Snusifer */}
+                {/* Vendor Discount Badge - from database offer_type/offer_value */}
                 {(() => {
-                  const isSnusifer = store.name === 'Snusifer' || store.vendorId === 5085 || store.vendor_id === 5085;
-
-                  if (isSnusifer) {
-                    return (
-                      <div style={{
-                        marginBottom: '12px',
-                        padding: '8px 12px',
-                        backgroundColor: '#e8f5e9',
-                        borderRadius: '8px',
-                        border: '1px solid #4caf50',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        width: '100%'
-                      }}>
-                        <span style={{
-                          fontSize: '0.85rem',
-                          fontWeight: '700',
-                          color: '#2e7d32',
-                          fontFamily: 'Klarna Text, sans-serif'
-                        }}>
-                          15% OFF
-                        </span>
-                        <span style={{
-                          fontSize: '0.75rem',
-                          color: '#388e3c',
-                          fontFamily: 'Klarna Text, sans-serif'
-                        }}>
-                          - UK Products Discount
-                        </span>
-                      </div>
-                    );
-                  }
-
-                  // Show other vendor offers
                   const hasOffer = store.offer_type && (store.offer_value !== null && store.offer_value !== undefined && store.offer_value !== '');
-                  if (store.name === 'Snusifer') {
-                    console.log('Offer badge check for Snusifer:', {
-                      offer_type: store.offer_type,
-                      offer_value: store.offer_value,
-                      hasOffer,
-                      type: typeof store.offer_value
-                    });
-                  }
                   return hasOffer ? (
                     <div style={{
                       marginBottom: '12px',
@@ -387,7 +346,7 @@ export default function ProductComparisonTable({ product }: ProductComparisonTab
                         fontSize: '0.85rem',
                         fontWeight: '700',
                         color: store.offer_type === 'percentage_discount' ? '#2e7d32' : '#e65100',
-                        fontFamily: 'Klarna Text, sans-serif'
+                        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                       }}>
                         {store.offer_type === 'percentage_discount'
                           ? `${Number(store.offer_value)}% OFF`
@@ -397,7 +356,7 @@ export default function ProductComparisonTable({ product }: ProductComparisonTab
                         <span style={{
                           fontSize: '0.75rem',
                           color: store.offer_type === 'percentage_discount' ? '#388e3c' : '#f57c00',
-                          fontFamily: 'Klarna Text, sans-serif'
+                          fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                         }}>
                           - {store.offer_description}
                         </span>
@@ -425,7 +384,7 @@ export default function ProductComparisonTable({ product }: ProductComparisonTab
                         fontSize: '1.1rem',
                         fontWeight: '600',
                         color: '#212529',
-                        fontFamily: 'Klarna Text, sans-serif'
+                        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                       }}>
                         {store.name}
                       </h3>
@@ -469,9 +428,10 @@ export default function ProductComparisonTable({ product }: ProductComparisonTab
                       </div>
                     )}
 
-                    {/* Apply 15% discount for Snusifer (vendor ID 5085) */}
+                    {/* Price display with offer discount from database */}
                     {(() => {
-                      const isSnusifer = store.name === 'Snusifer' || store.vendorId === 5085 || store.vendor_id === 5085;
+                      const hasOffer = store.offer_type === 'percentage_discount' && store.offer_value;
+                      const discountPercent = hasOffer ? parseFloat(store.offer_value) / 100 : 0;
                       const rawPrice = currentVariant?.prices?.[selectedPackSize] || currentVariant?.price || store.prices?.[selectedPackSize] || store.price;
 
                       if (currentVariant?.stock_status === 'out_of_stock') {
@@ -480,7 +440,7 @@ export default function ProductComparisonTable({ product }: ProductComparisonTab
                             fontSize: '1.5rem',
                             fontWeight: '700',
                             color: '#6b7280',
-                            fontFamily: 'Klarna Text, sans-serif',
+                            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                             lineHeight: '1.2',
                             textDecoration: 'line-through',
                             opacity: 0.6
@@ -496,12 +456,12 @@ export default function ProductComparisonTable({ product }: ProductComparisonTab
                       const vendor = store.vendor || { currency: store.currency, needs_currency_conversion: store.needs_currency_conversion };
                       const convertedPrice = convertVendorPrice(vendor, rawPrice);
 
-                      if (isSnusifer) {
+                      if (hasOffer) {
                         // Extract numeric value from price string
                         const priceMatch = convertedPrice.match(/[\d.]+/);
                         if (priceMatch) {
                           const originalPrice = parseFloat(priceMatch[0]);
-                          const discountedPrice = originalPrice * 0.85; // 15% off
+                          const discountedPrice = originalPrice * (1 - discountPercent);
                           const currencySymbol = convertedPrice.replace(/[\d.\s]/g, '');
 
                           return (
@@ -511,7 +471,7 @@ export default function ProductComparisonTable({ product }: ProductComparisonTab
                                 fontSize: '1rem',
                                 fontWeight: '500',
                                 color: '#6b7280',
-                                fontFamily: 'Klarna Text, sans-serif',
+                                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                                 textDecoration: 'line-through',
                                 marginBottom: '4px'
                               }}>
@@ -522,7 +482,7 @@ export default function ProductComparisonTable({ product }: ProductComparisonTab
                                 fontSize: '1.5rem',
                                 fontWeight: '700',
                                 color: '#28a745',
-                                fontFamily: 'Klarna Text, sans-serif',
+                                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                                 lineHeight: '1.2'
                               }}>
                                 {currencySymbol}{discountedPrice.toFixed(2)}
@@ -532,13 +492,13 @@ export default function ProductComparisonTable({ product }: ProductComparisonTab
                         }
                       }
 
-                      // Default price display for non-Snusifer vendors
+                      // Default price display for vendors without offers
                       return (
                         <div style={{
                           fontSize: '1.5rem',
                           fontWeight: '700',
                           color: '#007bff',
-                          fontFamily: 'Klarna Text, sans-serif',
+                          fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                           lineHeight: '1.2'
                         }}>
                           {convertedPrice}
@@ -558,10 +518,10 @@ export default function ProductComparisonTable({ product }: ProductComparisonTab
                          const convertedPriceStr = convertVendorPrice(vendor, rawPrice);
                          let packPrice = parseFloat(convertedPriceStr.replace('£', '').replace('€', '').replace('$', ''));
 
-                         // Apply 15% discount for Snusifer
-                         const isSnusifer = store.name === 'Snusifer' || store.vendorId === 5085 || store.vendor_id === 5085;
-                         if (isSnusifer && packPrice > 0) {
-                           packPrice = packPrice * 0.85; // Apply 15% discount
+                         // Apply discount from database offer_value
+                         const hasOffer = store.offer_type === 'percentage_discount' && store.offer_value;
+                         if (hasOffer && packPrice > 0) {
+                           packPrice = packPrice * (1 - parseFloat(store.offer_value) / 100);
                          }
 
                          const freeThreshold = parseFloat(store.free_shipping_threshold || '0');
@@ -638,7 +598,7 @@ export default function ProductComparisonTable({ product }: ProductComparisonTab
                             fontSize: '0.8rem',
                             fontWeight: '500',
                             transition: 'all 0.2s ease',
-                            fontFamily: 'Klarna Text, sans-serif'
+                            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
                           }}
                           onMouseEnter={(e) => {
                             if (selectedVariant !== variantIndex) {

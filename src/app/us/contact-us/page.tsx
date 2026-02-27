@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -104,7 +106,7 @@ export default function USContactUs() {
                 <nav className="fusion-menu">
                   <ul className="fusion-menu-list" style={{ listStyle: 'none', padding: '0', margin: '0' }}>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/us/about-us" style={{ 
+                      <Link href="/us/about-us" style={{ 
                         color: '#666', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -113,10 +115,10 @@ export default function USContactUs() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         About us
-                      </a>
+                      </Link>
                     </li>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/us/contact-us" style={{ 
+                      <Link href="/us/contact-us" style={{ 
                         color: '#22c55e', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -126,10 +128,10 @@ export default function USContactUs() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         Contact us
-                      </a>
+                      </Link>
                     </li>
                     <li style={{ marginBottom: '15px' }}>
-                      <a href="/us/become-a-member" style={{ 
+                      <Link href="/us/become-a-member" style={{ 
                         color: '#666', 
                         textDecoration: 'none', 
                         fontSize: '16px',
@@ -138,7 +140,7 @@ export default function USContactUs() {
                         borderBottom: '1px solid #e5e7eb'
                       }}>
                         Become a Member
-                      </a>
+                      </Link>
                     </li>
                   </ul>
                 </nav>

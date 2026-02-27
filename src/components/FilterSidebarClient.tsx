@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import PriceRangeSlider from './PriceRangeSlider';
 
 interface FilterData {
   brands: { name: string; count: number }[];
@@ -36,8 +37,6 @@ export default function FilterSidebarClient({ sidebarData, basePath, activeFilte
   const [showAllBrands, setShowAllBrands] = useState(false);
   const [showAllVendors, setShowAllVendors] = useState(false);
   const [showAllFlavours, setShowAllFlavours] = useState(false);
-  const [minPrice, setMinPrice] = useState(activeFilters.minPrice);
-  const [maxPrice, setMaxPrice] = useState(activeFilters.maxPrice);
 
   const updateFilter = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -240,31 +239,13 @@ export default function FilterSidebarClient({ sidebarData, basePath, activeFilte
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          justifyContent: 'space-between',
           marginBottom: '12px'
         }}>
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '8px',
-            backgroundColor: '#eff6ff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1e40af" strokeWidth="2">
-              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-              <line x1="7" y1="7" x2="7.01" y2="7"/>
-            </svg>
-          </div>
-          <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2544' }}>Brands</span>
+          <span style={{ fontSize: '15px', fontWeight: '600', color: '#1f2544' }}>Brands</span>
           <span style={{
-            marginLeft: 'auto',
-            fontSize: '11px',
-            color: '#6b7280',
-            backgroundColor: '#f3f4f6',
-            padding: '2px 8px',
-            borderRadius: '10px'
+            fontSize: '12px',
+            color: '#6b7280'
           }}>
             {sidebarData.brands.length}
           </span>
@@ -384,31 +365,13 @@ export default function FilterSidebarClient({ sidebarData, basePath, activeFilte
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          justifyContent: 'space-between',
           marginBottom: '12px'
         }}>
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '8px',
-            backgroundColor: '#ecfdf5',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-              <polyline points="9 22 9 12 15 12 15 22"/>
-            </svg>
-          </div>
-          <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2544' }}>Vendors</span>
+          <span style={{ fontSize: '15px', fontWeight: '600', color: '#1f2544' }}>Vendors</span>
           <span style={{
-            marginLeft: 'auto',
-            fontSize: '11px',
-            color: '#6b7280',
-            backgroundColor: '#f3f4f6',
-            padding: '2px 8px',
-            borderRadius: '10px'
+            fontSize: '12px',
+            color: '#6b7280'
           }}>
             {sidebarData.vendors.length}
           </span>
@@ -528,35 +491,13 @@ export default function FilterSidebarClient({ sidebarData, basePath, activeFilte
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          justifyContent: 'space-between',
           marginBottom: '12px'
         }}>
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '8px',
-            backgroundColor: '#fdf4ff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d946ef" strokeWidth="2">
-              <path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"/>
-              <path d="M8.5 8.5v.01"/>
-              <path d="M16 15.5v.01"/>
-              <path d="M12 12v.01"/>
-              <path d="M11 17v.01"/>
-              <path d="M7 14v.01"/>
-            </svg>
-          </div>
-          <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2544' }}>Flavours</span>
+          <span style={{ fontSize: '15px', fontWeight: '600', color: '#1f2544' }}>Flavours</span>
           <span style={{
-            marginLeft: 'auto',
-            fontSize: '11px',
-            color: '#6b7280',
-            backgroundColor: '#f3f4f6',
-            padding: '2px 8px',
-            borderRadius: '10px'
+            fontSize: '12px',
+            color: '#6b7280'
           }}>
             {sidebarData.flavours.length}
           </span>
@@ -676,23 +617,10 @@ export default function FilterSidebarClient({ sidebarData, basePath, activeFilte
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          justifyContent: 'space-between',
           marginBottom: '12px'
         }}>
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '8px',
-            backgroundColor: '#fffbeb',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-            </svg>
-          </div>
-          <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2544' }}>Strength</span>
+          <span style={{ fontSize: '15px', fontWeight: '600', color: '#1f2544' }}>Strength</span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -759,25 +687,10 @@ export default function FilterSidebarClient({ sidebarData, basePath, activeFilte
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          justifyContent: 'space-between',
           marginBottom: '12px'
         }}>
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '8px',
-            backgroundColor: '#eef2ff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-              <line x1="3" y1="9" x2="21" y2="9"/>
-              <line x1="9" y1="21" x2="9" y2="9"/>
-            </svg>
-          </div>
-          <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2544' }}>Format</span>
+          <span style={{ fontSize: '15px', fontWeight: '600', color: '#1f2544' }}>Format</span>
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -811,105 +724,32 @@ export default function FilterSidebarClient({ sidebarData, basePath, activeFilte
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          justifyContent: 'space-between',
           marginBottom: '12px'
         }}>
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '8px',
-            backgroundColor: '#f0fdf4',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2">
-              <line x1="12" y1="1" x2="12" y2="23"/>
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-            </svg>
-          </div>
-          <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2544' }}>Price Range</span>
+          <span style={{ fontSize: '15px', fontWeight: '600', color: '#1f2544' }}>Price</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-          <div style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            padding: '8px 10px',
-            backgroundColor: '#f9fafb',
-            borderRadius: '8px',
-            border: '1px solid #e5e7eb'
-          }}>
-            <span style={{ color: '#9ca3af', marginRight: '4px', fontSize: '13px' }}>{currency}</span>
-            <input
-              type="number"
-              placeholder="Min"
-              value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
-              style={{
-                border: 'none',
-                outline: 'none',
-                backgroundColor: 'transparent',
-                width: '100%',
-                fontSize: '13px',
-                color: '#374151'
-              }}
-            />
-          </div>
-          <span style={{ color: '#9ca3af' }}>—</span>
-          <div style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            padding: '8px 10px',
-            backgroundColor: '#f9fafb',
-            borderRadius: '8px',
-            border: '1px solid #e5e7eb'
-          }}>
-            <span style={{ color: '#9ca3af', marginRight: '4px', fontSize: '13px' }}>{currency}</span>
-            <input
-              type="number"
-              placeholder="Max"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-              style={{
-                border: 'none',
-                outline: 'none',
-                backgroundColor: 'transparent',
-                width: '100%',
-                fontSize: '13px',
-                color: '#374151'
-              }}
-            />
-          </div>
-        </div>
-
-        <button
-          onClick={() => {
+        <PriceRangeSlider
+          min={0}
+          max={15}
+          priceDistribution={[65, 90, 78, 45, 30, 20, 15, 10, 5, 3]}
+          onChange={(min, max) => {
             const params = new URLSearchParams(searchParams.toString());
-            if (minPrice) params.set('minPrice', minPrice);
+            if (min > 0) params.set('minPrice', min.toString());
             else params.delete('minPrice');
-            if (maxPrice) params.set('maxPrice', maxPrice);
+            if (max < 15) params.set('maxPrice', max.toString());
             else params.delete('maxPrice');
             params.delete('page');
             router.push(`${basePath}?${params.toString()}`);
           }}
-          style={{
-            width: '100%',
-            padding: '10px',
-            backgroundColor: '#16a34a',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '13px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            transition: 'background-color 0.15s ease'
-          }}
-        >
-          Apply Price Filter
-        </button>
+          presetRanges={[
+            { label: `Up to ${currency}3`, min: 0, max: 3, count: 45 },
+            { label: `${currency}3 - ${currency}5`, min: 3, max: 5, count: 78 },
+            { label: `${currency}5 - ${currency}8`, min: 5, max: 8, count: 92 },
+            { label: `At least ${currency}8`, min: 8, max: 15, count: 34 }
+          ]}
+        />
       </div>
     </div>
   );

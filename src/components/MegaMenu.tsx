@@ -471,7 +471,7 @@ export default function MegaMenu() {
 
   return (
     <div className="relative">
-      {/* All Categories Button */}
+      {/* All Brands Button */}
       <button
         className="mega-menu-button"
         onClick={() => setIsOpen(!isOpen)}
@@ -479,9 +479,9 @@ export default function MegaMenu() {
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
-          padding: '8px 16px',
+          padding: '8px 12px',
           color: '#1f2544',
-          fontSize: '15px',
+          fontSize: '16px',
           fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
           fontWeight: '600',
           backgroundColor: 'transparent',
@@ -492,7 +492,7 @@ export default function MegaMenu() {
           transition: 'all 0.2s ease'
         }}
       >
-        All categories
+        All brands
         <svg
           width="12"
           height="12"
@@ -537,14 +537,14 @@ export default function MegaMenu() {
             </div>
             
             <div className="mega-menu-container flex gap-8">
-              {/* Left Sidebar - Categories */}
+              {/* Left Sidebar - Brands */}
               <div className="mega-menu-sidebar w-64 flex-shrink-0">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Categories</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Brands</h3>
                 <nav className="mega-menu-categories space-y-1">
                   {categories.map((category) => (
                     <Link
                       key={category.id}
-                      href={`/brand/${category.name.toLowerCase().replace(/\s+/g, '-')}`}
+                      href={`/brand/${category.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`}
                       onMouseEnter={() => setActiveCategory(category.id)}
                       style={{
                         cursor: 'pointer',
@@ -631,6 +631,30 @@ export default function MegaMenu() {
                       )}
                     </Link>
                   ))}
+                  {/* Show more brands link */}
+                  <Link
+                    href="/brands"
+                    onClick={() => setIsOpen(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '12px 16px',
+                      marginTop: '8px',
+                      borderRadius: '8px',
+                      backgroundColor: '#f3f4f6',
+                      color: '#1e40af',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      textDecoration: 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <span>Show all brands</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                  </Link>
                 </nav>
               </div>
 
@@ -670,7 +694,7 @@ export default function MegaMenu() {
                           </div>
                           
                           <Link
-                            href={getLocalizedPath(`/brand/${activeCategoryData.name.toLowerCase().replace(/\s+/g, '-')}`)}
+                            href={getLocalizedPath(`/brand/${activeCategoryData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`)}
                             className="inline-block text-xs font-medium text-purple-600 hover:text-purple-700 transition-colors"
                           >
                             Show all ({subcategory.count})

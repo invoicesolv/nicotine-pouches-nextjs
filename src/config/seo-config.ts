@@ -39,8 +39,8 @@ export const SEO_CONFIG = {
   
   // Default Images
   defaultImages: {
-    ogImage: 'https://nicotine-pouches.org/og-image.jpg',
-    twitterImage: 'https://nicotine-pouches.org/twitter-image.jpg',
+    ogImage: 'https://nicotine-pouches.org/big-ben.png',
+    twitterImage: 'https://nicotine-pouches.org/big-ben.png',
     logo: 'https://nicotine-pouches.org/logo.png',
     placeholder: '/placeholder-product.jpg'
   },

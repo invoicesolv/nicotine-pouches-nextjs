@@ -72,8 +72,8 @@ export function getProductSEOTemplate(product: ProductData): any {
     description: template.descriptionTemplate
       .replace('{productName}', product.name)
       .replace('{storeCount}', product.storeCount.toString())
-      .replace('{reviewCount}', (product.aggregateRating?.reviewCount ?? 0).toString())
-      .replace('{ratingValue}', product.aggregateRating?.ratingValue ?? '0'),
+      .replace('{reviewCount}', (product.aggregateRating?.reviewCount || 0).toString())
+      .replace('{ratingValue}', product.aggregateRating?.ratingValue || '4.5'),
     keywords: template.keywordsTemplate
       .replace('{brand}', product.brand)
       .replace('{flavour}', product.flavour)
@@ -112,7 +112,13 @@ export function getProductSEOTemplate(product: ProductData): any {
  */
 export function getBrandSEOTemplate(brand: BrandData): any {
   const template = SEO_CONFIG.templates.brand;
-  
+
+  // Generate clean slug (strip special characters)
+  const brandSlug = brand.brandName
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+
   return {
     title: template.titleTemplate
       .replace('{brandName}', brand.brandName),
@@ -121,9 +127,9 @@ export function getBrandSEOTemplate(brand: BrandData): any {
       .replace('{productCount}', brand.productCount.toString()),
     keywords: template.keywordsTemplate
       .replace('{brandName}', brand.brandName),
-    canonical: getFullUrl(`/brand/${brand.brandName.toLowerCase().replace(/\s+/g, '-')}`),
+    canonical: getFullUrl(`/brand/${brandSlug}`),
     image: brand.image,
-    url: `/brand/${brand.brandName.toLowerCase().replace(/\s+/g, '-')}`,
+    url: `/brand/${brandSlug}`,
     brand,
     aggregateRating: brand.aggregateRating,
     schema: {
@@ -131,7 +137,7 @@ export function getBrandSEOTemplate(brand: BrandData): any {
       "@type": "Brand",
       "name": brand.brandName,
       "description": brand.description,
-      "url": getFullUrl(`/brand/${brand.brandName.toLowerCase().replace(/\s+/g, '-')}`),
+      "url": getFullUrl(`/brand/${brandSlug}`),
       "logo": brand.image,
       "aggregateRating": brand.aggregateRating,
       "sameAs": [
@@ -275,9 +281,9 @@ export function getStaticPageSEOTemplate(page: StaticPageData): any {
  */
 export function getHomepageSEOTemplate(): any {
   return {
-    title: `${SEO_CONFIG.appName} - Compare Prices & Find Best Deals`,
-    description: SEO_CONFIG.appDescription,
-    keywords: SEO_CONFIG.defaults.keywords,
+    title: `Nicotine Pouches UK | Compare 700+ Products Across 10+ Shops`,
+    description: 'Compare 700+ nicotine pouches from 10+ UK shops. Find cheap ZYN, VELO, Nordic Spirit prices updated daily. Buy from the cheapest retailer.',
+    keywords: 'nicotine pouches uk, cheap nicotine pouches, cheapest nicotine pouches uk, buy nicotine pouches, best deals nicotine pouches, order nicotine pouches uk, ZYN UK, VELO UK, nicotine pouches price comparison',
     canonical: SEO_CONFIG.domain,
     url: '/',
     schema: {

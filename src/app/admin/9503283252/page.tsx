@@ -27,14 +27,13 @@ import {
   Filter
 } from 'lucide-react';
 
-// Offer Vendor Row Component
+// Offer Vendor Row Component - Compact table row version
 function OfferVendorRow({ vendor, onUpdate }: { vendor: any; onUpdate: (id: number | string, updates: any) => Promise<boolean> }) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [offerType, setOfferType] = useState(vendor.offer_type || '');
   const [offerValue, setOfferValue] = useState(vendor.offer_value?.toString() || '');
   const [offerDescription, setOfferDescription] = useState(vendor.offer_description || '');
 
-  // Update state when vendor prop changes
   useEffect(() => {
     if (!isUpdating) {
       setOfferType(vendor.offer_type || '');
@@ -43,134 +42,91 @@ function OfferVendorRow({ vendor, onUpdate }: { vendor: any; onUpdate: (id: numb
     }
   }, [vendor.offer_type, vendor.offer_value, vendor.offer_description, vendor.id]);
 
+  const handleSave = async () => {
+    setIsUpdating(true);
+    try {
+      const updates = {
+        offer_type: offerType || null,
+        offer_value: offerType && offerValue ? parseFloat(offerValue) : null,
+        offer_description: offerType ? offerDescription : null
+      };
+      const success = await onUpdate(vendor.id, updates);
+      if (success) {
+        toast.success(`${vendor.name} offer updated`);
+      } else {
+        toast.error('Failed to update');
+        setOfferType(vendor.offer_type || '');
+        setOfferValue(vendor.offer_value?.toString() || '');
+        setOfferDescription(vendor.offer_description || '');
+      }
+    } catch {
+      toast.error('Failed to update');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
-    <Card className="bg-slate-800 border-slate-700 p-4">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 flex-1">
-            <VendorLogo 
-              logo={vendor.logo_url || ''} 
-              name={vendor.name} 
-              size={48}
-            />
-            <div>
-              <h3 className="text-base font-semibold text-white">{vendor.name}</h3>
-              {vendor.website && (
-                <p className="text-xs text-slate-400">{vendor.website}</p>
-              )}
-            </div>
-          </div>
+    <tr className="hover:bg-slate-800/20 transition-colors group">
+      <td className="px-3 py-2">
+        <div className="flex items-center gap-2">
+          <VendorLogo logo={vendor.logo_url || ''} name={vendor.name} size={28} />
+          <span className="text-sm text-white font-medium">{vendor.name}</span>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="text-xs text-slate-400 mb-2 block">Offer Type</label>
-            <select
-              value={offerType}
-              onChange={(e) => {
-                setOfferType(e.target.value);
-                if (e.target.value === '') {
-                  setOfferValue('');
-                  setOfferDescription('');
-                }
-              }}
-              disabled={isUpdating}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-sm text-white"
-            >
-              <option value="">No Offer</option>
-              <option value="percentage_discount">Percentage Discount</option>
-              <option value="extra_pouches">Extra Pouches</option>
-            </select>
-          </div>
-          
-          {offerType && (
-            <>
-              <div>
-                <label className="text-xs text-slate-400 mb-2 block">
-                  {offerType === 'percentage_discount' ? 'Discount %' : 'Extra Pouches'}
-                </label>
-                <Input
-                  type="number"
-                  value={offerValue}
-                  onChange={(e) => setOfferValue(e.target.value)}
-                  placeholder={offerType === 'percentage_discount' ? '0-100' : 'Number'}
-                  disabled={isUpdating}
-                  min={offerType === 'percentage_discount' ? '0' : '1'}
-                  max={offerType === 'percentage_discount' ? '100' : undefined}
-                  className="bg-slate-900 border-slate-700 text-white"
-                />
-              </div>
-              
-              <div>
-                <label className="text-xs text-slate-400 mb-2 block">Description (Optional)</label>
-                <Input
-                  value={offerDescription}
-                  onChange={(e) => setOfferDescription(e.target.value)}
-                  placeholder="e.g., Limited time offer"
-                  disabled={isUpdating}
-                  className="bg-slate-900 border-slate-700 text-white"
-                />
-              </div>
-            </>
-          )}
-          
-          <div className="flex items-end">
-            <Button
-              size="sm"
-              onClick={async () => {
-                if (!offerType || !offerValue) {
-                  toast.error('Please fill in all required fields');
-                  return;
-                }
-                setIsUpdating(true);
-                try {
-                  const updates: any = {
-                    offer_type: offerType || null,
-                    offer_value: offerType && offerValue ? parseFloat(offerValue) : null,
-                    offer_description: offerType ? offerDescription : null
-                  };
-                  console.log('Saving offer for', vendor.name, updates);
-                  const success = await onUpdate(vendor.id, updates);
-                  console.log('Save result:', success);
-                  if (success) {
-                    toast.success(`${vendor.name} offer updated`);
-                    // State will update via useEffect when vendor prop updates after loadVendors
-                  } else {
-                    toast.error('Failed to update offer');
-                    // Revert to original values on failure
-                    setOfferType(vendor.offer_type || '');
-                    setOfferValue(vendor.offer_value?.toString() || '');
-                    setOfferDescription(vendor.offer_description || '');
-                  }
-                } catch (error) {
-                  console.error('Error saving offer:', error);
-                  toast.error('Failed to update offer');
-                  // Revert to original values on error
-                  setOfferType(vendor.offer_type || '');
-                  setOfferValue(vendor.offer_value?.toString() || '');
-                  setOfferDescription(vendor.offer_description || '');
-                } finally {
-                  setIsUpdating(false);
-                }
-              }}
-              disabled={isUpdating || (offerType && !offerValue)}
-              className="bg-blue-600 hover:bg-blue-700 w-full"
-            >
-              {isUpdating ? 'Saving...' : 'Save'}
-            </Button>
-          </div>
-        </div>
-        
-        {offerType && offerValue && (
-          <div className="mt-2 p-2 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-300">
-            Preview: {offerType === 'percentage_discount' 
-              ? `${offerValue}% OFF` 
-              : `+${offerValue} Extra Pouches`}
-            {offerDescription && ` - ${offerDescription}`}
-          </div>
+      </td>
+      <td className="px-3 py-2">
+        <select
+          value={offerType}
+          onChange={(e) => {
+            setOfferType(e.target.value);
+            if (!e.target.value) { setOfferValue(''); setOfferDescription(''); }
+          }}
+          disabled={isUpdating}
+          className="h-7 px-2 bg-slate-900/50 border border-slate-700/50 rounded text-xs text-slate-300"
+        >
+          <option value="">No Offer</option>
+          <option value="percentage_discount">% Discount</option>
+          <option value="extra_pouches">Extra Pouches</option>
+        </select>
+      </td>
+      <td className="px-3 py-2">
+        {offerType ? (
+          <Input
+            type="number"
+            value={offerValue}
+            onChange={(e) => setOfferValue(e.target.value)}
+            placeholder={offerType === 'percentage_discount' ? '%' : '#'}
+            disabled={isUpdating}
+            className="h-7 w-20 text-xs bg-slate-900/50 border-slate-700/50"
+          />
+        ) : (
+          <span className="text-slate-600 text-xs">-</span>
         )}
-      </div>
-    </Card>
+      </td>
+      <td className="px-3 py-2">
+        {offerType ? (
+          <Input
+            value={offerDescription}
+            onChange={(e) => setOfferDescription(e.target.value)}
+            placeholder="Description..."
+            disabled={isUpdating}
+            className="h-7 text-xs bg-slate-900/50 border-slate-700/50"
+          />
+        ) : (
+          <span className="text-slate-600 text-xs">-</span>
+        )}
+      </td>
+      <td className="px-3 py-2 text-right">
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={isUpdating || (offerType && !offerValue)}
+          className="h-6 px-3 text-xs bg-blue-600 hover:bg-blue-700"
+        >
+          {isUpdating ? '...' : 'Save'}
+        </Button>
+      </td>
+    </tr>
   );
 }
 
@@ -253,6 +209,7 @@ function CurrencyConverterVendorRow({ vendor, onUpdate }: { vendor: any; onUpdat
 
 // Vendor Card Component with Shipping Info Editing
 function VendorCard({ vendor, region, onUpdate, onDelete }: { vendor: any; region: 'UK' | 'US'; onUpdate: (id: number | string, updates: any) => Promise<boolean>; onDelete: (id: number | string) => Promise<void> }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isEditingShipping, setIsEditingShipping] = useState(false);
   const [shippingInfo, setShippingInfo] = useState(vendor.shipping_info || '');
   const [shippingCost, setShippingCost] = useState(vendor.shipping_cost?.toString() || '0');
@@ -312,60 +269,83 @@ function VendorCard({ vendor, region, onUpdate, onDelete }: { vendor: any; regio
     });
   };
 
+  const isActive = region === 'UK' ? vendor.is_active : vendor.status === 'active';
+
   return (
-    <Card className="bg-slate-900 border-slate-800 p-4">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 flex-1">
-            <VendorLogo 
-              logo={vendor.logo_url || ''} 
-              name={vendor.name} 
-              size={56}
-            />
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-lg font-semibold text-white">{vendor.name}</h3>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                    (region === 'UK' ? vendor.is_active : vendor.status === 'active')
-                      ? 'bg-green-500/10 text-green-400'
-                      : 'bg-red-500/10 text-red-400'
-                  }`}
-                >
-                  {(region === 'UK' ? vendor.is_active : vendor.status === 'active')
-                    ? 'Active'
-                    : 'Inactive'}
-                </span>
-              </div>
-              {vendor.website && (
-                <p className="text-sm text-slate-400">{vendor.website}</p>
-              )}
-            </div>
-          </div>
+    <Card className="bg-slate-900/50 border-slate-800/50 hover:border-slate-700/50 transition-colors overflow-hidden">
+      {/* Compact Header Row - Always visible */}
+      <div
+        className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-slate-800/30 transition-colors"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <VendorLogo
+          logo={vendor.logo_url || ''}
+          name={vendor.name}
+          size={36}
+        />
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            {vendor.website && (
-              <Button 
-                size="icon" 
-                variant="ghost" 
-                className="h-8 w-8"
-                onClick={() => window.open(vendor.website, '_blank')}
-              >
-                <Globe className="h-4 w-4" />
-              </Button>
-            )}
+            <h3 className="text-sm font-medium text-white truncate">{vendor.name}</h3>
+            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isActive ? 'bg-emerald-400' : 'bg-red-400'}`} />
+          </div>
+          {vendor.website && (
+            <p className="text-xs text-slate-500 truncate">{vendor.website.replace(/^https?:\/\//, '')}</p>
+          )}
+        </div>
+
+        {/* Quick Stats */}
+        <div className="hidden sm:flex items-center gap-4 text-xs">
+          {vendor.trustpilot_score && (
+            <div className="flex items-center gap-1 text-yellow-400">
+              <span>★</span>
+              <span>{vendor.trustpilot_score}</span>
+            </div>
+          )}
+          {vendor.shipping_cost !== undefined && (
+            <div className="text-slate-400">
+              £{vendor.shipping_cost} ship
+            </div>
+          )}
+          {vendor.free_shipping_threshold > 0 && (
+            <div className="text-emerald-400/70">
+              Free £{vendor.free_shipping_threshold}+
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          {vendor.website && (
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => onDelete(vendor.id)}
-              className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+              className="h-7 w-7 text-slate-500 hover:text-white"
+              onClick={() => window.open(vendor.website, '_blank')}
             >
-              <X className="h-4 w-4" />
+              <Globe className="h-3.5 w-3.5" />
             </Button>
+          )}
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => onDelete(vendor.id)}
+            className="h-7 w-7 text-slate-500 hover:text-red-400 hover:bg-red-500/10"
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+          <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
           </div>
         </div>
-        
+      </div>
+
+      {/* Expandable Details */}
+      {isExpanded && (
+        <div className="border-t border-slate-800/50 bg-slate-900/30 px-3 py-3 space-y-3">
         {/* Shipping Information Section */}
-        <div className="border-t border-slate-800 pt-3">
+        <div>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <label className="text-xs text-slate-400 mb-2 block">
@@ -674,7 +654,8 @@ function VendorCard({ vendor, region, onUpdate, onDelete }: { vendor: any; regio
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      )}
     </Card>
   );
 }
@@ -1955,215 +1936,214 @@ export default function AdminDashboard() {
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <div className="bg-slate-900 border-b border-slate-800 px-8 py-4">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-semibold text-white">Admin Dashboard</h1>
-                <div className="flex items-center gap-2 px-3 py-1 bg-slate-800 rounded-full">
-                  <ShieldCheck className="h-4 w-4 text-green-400" />
-                  <span className="text-sm text-slate-300">Authenticated</span>
+          {/* Header - Compact */}
+          <div className="bg-slate-900/50 backdrop-blur-sm border-b border-slate-800/50 px-6 py-3 sticky top-0 z-10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <h1 className="text-lg font-semibold text-white">NP Admin</h1>
+                <div className="h-4 w-px bg-slate-700" />
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded text-xs">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-emerald-400 font-medium">Live</span>
                 </div>
               </div>
-              <Button variant="ghost" size="icon">
-                🌙
-              </Button>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <span>Region: {region}</span>
+                <span>•</span>
+                <span>{new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+              </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveTab('vendors')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'vendors'
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                }`}
-              >
-                <Users className="h-4 w-4" />
-                Vendors
-              </button>
-              <button
-                onClick={() => setActiveTab('products')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'products'
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                }`}
-              >
-                <Package className="h-4 w-4" />
-                Products
-              </button>
-              <button
-                onClick={() => setActiveTab('vendor-products')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'vendor-products'
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                }`}
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-                Vendor Products
-              </button>
-              <button
-                onClick={() => setActiveTab('vendor-mappings')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'vendor-mappings'
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                }`}
-              >
-                <ArrowLeftRight className="h-4 w-4" />
-                Vendor Mappings
-              </button>
-              <button
-                onClick={() => setActiveTab('signups')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'signups'
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                }`}
-              >
-                <Mail className="h-4 w-4" />
-                Signups
-              </button>
-              <button
-                onClick={() => setActiveTab('upload')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'upload'
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                }`}
-              >
-                <UploadIcon className="h-4 w-4" />
-                Upload
-              </button>
-              <button
-                onClick={() => setActiveTab('currency-converter')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'currency-converter'
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                }`}
-              >
-                💱
-                Currency Converter
-              </button>
-              <button
-                onClick={() => setActiveTab('offers')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'offers'
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                }`}
-              >
-                🎁
-                Offers
-              </button>
-              <button
-                onClick={() => setActiveTab('unmapped')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === 'unmapped'
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                }`}
-              >
-                📦
-                Unmapped Products
-              </button>
+            {/* Tabs - Grouped & Compact */}
+            <div className="flex items-center gap-1 mt-3 -mb-3 overflow-x-auto pb-3">
+              {/* Data Management */}
+              <div className="flex items-center bg-slate-800/30 rounded-lg p-0.5">
+                <button
+                  onClick={() => setActiveTab('vendors')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTab === 'vendors'
+                      ? 'bg-slate-700 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  Vendors
+                </button>
+                <button
+                  onClick={() => setActiveTab('products')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTab === 'products'
+                      ? 'bg-slate-700 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Package className="h-3.5 w-3.5" />
+                  Products
+                </button>
+              </div>
+
+              <div className="h-4 w-px bg-slate-700/50 mx-1" />
+
+              {/* Mapping & Sync */}
+              <div className="flex items-center bg-slate-800/30 rounded-lg p-0.5">
+                <button
+                  onClick={() => setActiveTab('vendor-products')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTab === 'vendor-products'
+                      ? 'bg-slate-700 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5" />
+                  Vendor Data
+                </button>
+                <button
+                  onClick={() => setActiveTab('vendor-mappings')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTab === 'vendor-mappings'
+                      ? 'bg-slate-700 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <ArrowLeftRight className="h-3.5 w-3.5" />
+                  Mappings
+                </button>
+                <button
+                  onClick={() => setActiveTab('unmapped')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTab === 'unmapped'
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'text-amber-400/70 hover:text-amber-400'
+                  }`}
+                >
+                  <span className="text-sm">⚠</span>
+                  Unmapped
+                </button>
+              </div>
+
+              <div className="h-4 w-px bg-slate-700/50 mx-1" />
+
+              {/* Marketing */}
+              <div className="flex items-center bg-slate-800/30 rounded-lg p-0.5">
+                <button
+                  onClick={() => setActiveTab('signups')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTab === 'signups'
+                      ? 'bg-slate-700 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  Signups
+                </button>
+                <button
+                  onClick={() => setActiveTab('offers')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTab === 'offers'
+                      ? 'bg-slate-700 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span className="text-sm">🎁</span>
+                  Offers
+                </button>
+              </div>
+
+              <div className="h-4 w-px bg-slate-700/50 mx-1" />
+
+              {/* Tools */}
+              <div className="flex items-center bg-slate-800/30 rounded-lg p-0.5">
+                <button
+                  onClick={() => setActiveTab('upload')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTab === 'upload'
+                      ? 'bg-slate-700 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <UploadIcon className="h-3.5 w-3.5" />
+                  Upload
+                </button>
+                <button
+                  onClick={() => setActiveTab('currency-converter')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTab === 'currency-converter'
+                      ? 'bg-slate-700 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span className="text-sm">💱</span>
+                  Currency
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 p-8 overflow-auto">
+          <div className="flex-1 p-6 overflow-auto">
             {activeTab === 'vendors' && (
-              <div className="space-y-6">
-                {/* Search and Filters */}
-                <div className="flex items-center gap-4">
+              <div className="space-y-4">
+                {/* Stats Bar - Compact inline */}
+                <div className="flex items-center justify-between bg-slate-800/30 rounded-lg px-4 py-2">
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500 text-xs">Total</span>
+                      <span className="text-white font-semibold">{vendors.length}</span>
+                    </div>
+                    <div className="h-4 w-px bg-slate-700" />
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <span className="text-slate-500 text-xs">Active</span>
+                      <span className="text-emerald-400 font-semibold">{activeVendors.length}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-red-400" />
+                      <span className="text-slate-500 text-xs">Inactive</span>
+                      <span className="text-red-400 font-semibold">{inactiveVendors.length}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-400" />
+                      <span className="text-slate-500 text-xs">With Site</span>
+                      <span className="text-blue-400 font-semibold">{vendorsWithWebsites.length}</span>
+                    </div>
+                  </div>
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-7 text-xs">
+                    <Plus className="h-3 w-3 mr-1" /> Add Vendor
+                  </Button>
+                </div>
+
+                {/* Search and Filters - Compact */}
+                <div className="flex items-center gap-3">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
                     <Input
-                      placeholder="Search vendors by name, email, or website..."
+                      placeholder="Search vendors..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 bg-slate-900 border-slate-800"
+                      className="pl-9 h-8 text-sm bg-slate-900/50 border-slate-700/50 focus:border-slate-600"
                     />
                   </div>
                   <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
+                    className="h-8 px-3 bg-slate-900/50 border border-slate-700/50 rounded-md text-xs text-slate-300 focus:border-slate-600"
                   >
-                    <option value="all">All Vendors</option>
+                    <option value="all">All Status</option>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                   </select>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
+                    className="h-8 px-3 bg-slate-900/50 border border-slate-700/50 rounded-md text-xs text-slate-300 focus:border-slate-600"
                   >
-                    <option value="name">Sort by Name</option>
-                    <option value="date">Sort by Date</option>
+                    <option value="name">A-Z</option>
+                    <option value="date">Recent</option>
                   </select>
-                  <Button size="icon" variant="outline" className="border-slate-800">
-                    ↑
-                  </Button>
                 </div>
 
-                {/* Stats Row */}
-                <div className="grid grid-cols-4 gap-4">
-                  <Card className="bg-slate-900 border-slate-800 p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-500/10 rounded-lg">
-                        <Users className="h-5 w-5 text-blue-400" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-400">Total Vendors</p>
-                        <p className="text-2xl font-bold text-white">{vendors.length}</p>
-                      </div>
-                    </div>
-                  </Card>
-
-                  <Card className="bg-slate-900 border-slate-800 p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-500/10 rounded-lg">
-                        <CheckCircle className="h-5 w-5 text-green-400" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-400">Active</p>
-                        <p className="text-2xl font-bold text-white">{activeVendors.length}</p>
-                      </div>
-                    </div>
-                  </Card>
-
-                  <Card className="bg-slate-900 border-slate-800 p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-red-500/10 rounded-lg">
-                        <XCircle className="h-5 w-5 text-red-400" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-400">Inactive</p>
-                        <p className="text-2xl font-bold text-white">{inactiveVendors.length}</p>
-                      </div>
-                    </div>
-                  </Card>
-
-                  <Card className="bg-slate-900 border-slate-800 p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-purple-500/10 rounded-lg">
-                        <Globe className="h-5 w-5 text-purple-400" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-400">With Websites</p>
-                        <p className="text-2xl font-bold text-white">{vendorsWithWebsites.length}</p>
-                      </div>
-                    </div>
-                  </Card>
-                </div>
-
-                {/* Vendor Cards */}
-                <div className="space-y-3">
+                {/* Vendor Cards - More compact spacing */}
+                <div className="space-y-2">
                   {filteredVendors.map((vendor) => (
                     <VendorCard
                       key={`vendor-${vendor.id}-${vendor.shipping_info || ''}`}
@@ -2178,13 +2158,51 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === 'products' && (
-              <div className="space-y-6">
-                {/* Search and Filters */}
-                <div className="flex items-center gap-4">
+              <div className="space-y-4">
+                {/* Stats Bar - Compact inline */}
+                <div className="flex items-center justify-between bg-slate-800/30 rounded-lg px-4 py-2">
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500 text-xs">Total</span>
+                      <span className="text-white font-semibold">{totalCount || products.length}</span>
+                    </div>
+                    <div className="h-4 w-px bg-slate-700" />
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-purple-400" />
+                      <span className="text-slate-500 text-xs">Brands</span>
+                      <span className="text-purple-400 font-semibold">{new Set(products.map(p => p.brand || (p.name || p.product_title || '').split(' ')[0]).filter(Boolean)).size}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <span className="text-slate-500 text-xs">With Images</span>
+                      <span className="text-emerald-400 font-semibold">{products.filter(p => p.image_url).length}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-orange-400" />
+                      <span className="text-slate-500 text-xs">Avg Strength</span>
+                      <span className="text-orange-400 font-semibold">
+                        {products.length > 0 && products.filter(p => p.strength_mg).length > 0
+                          ? Math.round(products.filter(p => p.strength_mg).reduce((acc, p) => acc + parseFloat(p.strength_mg || 0), 0) / products.filter(p => p.strength_mg).length)
+                          : 0}mg
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" className="h-7 text-xs border-slate-700">
+                      Export CSV
+                    </Button>
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-7 text-xs">
+                      <Plus className="h-3 w-3 mr-1" /> Add Product
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Search and Filters - Compact */}
+                <div className="flex items-center gap-3">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
                     <Input
-                      placeholder="Search products by name, brand, or flavour..."
+                      placeholder="Search products..."
                       value={searchTerm}
                       onChange={(e) => {
                         setSearchTerm(e.target.value);
@@ -2195,151 +2213,103 @@ export default function AdminDashboard() {
                           loadProducts();
                         }
                       }}
-                      className="pl-10 bg-slate-900 border-slate-800"
+                      className="pl-9 h-8 text-sm bg-slate-900/50 border-slate-700/50 focus:border-slate-600"
                     />
                   </div>
-                  <Button
-                    onClick={() => {
-                      setCurrentPage(1);
-                      loadProducts();
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Search className="h-4 w-4 mr-2" />
-                    Search
-                  </Button>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
+                    className="h-8 px-3 bg-slate-900/50 border border-slate-700/50 rounded-md text-xs text-slate-300"
                   >
-                    <option value="name">Sort by Name</option>
-                    <option value="brand">Sort by Brand</option>
-                    <option value="date">Sort by Date</option>
+                    <option value="name">A-Z Name</option>
+                    <option value="brand">By Brand</option>
+                    <option value="date">Recent</option>
                   </select>
-                  <Button size="icon" variant="outline" className="border-slate-800">
-                    ↑
+                  <Button
+                    size="sm"
+                    onClick={() => { setCurrentPage(1); loadProducts(); }}
+                    className="h-8 bg-slate-700 hover:bg-slate-600 text-xs"
+                  >
+                    <Search className="h-3 w-3 mr-1" /> Search
                   </Button>
                 </div>
 
-                {/* Stats Row */}
-                <div className="grid grid-cols-4 gap-4">
-                  <Card className="bg-slate-900 border-slate-800 p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-500/10 rounded-lg">
-                        <Package className="h-5 w-5 text-blue-400" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-400">Total Products</p>
-                        <p className="text-2xl font-bold text-white">{products.length}</p>
-                      </div>
-                    </div>
-                  </Card>
-
-                  <Card className="bg-slate-900 border-slate-800 p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-purple-500/10 rounded-lg">
-                        <span className="text-xl">🏷️</span>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-400">Unique Brands</p>
-                        <p className="text-2xl font-bold text-white">
-                          {new Set(products.map(p => p.brand).filter(Boolean)).size}
-                        </p>
-                      </div>
-                    </div>
-                  </Card>
-
-                  <Card className="bg-slate-900 border-slate-800 p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-500/10 rounded-lg">
-                        <CheckCircle className="h-5 w-5 text-green-400" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-400">With Images</p>
-                        <p className="text-2xl font-bold text-white">
-                          {products.filter(p => p.image_url).length}
-                        </p>
-                      </div>
-                    </div>
-                  </Card>
-
-                  <Card className="bg-slate-900 border-slate-800 p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-orange-500/10 rounded-lg">
-                        <span className="text-xl">🔥</span>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-400">Avg. Strength</p>
-                        <p className="text-2xl font-bold text-white">
-                          {products.length > 0
-                            ? Math.round(
-                                products
-                                  .filter(p => p.strength_mg)
-                                  .reduce((acc, p) => acc + parseFloat(p.strength_mg || 0), 0) /
-                                  products.filter(p => p.strength_mg).length
-                              )
-                            : 0}mg
-                        </p>
-                      </div>
-                    </div>
-                  </Card>
-                </div>
-
-                {/* Products Grid */}
+                {/* Products Table View */}
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400"></div>
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-3 gap-4">
-                      {products.map((product) => (
-                      <Card key={product.id} className="bg-slate-900 border-slate-800 p-4 hover:border-slate-700 transition-colors">
-                        <div className="flex gap-3">
-                          {product.image_url ? (
-                            <img
-                              src={product.image_url}
-                              alt={product.name || product.product_title}
-                              className="w-16 h-16 object-cover rounded-lg"
-                            />
-                          ) : (
-                            <div className="w-16 h-16 bg-slate-800 rounded-lg flex items-center justify-center">
-                              <Package className="h-6 w-6 text-slate-600" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-sm font-semibold text-white truncate mb-1">
-                              {product.name || product.product_title}
-                            </h3>
-                            <div className="flex items-center gap-2 text-xs text-slate-400">
-                              {product.brand && (
-                                <span className="px-2 py-0.5 bg-slate-800 rounded">
-                                  {product.brand}
+                    <div className="bg-slate-900/30 rounded-lg border border-slate-800/50 overflow-hidden">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-slate-800/50 bg-slate-800/30">
+                            <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Product</th>
+                            <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Brand</th>
+                            <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Flavour</th>
+                            <th className="text-center px-3 py-2 text-xs font-medium text-slate-500 uppercase">Strength</th>
+                            <th className="text-center px-3 py-2 text-xs font-medium text-slate-500 uppercase">Image</th>
+                            <th className="text-right px-3 py-2 text-xs font-medium text-slate-500 uppercase">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/30">
+                          {products.map((product) => (
+                            <tr key={product.id} className="hover:bg-slate-800/20 transition-colors group">
+                              <td className="px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                  {product.image_url ? (
+                                    <img src={product.image_url} alt="" className="w-8 h-8 object-cover rounded" />
+                                  ) : (
+                                    <div className="w-8 h-8 bg-slate-800 rounded flex items-center justify-center">
+                                      <Package className="h-4 w-4 text-slate-600" />
+                                    </div>
+                                  )}
+                                  <span className="text-sm text-white font-medium truncate max-w-[200px]">
+                                    {product.name || product.product_title}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2">
+                                <span className="text-xs px-2 py-0.5 bg-slate-800 rounded text-slate-300">
+                                  {product.brand || (product.name || product.product_title || '').split(' ')[0] || '-'}
                                 </span>
-                              )}
-                              {product.strength_mg && (
-                                <span className="px-2 py-0.5 bg-orange-500/10 text-orange-400 rounded">
-                                  {product.strength_mg}mg
-                                </span>
-                              )}
-                            </div>
-                            {product.flavour && (
-                              <p className="text-xs text-slate-500 mt-1 truncate">
-                                {product.flavour}
-                              </p>
-                            )}
-                          </div>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-slate-400 hover:text-red-400 hover:bg-red-500/10 flex-shrink-0"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        </Card>
-                      ))}
+                              </td>
+                              <td className="px-3 py-2 text-xs text-slate-400 max-w-[150px] truncate">
+                                {product.flavour || (product.name || product.product_title || '').split(' ').slice(1).join(' ') || '-'}
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                {product.strength_mg ? (
+                                  <span className="text-xs px-2 py-0.5 bg-orange-500/10 text-orange-400 rounded">
+                                    {product.strength_mg}mg
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-600">-</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                {product.image_url ? (
+                                  <span className="text-emerald-400">✓</span>
+                                ) : (
+                                  <span className="text-slate-600">✗</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-400 hover:text-white">
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                  </Button>
+                                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-400 hover:text-red-400">
+                                    <X className="w-3.5 h-3.5" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
 
                     {/* Pagination */}
@@ -2536,81 +2506,54 @@ export default function AdminDashboard() {
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
+                    className="h-8 px-3 bg-slate-900/50 border border-slate-700/50 rounded-md text-xs text-slate-300"
                   >
-                    <option value="name">Sort by Name</option>
-                    <option value="date">Sort by Date</option>
+                    <option value="name">A-Z</option>
+                    <option value="date">Recent</option>
                   </select>
-                  <Button size="icon" variant="outline" className="border-slate-800">
-                    ↑
-                  </Button>
                 </div>
 
-                {/* Stats Row */}
+                {/* Stats Bar - Compact inline */}
                 {(() => {
-                  // Calculate filtered vendor products for stats
                   const filteredVendorProducts = vendorProducts.filter((vp) => {
                     const matchesSearch = vp.name?.toLowerCase().includes(searchTerm.toLowerCase());
                     const vendorIdToCheck = region === 'UK' ? vp.vendor_id : vp.us_vendor_id;
                     const matchesVendor = selectedVendorFilter === 'all' || vendorIdToCheck === selectedVendorFilter || vendorIdToCheck?.toString() === selectedVendorFilter;
                     return matchesSearch && matchesVendor;
                   });
+                  const inStock = filteredVendorProducts.filter(vp => vp.stock_status === 'in_stock').length;
+                  const outOfStock = filteredVendorProducts.filter(vp => vp.stock_status === 'out_of_stock').length;
+                  const vendorCount = new Set(filteredVendorProducts.map(vp => region === 'UK' ? vp.vendor_id : vp.us_vendor_id)).size;
 
                   return (
-                    <div className="grid grid-cols-4 gap-4">
-                      <Card className="bg-slate-900 border-slate-800 p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-blue-500/10 rounded-lg">
-                            <FileSpreadsheet className="h-5 w-5 text-blue-400" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-400">Total Products</p>
-                            <p className="text-2xl font-bold text-white">{filteredVendorProducts.length}</p>
-                          </div>
+                    <div className="flex items-center justify-between bg-slate-800/30 rounded-lg px-4 py-2">
+                      <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-500 text-xs">Total</span>
+                          <span className="text-white font-semibold">{filteredVendorProducts.length}</span>
                         </div>
-                      </Card>
-
-                      <Card className="bg-slate-900 border-slate-800 p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-green-500/10 rounded-lg">
-                            <CheckCircle className="h-5 w-5 text-green-400" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-400">In Stock</p>
-                            <p className="text-2xl font-bold text-white">
-                              {filteredVendorProducts.filter(vp => vp.stock_status === 'in_stock').length}
-                            </p>
-                          </div>
+                        <div className="h-4 w-px bg-slate-700" />
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                          <span className="text-slate-500 text-xs">In Stock</span>
+                          <span className="text-emerald-400 font-semibold">{inStock}</span>
                         </div>
-                      </Card>
-
-                      <Card className="bg-slate-900 border-slate-800 p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-red-500/10 rounded-lg">
-                            <XCircle className="h-5 w-5 text-red-400" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-400">Out of Stock</p>
-                            <p className="text-2xl font-bold text-white">
-                              {filteredVendorProducts.filter(vp => vp.stock_status === 'out_of_stock').length}
-                            </p>
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-red-400" />
+                          <span className="text-slate-500 text-xs">Out</span>
+                          <span className="text-red-400 font-semibold">{outOfStock}</span>
                         </div>
-                      </Card>
-
-                      <Card className="bg-slate-900 border-slate-800 p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-purple-500/10 rounded-lg">
-                            <Users className="h-5 w-5 text-purple-400" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-400">Vendors</p>
-                            <p className="text-2xl font-bold text-white">
-                              {new Set(filteredVendorProducts.map(vp => region === 'UK' ? vp.vendor_id : vp.us_vendor_id)).size}
-                            </p>
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-purple-400" />
+                          <span className="text-slate-500 text-xs">Vendors</span>
+                          <span className="text-purple-400 font-semibold">{vendorCount}</span>
                         </div>
-                      </Card>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" className="h-7 text-xs border-slate-700">
+                          Export CSV
+                        </Button>
+                      </div>
                     </div>
                   );
                 })()}
@@ -2656,115 +2599,69 @@ export default function AdminDashboard() {
 
                   return (
                     <>
-                      <div className="space-y-3">
-                        {paginatedVendorProducts.map((vp) => {
-                        const vendorIdToFind = region === 'UK' ? vp.vendor_id : vp.us_vendor_id;
-                        const vendor = vendors.find(v => v.id === vendorIdToFind);
-                        const availablePacks = [
-                          { size: '1-Pack', price: vp.price_1pack },
-                          { size: '3-Pack', price: vp.price_3pack },
-                          { size: '5-Pack', price: vp.price_5pack },
-                          { size: '10-Pack', price: vp.price_10pack },
-                          { size: '15-Pack', price: vp.price_15pack },
-                          { size: '20-Pack', price: vp.price_20pack },
-                          { size: '25-Pack', price: vp.price_25pack },
-                          { size: '30-Pack', price: vp.price_30pack },
-                          { size: '50-Pack', price: vp.price_50pack },
-                          { size: '100-Pack', price: vp.price_100pack },
-                        ].filter(pack => pack.price);
-
-                        return (
-                          <Card key={vp.id} className="bg-slate-900 border-slate-800 p-5 hover:border-slate-700 transition-colors">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1">
-                                {/* Header with Product Name and Vendor */}
-                                <div className="flex items-center gap-3 mb-3">
-                                  <h3 className="text-lg font-semibold text-white">{vp.name}</h3>
-                                  <span
-                                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                      vp.stock_status === 'in_stock'
-                                        ? 'bg-green-500/10 text-green-400'
-                                        : 'bg-red-500/10 text-red-400'
-                                    }`}
-                                  >
-                                    {vp.stock_status === 'in_stock' ? 'In Stock' : 'Out of Stock'}
-                                  </span>
-                                </div>
-
-                                {/* Vendor Info */}
-                                {vendor && (
-                                  <div className="inline-flex items-center gap-2 mb-3 p-2 bg-slate-800/50 rounded-lg">
-                                    <Store className="h-4 w-4 text-slate-400" />
-                                    <div>
-                                      <p className="text-xs text-slate-500">Vendor</p>
-                                      <p className="text-sm font-medium text-slate-300">{vendor.name}</p>
-                                    </div>
-                                    {vendor.website && (
-                                      <a
-                                        href={vendor.website}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="ml-2"
+                      {/* Compact Table View */}
+                      <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-slate-800/50 border-b border-slate-700">
+                              <tr>
+                                <th className="text-left px-3 py-2 text-xs font-medium text-slate-400 uppercase">Product</th>
+                                <th className="text-left px-3 py-2 text-xs font-medium text-slate-400 uppercase">Vendor</th>
+                                <th className="text-center px-2 py-2 text-xs font-medium text-slate-400 uppercase">Status</th>
+                                <th className="text-center px-2 py-2 text-xs font-medium text-slate-400 uppercase">1</th>
+                                <th className="text-center px-2 py-2 text-xs font-medium text-slate-400 uppercase">3</th>
+                                <th className="text-center px-2 py-2 text-xs font-medium text-slate-400 uppercase">5</th>
+                                <th className="text-center px-2 py-2 text-xs font-medium text-slate-400 uppercase">10</th>
+                                <th className="text-center px-2 py-2 text-xs font-medium text-slate-400 uppercase">20</th>
+                                <th className="text-center px-2 py-2 text-xs font-medium text-slate-400 uppercase">URL</th>
+                                <th className="text-center px-2 py-2 text-xs font-medium text-slate-400 uppercase"></th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800">
+                              {paginatedVendorProducts.map((vp) => {
+                                const vendorIdToFind = region === 'UK' ? vp.vendor_id : vp.us_vendor_id;
+                                const vendor = vendors.find(v => v.id === vendorIdToFind);
+                                return (
+                                  <tr key={vp.id} className="hover:bg-slate-800/30">
+                                    <td className="px-3 py-2">
+                                      <span className="text-sm text-white truncate max-w-[180px] block" title={vp.name}>{vp.name}</span>
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      <span className="text-xs text-slate-400">{vendor?.name || '-'}</span>
+                                    </td>
+                                    <td className="px-2 py-2 text-center">
+                                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${vp.stock_status === 'in_stock' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                        {vp.stock_status === 'in_stock' ? '✓' : '✗'}
+                                      </span>
+                                    </td>
+                                    <td className="px-2 py-2 text-center text-xs text-slate-300">{vp.price_1pack || '-'}</td>
+                                    <td className="px-2 py-2 text-center text-xs text-slate-300">{vp.price_3pack || '-'}</td>
+                                    <td className="px-2 py-2 text-center text-xs text-slate-300">{vp.price_5pack || '-'}</td>
+                                    <td className="px-2 py-2 text-center text-xs text-slate-300">{vp.price_10pack || '-'}</td>
+                                    <td className="px-2 py-2 text-center text-xs text-slate-300">{vp.price_20pack || '-'}</td>
+                                    <td className="px-2 py-2 text-center">
+                                      {vp.url && (
+                                        <a href={vp.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
+                                          <Globe className="h-3 w-3" />
+                                        </a>
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-2 text-center">
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        onClick={() => handleDeleteVendorProduct(vp.id)}
+                                        className="h-6 w-6 text-slate-500 hover:text-red-400"
                                       >
-                                        <Globe className="h-4 w-4 text-blue-400 hover:text-blue-300" />
-                                      </a>
-                                    )}
-                                    {region === 'UK' && vendor.rating && (
-                                      <div className="ml-2 flex items-center gap-1">
-                                        <span className="text-yellow-400">★</span>
-                                        <span className="text-xs text-slate-400">{vendor.rating}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-
-                                {/* Pack Sizes Grid */}
-                                <div className="mb-3">
-                                  <p className="text-xs text-slate-500 mb-2">Available Pack Sizes ({availablePacks.length})</p>
-                                  <div className="grid grid-cols-5 gap-3">
-                                    {availablePacks.map((pack) => (
-                                      <div key={pack.size} className="bg-slate-800/50 p-2 rounded-lg">
-                                        <p className="text-xs text-slate-500">{pack.size}</p>
-                                        <p className="text-sm text-slate-300 font-semibold">{pack.price}</p>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                {/* Product URL */}
-                                {vp.url && (
-                                  <a
-                                    href={vp.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-blue-400 hover:underline inline-flex items-center gap-1"
-                                  >
-                                    <Globe className="h-3 w-3" />
-                                    View on vendor site
-                                  </a>
-                                )}
-
-                                {/* Additional Info */}
-                                <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
-                                  <span>ID: {vp.id}</span>
-                                  {region === 'UK' && vp.vendor_id && <span>Vendor ID: {vp.vendor_id}</span>}
-                                  {region === 'US' && vp.us_vendor_id && <span>Vendor ID: {vp.us_vendor_id}</span>}
-                                </div>
-                              </div>
-
-                              {/* Delete Button */}
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => handleDeleteVendorProduct(vp.id)}
-                                className="h-8 w-8 text-slate-400 hover:text-red-400 hover:bg-red-500/10 flex-shrink-0"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </Card>
-                        );
-                      })}
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
 
                       {/* Pagination Controls */}
@@ -2889,92 +2786,69 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Filters Section */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div>
-                    <label className="text-sm text-slate-400 mb-2 block">Select Vendor</label>
-                    <select
-                      value={selectedVendorFilter}
-                      onChange={(e) => setSelectedVendorFilter(e.target.value)}
-                      className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
-                    >
-                      <option value="all">-- All Vendors --</option>
-                      {vendors.map((vendor) => (
-                        <option key={vendor.id} value={vendor.id}>
-                          {vendor.name}
-                        </option>
-                      ))}
-                    </select>
+                {/* Compact Filters Bar */}
+                <div className="flex items-center gap-3 flex-wrap bg-slate-800/30 rounded-lg px-4 py-3">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                    <Input
+                      placeholder="Search..."
+                      value={mappingsSearchTerm}
+                      onChange={(e) => setMappingsSearchTerm(e.target.value)}
+                      className="h-8 pl-8 text-xs bg-slate-900 border-slate-700"
+                    />
                   </div>
-                  <div>
-                    <label className="text-sm text-slate-400 mb-2 block">Search Products</label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input
-                        placeholder="Search products..."
-                        value={mappingsSearchTerm}
-                        onChange={(e) => setMappingsSearchTerm(e.target.value)}
-                        className="pl-10 bg-slate-900 border-slate-800"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm text-slate-400 mb-2 block">Brand Filter</label>
-                    <select
-                      value={mappingsBrandFilter}
-                      onChange={(e) => setMappingsBrandFilter(e.target.value)}
-                      className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
-                    >
-                      <option value="all">-- All Brands --</option>
-                      {Array.from(new Set(vendorProductMappings.map(m => m.name?.split(' ')[0]).filter(Boolean))).map((brand) => (
-                        <option key={brand} value={brand}>
-                          {brand}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm text-slate-400 mb-2 block">Status Filter</label>
-                    <div className="flex gap-2">
-                      <select
-                        value={mappingsStatusFilter}
-                        onChange={(e) => setMappingsStatusFilter(e.target.value)}
-                        className="flex-1 px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
-                      >
-                        <option value="all">-- All Status --</option>
-                        <option value="mapped">Mapped</option>
-                        <option value="unmapped">Not Mapped</option>
-                      </select>
-                      <Button
-                        onClick={() => {
-                          setMappingsBrandFilter('all');
-                          setMappingsStatusFilter('all');
-                          setMappingsSimilarityFilter('all');
-                          setMappingsSearchTerm('');
-                          setSelectedVendorFilter('all');
-                        }}
-                        variant="outline"
-                        className="border-slate-800"
-                      >
-                        Clear Filters
-                      </Button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm text-slate-400 mb-2 block">Similarity Match Filter</label>
-                    <select
-                      value={mappingsSimilarityFilter}
-                      onChange={(e) => setMappingsSimilarityFilter(e.target.value)}
-                      className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
-                    >
-                      <option value="all">-- All Products --</option>
-                      <option value="has_matches">Has 85%+ Matches</option>
-                      <option value="no_matches">No Matches</option>
-                    </select>
-                  </div>
+                  <select
+                    value={selectedVendorFilter}
+                    onChange={(e) => setSelectedVendorFilter(e.target.value)}
+                    className="h-8 px-3 bg-slate-900 border border-slate-700 rounded-md text-xs text-slate-300"
+                  >
+                    <option value="all">All Vendors</option>
+                    {vendors.map((vendor) => (
+                      <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={mappingsBrandFilter}
+                    onChange={(e) => setMappingsBrandFilter(e.target.value)}
+                    className="h-8 px-3 bg-slate-900 border border-slate-700 rounded-md text-xs text-slate-300"
+                  >
+                    <option value="all">All Brands</option>
+                    {Array.from(new Set(vendorProductMappings.map(m => m.name?.split(' ')[0]).filter(Boolean))).map((brand) => (
+                      <option key={brand} value={brand}>{brand}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={mappingsStatusFilter}
+                    onChange={(e) => setMappingsStatusFilter(e.target.value)}
+                    className="h-8 px-3 bg-slate-900 border border-slate-700 rounded-md text-xs text-slate-300"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="mapped">Mapped</option>
+                    <option value="unmapped">Unmapped</option>
+                  </select>
+                  <select
+                    value={mappingsSimilarityFilter}
+                    onChange={(e) => setMappingsSimilarityFilter(e.target.value)}
+                    className="h-8 px-3 bg-slate-900 border border-slate-700 rounded-md text-xs text-slate-300"
+                  >
+                    <option value="all">All Matches</option>
+                    <option value="has_matches">Has 85%+</option>
+                    <option value="no_matches">No Match</option>
+                  </select>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setMappingsBrandFilter('all');
+                      setMappingsStatusFilter('all');
+                      setMappingsSimilarityFilter('all');
+                      setMappingsSearchTerm('');
+                      setSelectedVendorFilter('all');
+                    }}
+                    className="h-8 text-xs text-slate-400 hover:text-white"
+                  >
+                    Clear
+                  </Button>
                 </div>
 
                 {/* Mappings Table */}
@@ -3030,22 +2904,22 @@ export default function AdminDashboard() {
                           <table className="w-full">
                             <thead className="bg-slate-800/50 border-b border-slate-700">
                               <tr>
-                                <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Product Name</th>
-                                <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Brand</th>
-                                <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider w-64">Suggested/Mapped Product</th>
-                                <th className="text-center px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Mapping Status</th>
-                                <th className="text-center px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">URL</th>
-                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">1 Pack</th>
-                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">3 Pack</th>
-                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">5 Pack</th>
-                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">10 Pack</th>
-                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">15 Pack</th>
-                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">20 Pack</th>
-                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">25 Pack</th>
-                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">30 Pack</th>
-                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">50 Pack</th>
-                                <th className="text-center px-2 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">100 Pack</th>
-                                <th className="text-center px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                                <th className="text-left px-3 py-2 text-xs font-medium text-slate-400 uppercase">Product</th>
+                                <th className="text-left px-3 py-2 text-xs font-medium text-slate-400 uppercase">Brand</th>
+                                <th className="text-left px-3 py-2 text-xs font-medium text-slate-400 uppercase w-56">Mapped To</th>
+                                <th className="text-center px-2 py-2 text-xs font-medium text-slate-400 uppercase">Status</th>
+                                <th className="text-center px-2 py-2 text-xs font-medium text-slate-400 uppercase">URL</th>
+                                <th className="text-center px-1 py-2 text-[10px] font-medium text-slate-400">1</th>
+                                <th className="text-center px-1 py-2 text-[10px] font-medium text-slate-400">3</th>
+                                <th className="text-center px-1 py-2 text-[10px] font-medium text-slate-400">5</th>
+                                <th className="text-center px-1 py-2 text-[10px] font-medium text-slate-400">10</th>
+                                <th className="text-center px-1 py-2 text-[10px] font-medium text-slate-400">15</th>
+                                <th className="text-center px-1 py-2 text-[10px] font-medium text-slate-400">20</th>
+                                <th className="text-center px-1 py-2 text-[10px] font-medium text-slate-400">25</th>
+                                <th className="text-center px-1 py-2 text-[10px] font-medium text-slate-400">30</th>
+                                <th className="text-center px-1 py-2 text-[10px] font-medium text-slate-400">50</th>
+                                <th className="text-center px-1 py-2 text-[10px] font-medium text-slate-400">100</th>
+                                <th className="text-center px-2 py-2 text-xs font-medium text-slate-400 uppercase"></th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-800">
@@ -3058,52 +2932,36 @@ export default function AdminDashboard() {
                                 const hasMatches = productsWithMatches.has(String(vp.id));
                                 
                                 return (
-                                  <tr key={vp.id} className="hover:bg-slate-800/30 transition-colors">
-                                    <td className="px-4 py-3">
-                                      <div className="flex items-center gap-2">
-                                        <div className="flex-1">
-                                          <div className="text-sm text-white font-medium">{vp.name || 'N/A'}</div>
-                                          <div className="text-xs text-slate-500">{vendor?.name || ''}</div>
-                                        </div>
-                                        {hasMatches && !vp.is_mapped && (
-                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30" title="Has 85%+ similarity matches">
-                                            <Search className="h-3 w-3" />
-                                            Match
-                                          </span>
-                                        )}
+                                  <tr key={vp.id} className="hover:bg-slate-800/30">
+                                    <td className="px-3 py-1.5">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-xs text-white truncate max-w-[180px]" title={vp.name}>{vp.name || 'N/A'}</span>
+                                        <span className="text-[10px] text-slate-500">({vendor?.name || '-'})</span>
+                                        {hasMatches && !vp.is_mapped && <span className="text-blue-400 text-[10px]" title="Has 85%+ match">⚡</span>}
                                       </div>
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-slate-300">{brand}</td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-3 py-1.5 text-xs text-slate-400">{brand}</td>
+                                    <td className="px-3 py-1.5">
                                       {vp.is_mapped && mappedProduct ? (
-                                        <div className="flex items-center justify-between">
-                                          <div className="text-sm text-white">{mappedProduct.name}</div>
-                                          <Button 
-                                            size="sm" 
-                                            variant="ghost" 
-                                            className="h-7 text-xs text-red-400"
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs text-green-400 truncate max-w-[150px]" title={mappedProduct.name}>{mappedProduct.name}</span>
+                                          <button
+                                            className="text-[10px] text-red-400 hover:text-red-300"
                                             onClick={() => {
-                                              // Delete mapping logic here
                                               if (vp.mapping?.id) {
-                                                fetch(`/api/vendor-product-mappings?id=${vp.mapping.id}&region=${region}`, {
-                                                  method: 'DELETE'
-                                                }).then(() => {
-                                                  toast.success('Mapping removed');
-                                                  loadVendorProductMappings();
-                                                });
+                                                fetch(`/api/vendor-product-mappings?id=${vp.mapping.id}&region=${region}`, { method: 'DELETE' })
+                                                  .then(() => { toast.success('Unmapped'); loadVendorProductMappings(); });
                                               }
                                             }}
-                                          >
-                                            Unmap
-                                          </Button>
+                                          >✕</button>
                                         </div>
                                       ) : (
                                         <div className="relative">
-                                          <div className="flex items-center gap-2">
+                                          <div className="flex items-center gap-1">
                                             <div className="relative flex-1">
                                               <Input
-                                                placeholder="Search products (shows all matches)..."
-                                                className="h-8 text-xs bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                                                placeholder="Search..."
+                                                className="h-6 text-[11px] bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 px-2"
                                                 onFocus={() => {
                                                   setActiveSearchRow(vp.id);
                                                   // Auto-search with vendor product name when focused (85% threshold)
@@ -3134,66 +2992,34 @@ export default function AdminDashboard() {
                                                 }}
                                               />
                                               {activeSearchRow === vp.id && searchSuggestions.has(vp.id) && (
-                                                <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                                <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-700 rounded shadow-xl max-h-48 overflow-y-auto">
                                                   {searchSuggestions.get(vp.id)!.length > 0 ? (
                                                     searchSuggestions.get(vp.id)!.map((suggestion: any) => (
                                                       <div
                                                         key={suggestion.id}
-                                                        className="px-3 py-2 hover:bg-slate-700 cursor-pointer border-b border-slate-700 last:border-b-0 transition-colors group"
-                                                        title="Click to map this product"
-                                                        onMouseDown={(e) => {
-                                                          // Prevent input blur when clicking suggestion
-                                                          e.preventDefault();
-                                                        }}
+                                                        className="px-2 py-1.5 hover:bg-slate-700 cursor-pointer border-b border-slate-700/50 last:border-b-0"
+                                                        onMouseDown={(e) => e.preventDefault()}
                                                         onClick={async (e) => {
                                                           e.preventDefault();
                                                           e.stopPropagation();
-                                                          e.nativeEvent.stopImmediatePropagation();
                                                           setActiveSearchRow(null);
-                                                          console.log('🖱️ Clicked suggestion to map:', { vendorProduct: vp.name, productId: suggestion.id, productName: suggestion.name, vendorId: vendorIdToFind });
-                                                          
-                                                          // Show loading toast
-                                                          const loadingToast = toast.loading('Mapping product...', { id: 'mapping-status' });
-                                                          
-                                                          try {
-                                                            await handleCreateMapping(vp.name, suggestion.id, vendorIdToFind);
-                                                          } catch (error) {
-                                                            toast.error('Failed to map product', { id: 'mapping-status' });
-                                                            console.error('Error mapping product:', error);
-                                                          }
-                                                          
+                                                          toast.loading('Mapping...', { id: 'mapping-status' });
+                                                          try { await handleCreateMapping(vp.name, suggestion.id, vendorIdToFind); }
+                                                          catch { toast.error('Failed', { id: 'mapping-status' }); }
                                                           return false;
                                                         }}
                                                       >
-                                                        <div className="flex items-center justify-between">
-                                                          <div className="flex-1">
-                                                            <p className="text-xs text-white font-medium group-hover:text-blue-400 transition-colors">{suggestion.name}</p>
-                                                            {suggestion.brand && (
-                                                              <p className="text-xs text-slate-400">{suggestion.brand}</p>
-                                                            )}
-                                                          </div>
-                                                          <div className="ml-2 flex items-center gap-2">
-                                                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                                                              suggestion.similarity >= 95 
-                                                                ? 'bg-green-500/20 text-green-400'
-                                                                : suggestion.similarity >= 90
-                                                                ? 'bg-blue-500/20 text-blue-400'
-                                                                : suggestion.similarity >= 85
-                                                                ? 'bg-yellow-500/20 text-yellow-400'
-                                                                : suggestion.similarity >= 70
-                                                                ? 'bg-orange-500/20 text-orange-400'
-                                                                : 'bg-slate-500/20 text-slate-400'
-                                                            }`}>
-                                                              {suggestion.similarity?.toFixed(1) || '0'}%
-                                                            </span>
-                                                            <span className="text-xs text-slate-500 group-hover:text-blue-400 transition-colors">Click to map</span>
-                                                          </div>
+                                                        <div className="flex items-center justify-between gap-2">
+                                                          <span className="text-[11px] text-white truncate">{suggestion.name}</span>
+                                                          <span className={`text-[10px] font-medium ${suggestion.similarity >= 95 ? 'text-green-400' : suggestion.similarity >= 85 ? 'text-blue-400' : 'text-yellow-400'}`}>
+                                                            {Math.round(suggestion.similarity || 0)}%
+                                                          </span>
                                                         </div>
                                                       </div>
                                                     ))
                                                   ) : (
-                                                    <div className="px-3 py-4 text-center text-xs text-slate-400">
-                                                      {searchLoading ? 'Searching...' : 'No products found. Try typing more characters or different search terms.'}
+                                                    <div className="px-2 py-2 text-center text-[10px] text-slate-400">
+                                                      {searchLoading ? 'Searching...' : 'No matches'}
                                                     </div>
                                                   )}
                                                 </div>
@@ -3204,80 +3030,57 @@ export default function AdminDashboard() {
                                                 </div>
                                               )}
                                             </div>
-                                            <Button 
-                                              size="sm" 
-                                              className="h-7 text-xs bg-blue-600 hover:bg-blue-700"
+                                            <button
+                                              className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white rounded"
                                               onClick={async () => {
                                                 setSearchLoading(true);
                                                 const results = await searchSimilarProducts(vp.name);
                                                 setSearchLoading(false);
                                                 if (results.length > 0) {
-                                                  // Auto-map if exact match found
-                                                  const exactMatch = results.find((p: any) => 
-                                                    p.name?.toLowerCase() === vp.name?.toLowerCase()
-                                                  );
+                                                  const exactMatch = results.find((p: any) => p.name?.toLowerCase() === vp.name?.toLowerCase());
                                                   if (exactMatch) {
                                                     await handleCreateMapping(vp.name, exactMatch.id, vendorIdToFind);
                                                   } else {
-                                                    // Show suggestions
-                                                    setSearchSuggestions(prev => {
-                                                      const newMap = new Map(prev);
-                                                      newMap.set(vp.id, results);
-                                                      return newMap;
-                                                    });
+                                                    setSearchSuggestions(prev => { const newMap = new Map(prev); newMap.set(vp.id, results); return newMap; });
                                                     setActiveSearchRow(vp.id);
-                                                    toast.success(`Found ${results.length} products with 85%+ similarity`);
+                                                    toast.success(`${results.length} matches`);
                                                   }
                                                 } else {
-                                                  toast.error('No products found with 85%+ similarity');
+                                                  toast.error('No match');
                                                 }
                                               }}
-                                            >
-                                              Auto-Map
-                                            </Button>
+                                            >Auto</button>
                                           </div>
                                         </div>
                                       )}
                                     </td>
-                                    <td className="px-4 py-3 text-center">
-                                      {vp.is_mapped ? (
-                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
-                                          <CheckCircle className="h-3 w-3" />
-                                          Mapped
-                                        </span>
-                                      ) : (
-                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400">
-                                          <XCircle className="h-3 w-3" />
-                                          Not Mapped
-                                        </span>
-                                      )}
+                                    <td className="px-2 py-1.5 text-center">
+                                      <span className={`text-[10px] ${vp.is_mapped ? 'text-green-400' : 'text-yellow-400'}`}>
+                                        {vp.is_mapped ? '✓' : '○'}
+                                      </span>
                                     </td>
-                                    <td className="px-4 py-3 text-center">
+                                    <td className="px-2 py-1.5 text-center">
                                       {vp.url && (
                                         <a href={vp.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
-                                          <Globe className="h-4 w-4 mx-auto" />
+                                          <Globe className="h-3 w-3 mx-auto" />
                                         </a>
                                       )}
                                     </td>
-                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_1pack || '-'}</td>
-                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_3pack || '-'}</td>
-                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_5pack || '-'}</td>
-                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_10pack || '-'}</td>
-                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_15pack || '-'}</td>
-                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_20pack || '-'}</td>
-                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_25pack || '-'}</td>
-                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_30pack || '-'}</td>
-                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_50pack || '-'}</td>
-                                    <td className="px-2 py-3 text-center text-xs text-slate-300">{vp.price_100pack || '-'}</td>
-                                    <td className="px-4 py-3 text-center">
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-7 w-7 p-0 text-slate-400 hover:text-red-400"
+                                    <td className="px-1 py-1.5 text-center text-[10px] text-slate-400">{vp.price_1pack || '-'}</td>
+                                    <td className="px-1 py-1.5 text-center text-[10px] text-slate-400">{vp.price_3pack || '-'}</td>
+                                    <td className="px-1 py-1.5 text-center text-[10px] text-slate-400">{vp.price_5pack || '-'}</td>
+                                    <td className="px-1 py-1.5 text-center text-[10px] text-slate-400">{vp.price_10pack || '-'}</td>
+                                    <td className="px-1 py-1.5 text-center text-[10px] text-slate-400">{vp.price_15pack || '-'}</td>
+                                    <td className="px-1 py-1.5 text-center text-[10px] text-slate-400">{vp.price_20pack || '-'}</td>
+                                    <td className="px-1 py-1.5 text-center text-[10px] text-slate-400">{vp.price_25pack || '-'}</td>
+                                    <td className="px-1 py-1.5 text-center text-[10px] text-slate-400">{vp.price_30pack || '-'}</td>
+                                    <td className="px-1 py-1.5 text-center text-[10px] text-slate-400">{vp.price_50pack || '-'}</td>
+                                    <td className="px-1 py-1.5 text-center text-[10px] text-slate-400">{vp.price_100pack || '-'}</td>
+                                    <td className="px-2 py-1.5 text-center">
+                                      <button
+                                        className="text-slate-500 hover:text-red-400 text-xs"
                                         onClick={() => handleDeleteVendorProduct(vp.id)}
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </Button>
+                                      >✕</button>
                                     </td>
                                   </tr>
                                 );
@@ -3365,142 +3168,144 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === 'signups' && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold text-white">Email Signups</h2>
-                    <p className="text-slate-400">
-                      {signupsTotalCount} total signups • 
-                      <span className="text-green-400 ml-1">{signups.filter((s: any) => s.is_active).length} active</span> • 
-                      <span className="text-slate-500 ml-1">{signups.filter((s: any) => !s.is_active).length} inactive</span>
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const csvContent = [
-                        ['Email', 'Source', 'Status', 'Created At'].join(','),
-                        ...signups.map((s: any) => [
-                          s.email,
-                          s.source,
-                          s.is_active ? 'Active' : 'Inactive',
-                          new Date(s.created_at).toLocaleDateString()
-                        ].join(','))
-                      ].join('\n');
-                      
-                      const blob = new Blob([csvContent], { type: 'text/csv' });
-                      const url = window.URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `signups-${new Date().toISOString().split('T')[0]}.csv`;
-                      a.click();
-                      toast.success('Signups exported to CSV');
-                    }}
-                    className="border-slate-800"
-                  >
-                    📥 Export CSV
-                  </Button>
-                </div>
-
-                {/* Filters */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-sm text-slate-400 mb-2 block">Search Email</label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input
-                        placeholder="Search by email..."
-                        value={signupsSearch}
-                        onChange={(e) => {
-                          setSignupsSearch(e.target.value);
-                          setSignupsPage(1);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            loadSignups();
-                          }
-                        }}
-                        className="pl-10 bg-slate-900 border-slate-800"
-                      />
+              <div className="space-y-4">
+                {/* Stats Bar - Compact inline */}
+                <div className="flex items-center justify-between bg-slate-800/30 rounded-lg px-4 py-2">
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500 text-xs">Total</span>
+                      <span className="text-white font-semibold">{signupsTotalCount}</span>
+                    </div>
+                    <div className="h-4 w-px bg-slate-700" />
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <span className="text-slate-500 text-xs">Active</span>
+                      <span className="text-emerald-400 font-semibold">{signups.filter((s: any) => s.is_active).length}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-slate-500" />
+                      <span className="text-slate-500 text-xs">Inactive</span>
+                      <span className="text-slate-400 font-semibold">{signups.filter((s: any) => !s.is_active).length}</span>
                     </div>
                   </div>
-                  <div>
-                    <label className="text-sm text-slate-400 mb-2 block">Source</label>
-                    <select
-                      value={signupsSourceFilter}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const csvContent = [
+                          ['Email', 'Source', 'Status', 'Created At'].join(','),
+                          ...signups.map((s: any) => [
+                            s.email,
+                            s.source,
+                            s.is_active ? 'Active' : 'Inactive',
+                            new Date(s.created_at).toLocaleDateString()
+                          ].join(','))
+                        ].join('\n');
+                        const blob = new Blob([csvContent], { type: 'text/csv' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `signups-${new Date().toISOString().split('T')[0]}.csv`;
+                        a.click();
+                        toast.success('Signups exported to CSV');
+                      }}
+                      className="h-7 text-xs border-slate-700"
+                    >
+                      📥 Export CSV
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Filters - Compact inline */}
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                    <Input
+                      placeholder="Search by email..."
+                      value={signupsSearch}
                       onChange={(e) => {
-                        setSignupsSourceFilter(e.target.value);
+                        setSignupsSearch(e.target.value);
                         setSignupsPage(1);
                       }}
-                      className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
-                    >
-                      <option value="all">-- All Sources --</option>
-                      <option value="newsletter">Newsletter</option>
-                      <option value="us-newsletter">US Newsletter</option>
-                      <option value="footer">Footer</option>
-                      <option value="popup">Popup</option>
-                      <option value="homepage">Homepage</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm text-slate-400 mb-2 block">Status</label>
-                    <select
-                      value={signupsStatusFilter}
-                      onChange={(e) => {
-                        setSignupsStatusFilter(e.target.value);
-                        setSignupsPage(1);
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          loadSignups();
+                        }
                       }}
-                      className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-300"
-                    >
-                      <option value="all">-- All Status --</option>
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
+                      className="pl-9 h-8 text-sm bg-slate-900/50 border-slate-700/50 focus:border-slate-600"
+                    />
                   </div>
+                  <select
+                    value={signupsSourceFilter}
+                    onChange={(e) => {
+                      setSignupsSourceFilter(e.target.value);
+                      setSignupsPage(1);
+                    }}
+                    className="h-8 px-3 bg-slate-900/50 border border-slate-700/50 rounded-md text-xs text-slate-300"
+                  >
+                    <option value="all">All Sources</option>
+                    <option value="newsletter">Newsletter</option>
+                    <option value="us-newsletter">US Newsletter</option>
+                    <option value="footer">Footer</option>
+                    <option value="popup">Popup</option>
+                    <option value="homepage">Homepage</option>
+                  </select>
+                  <select
+                    value={signupsStatusFilter}
+                    onChange={(e) => {
+                      setSignupsStatusFilter(e.target.value);
+                      setSignupsPage(1);
+                    }}
+                    className="h-8 px-3 bg-slate-900/50 border border-slate-700/50 rounded-md text-xs text-slate-300"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
                 </div>
 
                 {/* Signups Table */}
                 {loading ? (
-                  <div className="text-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
-                    <p className="text-slate-400 mt-4">Loading signups...</p>
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400"></div>
                   </div>
                 ) : signups.length === 0 ? (
                   <div className="text-center py-12 text-slate-400">
-                    <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No signups found</p>
+                    <Mail className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">No signups found</p>
                   </div>
                 ) : (
                   <>
-                    <div className="overflow-x-auto">
+                    <div className="bg-slate-900/30 rounded-lg border border-slate-800/50 overflow-hidden">
                       <table className="w-full">
-                        <thead className="bg-slate-900 border-b border-slate-800">
-                          <tr>
-                            <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Email</th>
-                            <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Source</th>
-                            <th className="text-center px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                            <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Created At</th>
-                            <th className="text-center px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                        <thead>
+                          <tr className="border-b border-slate-800/50 bg-slate-800/30">
+                            <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Email</th>
+                            <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Source</th>
+                            <th className="text-center px-3 py-2 text-xs font-medium text-slate-500 uppercase">Status</th>
+                            <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Date</th>
+                            <th className="text-right px-3 py-2 text-xs font-medium text-slate-500 uppercase">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800">
+                        <tbody className="divide-y divide-slate-800/30">
                           {signups.map((signup: any) => (
-                            <tr key={signup.id} className="hover:bg-slate-800/30 transition-colors">
-                              <td className="px-4 py-3 text-sm text-white">{signup.email}</td>
-                              <td className="px-4 py-3 text-sm text-slate-300">
-                                <span className="px-2 py-1 rounded-full text-xs bg-blue-500/10 text-blue-400">
+                            <tr key={signup.id} className="hover:bg-slate-800/20 transition-colors group">
+                              <td className="px-3 py-2 text-sm text-white">{signup.email}</td>
+                              <td className="px-3 py-2">
+                                <span className="px-2 py-0.5 rounded text-xs bg-blue-500/10 text-blue-400">
                                   {signup.source}
                                 </span>
                               </td>
-                              <td className="px-4 py-3 text-center">
+                              <td className="px-3 py-2 text-center">
                                 {signup.is_active ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
-                                    <CheckCircle className="h-3 w-3" />
+                                  <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                                     Active
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-slate-500/10 text-slate-400">
+                                  <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />
                                     Inactive
                                   </span>
                                 )}
@@ -3514,12 +3319,12 @@ export default function AdminDashboard() {
                                   minute: '2-digit'
                                 })}
                               </td>
-                              <td className="px-4 py-3 text-center">
-                                <div className="flex items-center justify-center gap-2">
+                              <td className="px-3 py-2 text-right">
+                                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-7 text-xs"
+                                    className={`h-6 px-2 text-xs ${signup.is_active ? 'text-amber-400 hover:text-amber-300' : 'text-emerald-400 hover:text-emerald-300'}`}
                                     onClick={async () => {
                                       const response = await fetch('/api/admin/signups', {
                                         method: 'PATCH',
@@ -3529,7 +3334,7 @@ export default function AdminDashboard() {
                                           is_active: !signup.is_active
                                         })
                                       });
-                                      
+
                                       if (response.ok) {
                                         toast.success(`Signup ${signup.is_active ? 'deactivated' : 'activated'}`);
                                         loadSignups();
@@ -3538,18 +3343,18 @@ export default function AdminDashboard() {
                                       }
                                     }}
                                   >
-                                    {signup.is_active ? 'Deactivate' : 'Activate'}
+                                    {signup.is_active ? 'Pause' : 'Activate'}
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-7 text-xs text-red-400"
+                                    className="h-6 w-6 p-0 text-slate-400 hover:text-red-400"
                                     onClick={async () => {
                                       if (confirm(`Delete signup for ${signup.email}?`)) {
                                         const response = await fetch(`/api/admin/signups?id=${signup.id}`, {
                                           method: 'DELETE'
                                         });
-                                        
+
                                         if (response.ok) {
                                           toast.success('Signup deleted');
                                           loadSignups();
@@ -3559,7 +3364,7 @@ export default function AdminDashboard() {
                                       }
                                     }}
                                   >
-                                    Delete
+                                    <X className="w-3.5 h-3.5" />
                                   </Button>
                                 </div>
                               </td>
@@ -3569,27 +3374,26 @@ export default function AdminDashboard() {
                       </table>
                     </div>
 
-                    {/* Pagination */}
+                    {/* Pagination - Compact */}
                     {signupsTotalPages > 1 && (
-                      <div className="flex justify-between items-center mt-6">
-                        <p className="text-sm text-slate-400">
-                          Showing {(signupsPage - 1) * signupsPerPage + 1} to {Math.min(signupsPage * signupsPerPage, signupsTotalCount)} of {signupsTotalCount} signups
+                      <div className="flex justify-between items-center pt-3">
+                        <p className="text-xs text-slate-500">
+                          {(signupsPage - 1) * signupsPerPage + 1}-{Math.min(signupsPage * signupsPerPage, signupsTotalCount)} of {signupsTotalCount}
                         </p>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              setSignupsPage(1);
-                            }}
+                            onClick={() => setSignupsPage(1)}
                             disabled={signupsPage === 1}
-                            className="border-slate-800"
+                            className="h-7 px-2 text-xs border-slate-700"
                           >
                             First
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
+                            className="h-7 px-2 text-xs border-slate-700"
                             onClick={() => {
                               setSignupsPage(signupsPage - 1);
                             }}
@@ -3914,26 +3718,37 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === 'offers' && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-2">Vendor Offers</h2>
-                  <p className="text-slate-400">
-                    Manage special offers for vendors - percentage discounts or extra pouches on purchases.
-                  </p>
+              <div className="space-y-4">
+                {/* Stats Bar */}
+                <div className="flex items-center justify-between bg-slate-800/30 rounded-lg px-4 py-2">
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-white font-medium">Vendor Offers</span>
+                    <div className="h-4 w-px bg-slate-700" />
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <span className="text-slate-500 text-xs">Active</span>
+                      <span className="text-emerald-400 font-semibold">{vendors.filter((v: any) => v.offer_type && v.offer_type !== null).length}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500 text-xs">Total Vendors</span>
+                      <span className="text-white font-semibold">{vendors.length}</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Offers Table */}
-                <Card className="bg-slate-900 border-slate-800 p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <p className="text-sm text-slate-400">
-                          {vendors.filter((v: any) => v.offer_type && v.offer_type !== null).length} vendors with active offers
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
+                <div className="bg-slate-900/30 rounded-lg border border-slate-800/50 overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-800/50 bg-slate-800/30">
+                        <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Vendor</th>
+                        <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Offer Type</th>
+                        <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Value</th>
+                        <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Description</th>
+                        <th className="text-right px-3 py-2 text-xs font-medium text-slate-500 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/30">
                       {vendors.map((vendor) => (
                         <OfferVendorRow
                           key={vendor.id}
@@ -3941,218 +3756,200 @@ export default function AdminDashboard() {
                           onUpdate={handleUpdateVendor}
                         />
                       ))}
-                    </div>
-                  </div>
-                </Card>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {activeTab === 'unmapped' && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-2">Unmapped Products</h2>
-                  <p className="text-slate-400">
-                    Products found by scrapers that don't match any existing products. Review and decide what to do with them.
-                  </p>
+              <div className="space-y-4">
+                {/* Stats & Filters Bar */}
+                <div className="flex items-center justify-between bg-slate-800/30 rounded-lg px-4 py-2">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500 text-xs">Found</span>
+                      <span className="text-white font-semibold">{unmappedTotalCount}</span>
+                    </div>
+                    <div className="h-4 w-px bg-slate-700" />
+                    <select
+                      value={unmappedStatusFilter}
+                      onChange={(e) => setUnmappedStatusFilter(e.target.value)}
+                      className="h-7 px-2 bg-slate-900/50 border border-slate-700/50 rounded text-xs text-slate-300"
+                    >
+                      <option value="pending">⏳ Pending</option>
+                      <option value="approved">✓ Approved</option>
+                      <option value="rejected">✗ Rejected</option>
+                      <option value="mapped">🔗 Mapped</option>
+                      <option value="all">All</option>
+                    </select>
+                    <select
+                      value={unmappedVendorFilter}
+                      onChange={(e) => setUnmappedVendorFilter(e.target.value)}
+                      className="h-7 px-2 bg-slate-900/50 border border-slate-700/50 rounded text-xs text-slate-300"
+                    >
+                      <option value="all">All Vendors</option>
+                      {unmappedVendors.map(vendor => (
+                        <option key={vendor} value={vendor}>{vendor}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="relative w-64">
+                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-slate-500" />
+                    <Input
+                      value={unmappedSearch}
+                      onChange={(e) => setUnmappedSearch(e.target.value)}
+                      placeholder="Search products..."
+                      className="pl-7 h-7 text-xs bg-slate-900/50 border-slate-700/50"
+                    />
+                  </div>
                 </div>
 
-                {/* Filters */}
-                <Card className="bg-slate-900 border-slate-800 p-4">
-                  <div className="flex flex-wrap gap-4 items-center">
-                    {/* Status Filter */}
-                    <div className="flex items-center gap-2">
-                      <label className="text-sm text-slate-400">Status:</label>
-                      <select
-                        value={unmappedStatusFilter}
-                        onChange={(e) => setUnmappedStatusFilter(e.target.value)}
-                        className="px-3 py-2 bg-slate-800 border border-slate-700 rounded text-sm text-white"
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="mapped">Mapped</option>
-                        <option value="all">All</option>
-                      </select>
-                    </div>
-
-                    {/* Vendor Filter */}
-                    <div className="flex items-center gap-2">
-                      <label className="text-sm text-slate-400">Vendor:</label>
-                      <select
-                        value={unmappedVendorFilter}
-                        onChange={(e) => setUnmappedVendorFilter(e.target.value)}
-                        className="px-3 py-2 bg-slate-800 border border-slate-700 rounded text-sm text-white"
-                      >
-                        <option value="all">All Vendors</option>
-                        {unmappedVendors.map(vendor => (
-                          <option key={vendor} value={vendor}>{vendor}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Search */}
-                    <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                      <Search className="w-4 h-4 text-slate-400" />
-                      <Input
-                        value={unmappedSearch}
-                        onChange={(e) => setUnmappedSearch(e.target.value)}
-                        placeholder="Search products..."
-                        className="bg-slate-800 border-slate-700 text-white"
-                      />
-                    </div>
-
-                    <div className="text-sm text-slate-400">
-                      {unmappedTotalCount} products found
-                    </div>
+                {/* Products Table */}
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-amber-400"></div>
                   </div>
-                </Card>
-
-                {/* Products List */}
-                <Card className="bg-slate-900 border-slate-800 p-6">
-                  {loading ? (
-                    <div className="text-center py-8 text-slate-400">Loading...</div>
-                  ) : unmappedProducts.length === 0 ? (
-                    <div className="text-center py-8 text-slate-400">
-                      No unmapped products found
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {unmappedProducts.map((product) => (
-                        <Card key={product.id} className="bg-slate-800 border-slate-700 p-4">
-                          <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-                            {/* Product Info */}
-                            <div className="flex-1 space-y-2">
-                              <h3 className="text-lg font-semibold text-white">{product.product_name}</h3>
-
-                              <div className="flex flex-wrap gap-2 text-sm">
-                                <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded">
-                                  Source: {product.source_vendor}
-                                </span>
-                                <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded">
-                                  Found at {product.total_stores} store(s)
-                                </span>
-                                <span className={`px-2 py-1 rounded ${
-                                  product.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
-                                  product.status === 'approved' ? 'bg-green-500/20 text-green-300' :
-                                  product.status === 'rejected' ? 'bg-red-500/20 text-red-300' :
-                                  'bg-purple-500/20 text-purple-300'
-                                }`}>
-                                  {product.status}
-                                </span>
+                ) : unmappedProducts.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400">
+                    <Package className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">No unmapped products found</p>
+                  </div>
+                ) : (
+                  <div className="bg-slate-900/30 rounded-lg border border-slate-800/50 overflow-hidden">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-800/50 bg-slate-800/30">
+                          <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Product</th>
+                          <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Vendor</th>
+                          <th className="text-center px-3 py-2 text-xs font-medium text-slate-500 uppercase">Stores</th>
+                          <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Prices</th>
+                          <th className="text-center px-3 py-2 text-xs font-medium text-slate-500 uppercase">Status</th>
+                          <th className="text-right px-3 py-2 text-xs font-medium text-slate-500 uppercase">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/30">
+                        {unmappedProducts.map((product) => (
+                          <tr key={product.id} className="hover:bg-slate-800/20 transition-colors group">
+                            <td className="px-3 py-2">
+                              <div>
+                                <span className="text-sm text-white font-medium">{product.product_name}</span>
+                                {product.source_url && (
+                                  <a
+                                    href={product.source_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block text-xs text-blue-400 hover:underline truncate max-w-[250px]"
+                                  >
+                                    View source →
+                                  </a>
+                                )}
                               </div>
-
-                              {product.source_url && (
-                                <a
-                                  href={product.source_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-blue-400 hover:underline"
-                                >
-                                  View on {product.source_vendor} →
-                                </a>
+                            </td>
+                            <td className="px-3 py-2">
+                              <span className="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded">
+                                {product.source_vendor}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <span className="text-sm text-emerald-400 font-medium">{product.total_stores}</span>
+                            </td>
+                            <td className="px-3 py-2">
+                              {product.source_prices && Object.keys(product.source_prices).length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {Object.entries(product.source_prices).slice(0, 3).map(([tier, price]) => (
+                                    <span key={tier} className="text-xs px-1.5 py-0.5 bg-slate-700/50 rounded text-slate-300">
+                                      {tier}: {price as string}
+                                    </span>
+                                  ))}
+                                  {Object.keys(product.source_prices).length > 3 && (
+                                    <span className="text-xs text-slate-500">+{Object.keys(product.source_prices).length - 3}</span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-slate-600 text-xs">-</span>
                               )}
-
-                              {/* Price Tiers */}
-                              {product.source_prices && Object.keys(product.source_prices).length > 0 && (
-                                <div className="mt-2">
-                                  <p className="text-xs text-slate-400 mb-1">Prices:</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {Object.entries(product.source_prices).map(([tier, price]) => (
-                                      <span key={tier} className="text-xs px-2 py-1 bg-slate-700 rounded text-white">
-                                        {tier}: {price as string}
-                                      </span>
-                                    ))}
-                                  </div>
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <span className={`text-xs px-2 py-0.5 rounded ${
+                                product.status === 'pending' ? 'bg-amber-500/10 text-amber-400' :
+                                product.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400' :
+                                product.status === 'rejected' ? 'bg-red-500/10 text-red-400' :
+                                'bg-purple-500/10 text-purple-400'
+                              }`}>
+                                {product.status}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              {product.status === 'pending' && (
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleUnmappedAction(product.id, 'create')}
+                                    disabled={actionLoading === product.id}
+                                    className="h-6 px-2 text-xs bg-emerald-600 hover:bg-emerald-700"
+                                  >
+                                    {actionLoading === product.id ? '...' : 'Create'}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      setShowMapDialog(product);
+                                      setMapSearchTerm('');
+                                      setMapSearchResults([]);
+                                    }}
+                                    disabled={actionLoading === product.id}
+                                    className="h-6 px-2 text-xs bg-blue-600 hover:bg-blue-700"
+                                  >
+                                    Map
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleUnmappedAction(product.id, 'reject')}
+                                    disabled={actionLoading === product.id}
+                                    className="h-6 px-2 text-xs bg-red-600 hover:bg-red-700"
+                                  >
+                                    Reject
+                                  </Button>
                                 </div>
                               )}
-
-                              {/* Other Stores */}
-                              {product.other_stores && product.other_stores.length > 0 && (
-                                <div className="mt-2">
-                                  <p className="text-xs text-slate-400 mb-1">Also found at:</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {product.other_stores.map((store: any, idx: number) => (
-                                      <span key={idx} className="text-xs px-2 py-1 bg-slate-700 rounded text-slate-300">
-                                        {store.vendor} ({Math.round(store.matchConfidence * 100)}% match)
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
+                              {product.status !== 'pending' && product.mapped_product_id && (
+                                <span className="text-xs text-slate-500">#{product.mapped_product_id}</span>
                               )}
-                            </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
 
-                            {/* Actions */}
-                            {product.status === 'pending' && (
-                              <div className="flex flex-col gap-2 min-w-[150px]">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleUnmappedAction(product.id, 'create')}
-                                  disabled={actionLoading === product.id}
-                                  className="bg-green-600 hover:bg-green-700 w-full"
-                                >
-                                  {actionLoading === product.id ? '...' : '✓ Create New'}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() => {
-                                    setShowMapDialog(product);
-                                    setMapSearchTerm('');
-                                    setMapSearchResults([]);
-                                  }}
-                                  disabled={actionLoading === product.id}
-                                  className="bg-blue-600 hover:bg-blue-700 w-full"
-                                >
-                                  🔗 Map to Existing
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleUnmappedAction(product.id, 'reject')}
-                                  disabled={actionLoading === product.id}
-                                  className="bg-red-600 hover:bg-red-700 w-full"
-                                >
-                                  ✕ Reject
-                                </Button>
-                              </div>
-                            )}
-
-                            {product.status !== 'pending' && product.mapped_product_id && (
-                              <div className="text-sm text-slate-400">
-                                Mapped to product #{product.mapped_product_id}
-                              </div>
-                            )}
-                          </div>
-                        </Card>
-                      ))}
-
-                      {/* Pagination */}
-                      {unmappedTotalPages > 1 && (
-                        <div className="flex justify-center gap-2 mt-6">
+                    {/* Pagination */}
+                    {unmappedTotalPages > 1 && (
+                      <div className="flex justify-between items-center px-3 py-2 border-t border-slate-800/50">
+                        <span className="text-xs text-slate-500">Page {unmappedPage} of {unmappedTotalPages}</span>
+                        <div className="flex gap-1">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setUnmappedPage(p => Math.max(1, p - 1))}
                             disabled={unmappedPage === 1}
-                            className="border-slate-700 text-white"
+                            className="h-6 px-2 text-xs border-slate-700"
                           >
-                            Previous
+                            Prev
                           </Button>
-                          <span className="px-4 py-2 text-sm text-slate-400">
-                            Page {unmappedPage} of {unmappedTotalPages}
-                          </span>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setUnmappedPage(p => Math.min(unmappedTotalPages, p + 1))}
                             disabled={unmappedPage === unmappedTotalPages}
-                            className="border-slate-700 text-white"
+                            className="h-6 px-2 text-xs border-slate-700"
                           >
                             Next
                           </Button>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </Card>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Map Dialog */}
                 {showMapDialog && (

@@ -3,8 +3,10 @@ import { Metadata } from 'next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import SSRProductGridWithSidebar from '@/components/SSRProductGridWithSidebar';
+import SortDropdown from '@/components/SortDropdown';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getSEOTags, renderSchemaTag, generateStandaloneAggregateRating, generateBreadcrumbSchema } from '@/lib/seo-core';
 import { getBrandSEOTemplate, generateBreadcrumbData } from '@/lib/seo-templates';
@@ -230,8 +232,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return getSEOTags('brand', seoData);
 }
 
-export default async function BrandPage({ params }: { params: Promise<{ slug: string }> }) {
+interface PageProps {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ sort?: string; page?: string }>;
+}
+
+export default async function BrandPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
   const brandData = await getBrandData(slug);
 
   if (!brandData) {
@@ -282,62 +290,73 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
           width: '100%'
         }}>
           
-          {/* Breadcrumb */}
+          {/* Hero Section - PriceRunner Style */}
           <div style={{
-            backgroundColor: '#f8f9fa',
-            padding: '15px 0',
-            borderBottom: '1px solid #e9ecef'
-          }}>
-            <div className="compare-container" style={{
-              maxWidth: '100%',
-              margin: '0',
-              padding: '0 15px',
-              fontSize: '14px',
-              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
-              color: '#666'
-            }}>
-              <Link href="/" style={{ color: '#666', textDecoration: 'none' }}>Home</Link>
-              <span style={{ margin: '0 8px' }}>»</span>
-              <Link href="/compare" style={{ color: '#666', textDecoration: 'none' }}>Compare Nicotine Pouches</Link>
-              <span style={{ margin: '0 8px' }}>»</span>
-              <Link href="/guides" style={{ color: '#666', textDecoration: 'none' }}>Guides</Link>
-              <span style={{ margin: '0 8px' }}>»</span>
-              <Link href="/here-we-are" style={{ color: '#666', textDecoration: 'none' }}>About Us</Link>
-              <span style={{ margin: '0 8px' }}>»</span>
-              <span>{brandData.brandName}</span>
-            </div>
-          </div>
-
-          {/* Page Header */}
-          <div className="page-header" style={{
             backgroundColor: '#ffffff',
-            padding: '40px 0',
-            borderBottom: '1px solid #e9ecef'
+            padding: '24px 20px 32px 20px',
+            maxWidth: '1400px',
+            margin: '0 auto'
           }}>
-            <div className="compare-container" style={{
-              maxWidth: '1200px',
-              margin: '0 auto',
-              padding: '0 15px',
-              textAlign: 'center'
+            {/* Breadcrumb */}
+            <nav style={{
+              marginBottom: '20px',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+            }}>
+              <Link href="/" style={{
+                color: '#1f2937',
+                textDecoration: 'none',
+                fontSize: '15px',
+                fontWeight: '400'
+              }}>Start</Link>
+              <span style={{
+                margin: '0 10px',
+                color: '#9ca3af',
+                fontSize: '15px'
+              }}>/</span>
+              <Link href="/compare" style={{
+                color: '#1f2937',
+                textDecoration: 'none',
+                fontSize: '15px',
+                fontWeight: '400'
+              }}>Compare</Link>
+              <span style={{
+                margin: '0 10px',
+                color: '#9ca3af',
+                fontSize: '15px'
+              }}>/</span>
+              <span style={{
+                color: '#6b7280',
+                fontSize: '15px'
+              }}>{brandData.brandName}</span>
+            </nav>
+
+            {/* Brand Logo and Title Row */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '24px',
+              marginBottom: '16px'
             }}>
               {/* Brand Logo */}
               {getBrandLogo(brandData.brandName) && (
                 <div style={{
-                  marginBottom: '20px',
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '16px',
+                  backgroundColor: '#f9fafb',
                   display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'center',
-                  alignItems: 'center'
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                  border: '1px solid #e5e7eb'
                 }}>
                   <Image
                     src={getBrandLogo(brandData.brandName)!}
                     alt={`${brandData.brandName} logo`}
-                    width={200}
-                    height={200}
+                    width={60}
+                    height={60}
                     style={{
-                      maxWidth: '200px',
-                      maxHeight: '200px',
-                      height: 'auto',
-                      width: 'auto',
                       objectFit: 'contain'
                     }}
                     unoptimized
@@ -345,30 +364,88 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
                 </div>
               )}
               <h1 style={{
-                fontSize: '2.5rem',
-                fontWeight: 800,
+                fontSize: '42px',
+                fontWeight: '800',
+                color: '#1f2937',
+                margin: '0',
                 fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
-                color: '#333',
-                margin: '0 0 15px 0'
+                letterSpacing: '-0.5px',
+                lineHeight: '1.1'
               }}>
                 {brandData.brandName} Nicotine Pouches
               </h1>
-              <p style={{
-                fontSize: '18px',
-                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
-                color: '#666',
-                maxWidth: '600px',
-                margin: '0 auto',
-                lineHeight: '1.6'
-              }}>
-                Find the best prices for {brandData.brandName} nicotine pouches from top UK vendors. 
-                Compare ratings, strengths, and flavors to find your perfect match.
-              </p>
+            </div>
+
+            {/* Description */}
+            <p style={{
+              fontSize: '17px',
+              color: '#4b5563',
+              maxWidth: '800px',
+              margin: '0',
+              lineHeight: '1.7',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+            }}>
+              Find the best prices for {brandData.brandName} nicotine pouches from top UK vendors.
+              Compare ratings, strengths, and flavors to find your perfect match.
+            </p>
+          </div>
+
+          {/* Filter Bar */}
+          <div style={{
+            backgroundColor: '#f4f5f9',
+            padding: '16px 20px',
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              maxWidth: '1400px',
+              margin: '0 auto'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                <span style={{
+                  fontSize: '20px',
+                  fontWeight: '700',
+                  color: '#1f2937'
+                }}>
+                  Filter
+                </span>
+                <span style={{
+                  fontSize: '15px',
+                  color: '#6b7280',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  {brandData.totalProducts}+ products
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 16v-4M12 8h.01"/>
+                  </svg>
+                </span>
+              </div>
+              <Suspense fallback={<span style={{ fontSize: '14px', color: '#1f2937' }}>Sort by popularity</span>}>
+                <SortDropdown basePath={`/brand/${slug}`} />
+              </Suspense>
             </div>
           </div>
 
           {/* UK Products Section with Sidebar - Responsive */}
-          <SSRProductGridWithSidebar brandFilter={brandData.brandName} />
+          <SSRProductGridWithSidebar
+            brandFilter={brandData.brandName}
+            filters={{
+              brand: brandData.brandName,
+              vendor: '',
+              flavour: '',
+              strength: '',
+              minPrice: '',
+              maxPrice: '',
+              format: '',
+              sort: resolvedSearchParams.sort || 'popularity'
+            }}
+            currentPage={parseInt(resolvedSearchParams.page || '1', 10)}
+          />
 
         </main>
 

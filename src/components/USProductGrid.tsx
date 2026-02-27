@@ -136,26 +136,95 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
       try {
         setLoading(true);
         let query = supabase().from('us_products').select('*');
-        
+
         // Apply brand filter if provided
         if (brandFilter) {
           query = query.ilike('name', `%${brandFilter}%`);
         }
-        
+
         // Order by id
         query = query.order('id', { ascending: true });
-        
+
         const { data, error } = await query;
 
         if (error) throw error;
+
+        // Fetch US vendor product mappings to calculate real store counts
+        const { data: mappings, error: mappingsError } = await supabase()
+          .from('us_vendor_product_mapping')
+          .select('product_id');
+
+        if (mappingsError) {
+          console.error('Error fetching US mappings:', mappingsError);
+        }
+
+        // Count stores per product
+        const storeCounts = new Map<number, number>();
+        mappings?.forEach((mapping: any) => {
+          const count = storeCounts.get(mapping.product_id) || 0;
+          storeCounts.set(mapping.product_id, count + 1);
+        });
+
+        // Fetch lowest prices from us_vendor_products_new for all mapped products
+        const productIds = data.map((p: any) => p.id);
+        const lowestPrices = new Map<number, string>();
+
+        // Get all vendor products with their prices
+        const { data: vendorProducts, error: vpError } = await supabase()
+          .from('us_vendor_product_mapping')
+          .select(`
+            product_id,
+            vendor_product,
+            us_vendor_id
+          `)
+          .in('product_id', productIds);
+
+        if (!vpError && vendorProducts && vendorProducts.length > 0) {
+          // Get all unique vendor product names and vendor IDs
+          const vendorProductLookups = vendorProducts.map((vp: any) => ({
+            name: vp.vendor_product,
+            us_vendor_id: vp.us_vendor_id,
+            product_id: vp.product_id
+          }));
+
+          // Fetch prices from us_vendor_products_new
+          const { data: priceData, error: priceError } = await supabase()
+            .from('us_vendor_products_new')
+            .select('name, us_vendor_id, price_1pack');
+
+          if (!priceError && priceData) {
+            // Create a lookup map for prices
+            const priceLookup = new Map<string, number>();
+            priceData.forEach((vp: any) => {
+              const key = `${vp.us_vendor_id}-${vp.name}`;
+              const price = parseFloat(vp.price_1pack?.toString().replace('$', '') || '0');
+              if (price > 0) {
+                priceLookup.set(key, price);
+              }
+            });
+
+            // Find lowest price for each product
+            vendorProductLookups.forEach((lookup: any) => {
+              const key = `${lookup.us_vendor_id}-${lookup.name}`;
+              const price = priceLookup.get(key);
+              if (price) {
+                const currentLowest = lowestPrices.get(lookup.product_id);
+                const currentPrice = currentLowest ? parseFloat(currentLowest.replace('$', '')) : Infinity;
+                if (price < currentPrice) {
+                  lowestPrices.set(lookup.product_id, `$${price.toFixed(2)}`);
+                }
+              }
+            });
+          }
+        }
 
         // Transform US product data to match expected format (same as homepage)
         const transformedProducts = data.map((product: any, index: number) => ({
           id: product.id,
           name: product.product_title || product.name,
-          price: "$3.99", // Default US price
+          price: lowestPrices.get(product.id) || "$3.99", // Real lowest price or fallback
           strength: product.strength || 'Normal',
-          stores: 1, // Prilla only
+          stores: storeCounts.get(product.id) || 0, // Real store count from mappings
           watching: generateWatchingCount(400, 800), // Use same watching logic as homepage
           image: product.image_url,
           link: `/us/product/${(product.product_title || product.name).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`,
@@ -173,8 +242,8 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
         setFilteredProducts(transformedProducts);
 
         // Fetch watching counts for all products (same as homepage)
-        const productIds = transformedProducts.map((p: any) => p.id);
-        fetchWatchingCounts(productIds);
+        const allProductIds = transformedProducts.map((p: any) => p.id);
+        fetchWatchingCounts(allProductIds);
       } catch (err: any) {
         setError(err.message);
         console.error('Error fetching US products:', err);
@@ -380,7 +449,7 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
             padding: '3px 8px',
             borderRadius: '100px',
             fontSize: '11px',
-            fontFamily: '"Klarna 600", system-ui, -apple-system, sans-serif',
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
             fontWeight: '600',
             color: 'rgba(0, 0, 0, 0.9)',
             zIndex: 2,
@@ -507,7 +576,7 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
                   }}>
                     <h2 className="product-title" style={{
                       fontSize: '14px',
-                      fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                       fontWeight: '500',
                       color: '#000',
                       margin: '0',
@@ -535,7 +604,7 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
                             padding: '2px 6px',
                             borderRadius: '12px',
                             fontSize: '10px',
-                            fontFamily: '"Klarna 600", system-ui, -apple-system, sans-serif',
+                            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                             fontWeight: '600',
                             display: 'inline-block',
                             whiteSpace: 'nowrap',
@@ -555,7 +624,7 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
               }}>
                 <div className="product-price" style={{
                   fontSize: '14px',
-                  fontFamily: '"Klarna 600", system-ui, -apple-system, sans-serif',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                   fontWeight: '600',
                   color: '#000',
                   letterSpacing: '-0.2px',
@@ -572,7 +641,7 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
                 alignItems: 'center',
                 gap: '2px',
                 fontSize: '10px',
-                fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                 color: '#666',
                 marginTop: '4px',
                 letterSpacing: '-0.2px',
@@ -837,7 +906,7 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
                      style={{ width: '50%' }}>
                   <div className="fusion-column-wrapper">
                     <h2 style={{
-                      fontFamily: '"Klarna 700"',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                       fontSize: '24px',
                       fontWeight: '400',
                       margin: '0',
@@ -902,7 +971,7 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
             {/* Results info */}
             <div style={{
               fontSize: '14px',
-              fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
               color: '#666',
               fontWeight: '500'
             }}>
@@ -927,7 +996,7 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
                   color: currentPage === 1 ? '#9ca3af' : '#374151',
                   cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                   fontSize: '14px',
-                  fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                   fontWeight: '500',
                   transition: 'all 0.2s'
                 }}
@@ -966,7 +1035,7 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
                         color: currentPage === pageNum ? '#fff' : '#374151',
                         cursor: 'pointer',
                         fontSize: '14px',
-                        fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                         fontWeight: '500',
                         transition: 'all 0.2s',
                         display: 'flex',
@@ -992,7 +1061,7 @@ const USProductSection = ({ brandFilter }: USProductGridProps) => {
                   color: currentPage === totalPages ? '#9ca3af' : '#374151',
                   cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
                   fontSize: '14px',
-                  fontFamily: '"Klarna 500", system-ui, -apple-system, sans-serif',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                   fontWeight: '500',
                   transition: 'all 0.2s'
                 }}

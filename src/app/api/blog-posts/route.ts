@@ -1,75 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { supabase } from '@/lib/supabase';
+import { getFullUrl } from '@/config/seo-config';
 
+// Single source of truth: blog_posts table only (Axelio + migrated posts)
+// List endpoint: do NOT select content or seo_meta to avoid statement timeout (552+ rows)
+// Ensure index exists: sql-migrations/blog_posts_list_index.sql
 export async function GET(request: NextRequest) {
   try {
-    // Read blog posts from JSON file
-    const filePath = path.join(process.cwd(), 'all_blog_posts_with_content.json');
-    
-    if (!fs.existsSync(filePath)) {
-      console.error('Blog posts JSON file not found:', filePath);
-      return NextResponse.json({ error: 'Blog posts data not found' }, { status: 404 });
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '100', 10)), 500);
+
+    const { data: posts, error } = await supabase()
+      .from('blog_posts')
+      .select('id, wp_id, title, slug, excerpt, date, created_at, featured_image, featured_image_local')
+      .in('status', ['publish', 'published'])
+      .order('date', { ascending: false })
+      .range(0, limit - 1);
+
+    if (error) {
+      console.error('[Blog Posts API] Error fetching from blog_posts:', error);
+      return NextResponse.json({ error: 'Failed to fetch blog posts' }, { status: 500 });
     }
 
-    const fileContent = fs.readFileSync(filePath, 'utf8');
-    const posts = JSON.parse(fileContent);
-
-    // Process posts to add local image paths and ensure proper format
-    const processedPosts = posts.map((post: any) => {
-      let featured_image_local = null;
-      
-      if (post.featured_media && post.featured_media > 0) {
-        // Try to find local image based on post slug or title
-        const slug = post.slug;
-        const title = post.title;
-        
-        // Common patterns for local images - check both compressed and main directory
-        const possibleImageNames = [
-          `post_${post.wp_id}_${title.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}`,
-          `post_${post.wp_id}_${slug}`,
-          slug,
-          title.toLowerCase().replace(/[^a-z0-9]/g, '_')
-        ];
-        
-        // Try to find the image in the main blog-images directory first
-        const fs = require('fs');
-        const path = require('path');
-        const blogImagesDir = path.join(process.cwd(), 'public', 'blog-images');
-        
-        for (const imageName of possibleImageNames) {
-          const imagePath = path.join(blogImagesDir, `${imageName}.jpg`);
-          if (fs.existsSync(imagePath)) {
-            featured_image_local = `/blog-images/${imageName}.jpg`;
-            break;
-          }
-        }
-        
-        // If no specific image found, use a default placeholder
-        if (!featured_image_local) {
-          featured_image_local = '/blog-images/post_28580_What_is_Nicotine_The_Ultimate_Guide.jpg';
-        }
-      }
-      
+    const processedPosts = (posts || []).map((post: { id?: number; wp_id?: number; title?: string; slug?: string; excerpt?: string; date?: string; created_at?: string; featured_image?: string; featured_image_local?: string }) => {
+      const excerpt = post.excerpt?.replace(/<[^>]*>/g, '').replace(/[#*_]/g, '').trim().slice(0, 300) || '';
       return {
-        ...post,
-        featured_image_local,
-        // Ensure we have all required fields
-        link: post.link || `https://nicotine-pouches.org/${post.slug}`,
-        excerpt: post.excerpt || '',
-        author: post.author || 'Nicotine Pouches Team'
+        id: post.id,
+        wp_id: post.wp_id,
+        title: post.title,
+        slug: post.slug,
+        excerpt,
+        date: post.date || post.created_at,
+        author: 'Nicotine Pouches Team',
+        featured_image: post.featured_image,
+        featured_image_local: post.featured_image_local || post.featured_image,
+        status: 'published',
+        type: 'post',
+        source: 'blog_posts',
+        link: getFullUrl(`/${post.slug}`),
+        seo_meta: { title: post.title, description: excerpt }
       };
     });
 
-    // Filter only published posts
-    const publishedPosts = processedPosts.filter((post: any) => 
-      post.status === 'publish' && post.type === 'post'
-    );
-
-    // Sort by date (newest first)
-    publishedPosts.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    return NextResponse.json(publishedPosts);
+    console.log(`[Blog Posts API] Returning ${processedPosts.length} posts from blog_posts`);
+    return NextResponse.json(processedPosts);
   } catch (error) {
     console.error('Error in blog posts API:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
