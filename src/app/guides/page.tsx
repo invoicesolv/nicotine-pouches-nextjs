@@ -6,56 +6,79 @@ import GuidesGridWithSearch from '@/components/GuidesGridWithSearch';
 import { supabase } from '@/lib/supabase';
 import { Metadata } from 'next';
 
-// Load extracted blog posts data
-const loadBlogPosts = async (): Promise<BlogPost[]> => {
+// Get total post count from DB (head-only, no data transferred)
+const getTotalPostCount = async (searchQuery?: string): Promise<number> => {
   try {
-    // Try to fetch from API first
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://nicotine-pouches.org';
-    
-    try {
-      console.log(`Trying to fetch from: ${baseUrl}/api/blog-posts`);
-      const response = await fetch(`${baseUrl}/api/blog-posts`, {
-        cache: 'no-store',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`Successfully fetched ${data.length} blog posts from ${baseUrl}`);
-        return data;
-      } else {
-        console.log(`Failed to fetch from ${baseUrl}: ${response.status} ${response.statusText}`);
-      }
-    } catch (fetchError) {
-      console.log(`Error fetching from ${baseUrl}:`, fetchError);
+    let query = supabase()
+      .from('blog_posts')
+      .select('*', { count: 'exact', head: true });
+
+    if (searchQuery) {
+      query = query.or(`title.ilike.%${searchQuery}%,excerpt.ilike.%${searchQuery}%`);
     }
-    
-    // Fallback: Fetch from database directly
-    console.log('API fetch failed, trying database fallback');
-    try {
-      const { data: posts, error } = await supabase()
-        .from('blog_posts')
-        .select('*')
-        .order('date', { ascending: false })
-        .limit(20);
-      
-      if (error) {
-        console.error('Database fetch error:', error);
-        return [];
-      }
-      
-      console.log(`Successfully fetched ${posts?.length || 0} blog posts from database`);
-      return posts || [];
-    } catch (dbError) {
-      console.error('Database fallback error:', dbError);
-      return [];
+
+    const { count, error } = await query;
+    if (error) {
+      console.error('Error getting post count:', error);
+      return 0;
     }
+    return count || 0;
   } catch (error) {
-    console.error('Error loading blog posts:', error);
-    return [];
+    console.error('Error in getTotalPostCount:', error);
+    return 0;
+  }
+};
+
+// Load only the posts needed for the current page
+const loadPaginatedPosts = async (
+  page: number,
+  perPage: number,
+  sortOrder: string = 'newest',
+  searchQuery?: string
+): Promise<{ featured: BlogPost | null; posts: BlogPost[]; totalCount: number }> => {
+  try {
+    const ascending = sortOrder === 'oldest';
+
+    // Get total count
+    const totalCount = await getTotalPostCount(searchQuery);
+
+    // Fetch featured post (first post by sort order)
+    let featuredQuery = supabase()
+      .from('blog_posts')
+      .select('*')
+      .order('date', { ascending })
+      .limit(1);
+
+    if (searchQuery) {
+      featuredQuery = featuredQuery.or(`title.ilike.%${searchQuery}%,excerpt.ilike.%${searchQuery}%`);
+    }
+
+    const { data: featuredData } = await featuredQuery;
+    const featured = featuredData?.[0] || null;
+
+    // Fetch paginated posts (offset by 1 to skip featured)
+    const offset = (page - 1) * perPage + 1; // +1 to skip featured post
+    let postsQuery = supabase()
+      .from('blog_posts')
+      .select('*')
+      .order('date', { ascending })
+      .range(offset, offset + perPage - 1);
+
+    if (searchQuery) {
+      postsQuery = postsQuery.or(`title.ilike.%${searchQuery}%,excerpt.ilike.%${searchQuery}%`);
+    }
+
+    const { data: posts, error } = await postsQuery;
+
+    if (error) {
+      console.error('Error fetching paginated posts:', error);
+      return { featured, posts: [], totalCount };
+    }
+
+    return { featured, posts: posts || [], totalCount };
+  } catch (error) {
+    console.error('Error in loadPaginatedPosts:', error);
+    return { featured: null, posts: [], totalCount: 0 };
   }
 };
 
@@ -89,35 +112,16 @@ export default async function GuidesPage({ searchParams }: PageProps) {
   const sortOrder = params.sort || 'newest';
   const postsPerPage = 12;
 
-  const posts = await loadBlogPosts();
+  // Server-side pagination: only fetch the posts we need
+  const { featured: featuredPost, posts: paginatedPosts, totalCount } = await loadPaginatedPosts(
+    currentPage,
+    postsPerPage,
+    sortOrder,
+    searchQuery || undefined
+  );
 
-  // Filter by search query
-  let filtered = posts;
-  if (searchQuery) {
-    const term = searchQuery.toLowerCase();
-    filtered = posts.filter(p =>
-      p.title.toLowerCase().includes(term) ||
-      (p.excerpt || '').toLowerCase().includes(term) ||
-      (p.seo_meta?.title || '').toLowerCase().includes(term) ||
-      (p.seo_meta?.description || '').toLowerCase().includes(term)
-    );
-  }
-
-  // Sort posts
-  const sortedPosts = filtered.sort((a, b) => {
-    const dateA = new Date(a.date).getTime();
-    const dateB = new Date(b.date).getTime();
-    return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
-  });
-
-  const featuredPost = sortedPosts[0]; // Latest (or oldest) post as featured
-  const remainingPosts = sortedPosts.slice(1);
-
-  // Paginate
-  const totalPosts = remainingPosts.length;
+  const totalPosts = Math.max(0, totalCount - 1); // -1 for featured post
   const totalPages = Math.ceil(totalPosts / postsPerPage);
-  const startIndex = (currentPage - 1) * postsPerPage;
-  const paginatedPosts = remainingPosts.slice(startIndex, startIndex + postsPerPage);
 
   return (
     <>
