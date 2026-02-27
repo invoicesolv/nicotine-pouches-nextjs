@@ -40,7 +40,7 @@ const loadBlogPosts = async (): Promise<BlogPost[]> => {
         .from('blog_posts')
         .select('*')
         .order('date', { ascending: false })
-        .limit(20);
+        .limit(200);
       
       if (error) {
         console.error('Database fetch error:', error);
