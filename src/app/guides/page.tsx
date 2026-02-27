@@ -328,7 +328,7 @@ export default async function GuidesPage({ searchParams }: PageProps) {
                     })()}
                   </p>
 
-                  <Link href={`https://nicotine-pouches.org/${featuredPost.slug}`} style={{
+                  <Link href={`/${featuredPost.slug}`} style={{
                     display: 'inline-block',
                     backgroundColor: '#000',
                     color: 'white',

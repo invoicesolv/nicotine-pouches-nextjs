@@ -58,7 +58,7 @@ export default function SSRGuidesGrid({ posts }: SSRGuidesGridProps) {
         return (
           <Link 
             key={post.wp_id} 
-            href={`https://nicotine-pouches.org/${post.slug}`}
+            href={`/${post.slug}`}
             style={{ textDecoration: 'none', color: 'inherit' }}
           >
             <article style={{
