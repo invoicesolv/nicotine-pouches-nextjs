@@ -293,6 +293,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
               margin: '0',
               padding: '0 15px',
               fontSize: '14px',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
               color: '#666'
             }}>
               <Link href="/" style={{ color: '#666', textDecoration: 'none' }}>Home</Link>
@@ -345,7 +346,8 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
               )}
               <h1 style={{
                 fontSize: '2.5rem',
-                fontWeight: 'bold',
+                fontWeight: 800,
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                 color: '#333',
                 margin: '0 0 15px 0'
               }}>
@@ -353,6 +355,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
               </h1>
               <p style={{
                 fontSize: '18px',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                 color: '#666',
                 maxWidth: '600px',
                 margin: '0 auto',

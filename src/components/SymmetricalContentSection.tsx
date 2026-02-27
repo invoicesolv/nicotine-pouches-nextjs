@@ -76,7 +76,8 @@ const SymmetricalContentSection = () => {
             <div className="fusion-text fusion-text-19" style={{ textAlign: 'left' }}>
               <h2 className="mobile-title" style={{
                 fontSize: '2.5rem',
-                fontWeight: '700',
+                fontWeight: '800',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                 color: '#333',
                 marginBottom: '20px',
                 lineHeight: '1.2'
@@ -86,6 +87,7 @@ const SymmetricalContentSection = () => {
             </div>
             <div className="fusion-text fusion-text-20 mobile-text" style={{ textAlign: 'left', fontSize: '18px' }}>
               <p style={{
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                 color: '#666',
                 lineHeight: '1.6',
                 margin: '0'
@@ -135,7 +137,8 @@ const SymmetricalContentSection = () => {
               }}>
                 <h3 id="section-0" className="mobile-h3" style={{
                   fontSize: '1.8rem',
-                  fontWeight: '600',
+                  fontWeight: '700',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                   color: '#333',
                   marginBottom: '20px',
                   lineHeight: '1.3',
@@ -170,7 +173,8 @@ const SymmetricalContentSection = () => {
               }}>
                 <h3 id="section-1" className="mobile-h3" style={{
                   fontSize: '1.8rem',
-                  fontWeight: '600',
+                  fontWeight: '700',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                   color: '#333',
                   marginBottom: '20px',
                   lineHeight: '1.3',
@@ -225,7 +229,8 @@ const SymmetricalContentSection = () => {
               }}>
                 <h3 id="section-2" className="mobile-h3" style={{
                   fontSize: '1.8rem',
-                  fontWeight: '600',
+                  fontWeight: '700',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                   color: '#333',
                   marginBottom: '20px',
                   lineHeight: '1.3',
@@ -322,7 +327,8 @@ const SymmetricalContentSection = () => {
               }}>
                 <h3 id="section-3" className="mobile-h3" style={{
                   fontSize: '1.8rem',
-                  fontWeight: '600',
+                  fontWeight: '700',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                   color: '#333',
                   marginBottom: '20px',
                   lineHeight: '1.3',
@@ -348,7 +354,8 @@ const SymmetricalContentSection = () => {
               }}>
                 <h3 id="section-4" className="mobile-h3" style={{
                   fontSize: '1.8rem',
-                  fontWeight: '600',
+                  fontWeight: '700',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
                   color: '#333',
                   marginBottom: '20px',
                   lineHeight: '1.3',

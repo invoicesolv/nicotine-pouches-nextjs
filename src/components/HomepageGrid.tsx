@@ -58,25 +58,25 @@ const HomepageGrid = () => {
         
         .hero-content h1 {
           color: white;
-          font-family: 'Klarna Text', sans-serif;
+          font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
           font-size: clamp(32px, 4vw, 48px);
-          font-weight: 700;
+          font-weight: 800;
           line-height: 1.1;
           margin: 0 0 15px 0;
         }
-        
+
         .hero-content h2 {
           color: white;
-          font-family: 'Klarna Text', sans-serif;
+          font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
           font-size: clamp(18px, 2.5vw, 28px);
           font-weight: 700;
           line-height: 1.2;
           margin: 0 0 10px 0;
         }
-        
+
         .hero-content p {
           color: rgba(255,255,255,0.9);
-          font-family: 'Klarna Text', sans-serif;
+          font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
           font-size: clamp(14px, 1.8vw, 16px);
           line-height: 1.4;
           margin: 0 0 30px 0;

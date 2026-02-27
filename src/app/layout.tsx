@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
@@ -7,11 +7,20 @@ import { LanguageProvider } from '@/contexts/LanguageContext'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import SearchConsoleMonitor from '@/components/SearchConsoleMonitor'
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
   preload: true,
   fallback: ['system-ui', 'arial']
+})
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+  preload: true,
+  variable: '--font-plus-jakarta-sans',
+  fallback: ['system-ui', '-apple-system', 'sans-serif']
 })
 
 export const metadata: Metadata = {
@@ -237,7 +246,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={inter.className}>
+      <body className={`${plusJakartaSans.className} ${plusJakartaSans.variable}`}>
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-9FT722JELW'}`}
           strategy="lazyOnload"
