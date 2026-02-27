@@ -72,8 +72,8 @@ export function getProductSEOTemplate(product: ProductData): any {
     description: template.descriptionTemplate
       .replace('{productName}', product.name)
       .replace('{storeCount}', product.storeCount.toString())
-      .replace('{reviewCount}', product.aggregateRating.reviewCount.toString())
-      .replace('{ratingValue}', product.aggregateRating.ratingValue),
+      .replace('{reviewCount}', (product.aggregateRating?.reviewCount ?? 0).toString())
+      .replace('{ratingValue}', product.aggregateRating?.ratingValue ?? '0'),
     keywords: template.keywordsTemplate
       .replace('{brand}', product.brand)
       .replace('{flavour}', product.flavour)
