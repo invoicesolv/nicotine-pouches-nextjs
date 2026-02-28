@@ -40,6 +40,7 @@ import ExpandableVendorCard from '@/components/ExpandableVendorCard';
 import ProductHeroActions from '@/components/ProductHeroActions';
 import ProductSectionNav from '@/components/ProductSectionNav';
 import StrengthSelector from '@/components/StrengthSelector';
+import RelatedProductsCarousel from '@/components/RelatedProductsCarousel';
 
 // Helper function to check if a price is valid
 function isValidPrice(price: any): boolean {
@@ -1054,6 +1055,114 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
 
   // Generate breadcrumb data
   const breadcrumbs = generateBreadcrumbData('product', productData);
+
+  // Fetch related products (same brand, excluding current product)
+  let relatedProducts: any[] = [];
+  try {
+    const brandName = product.brand || product.name.split(' ')[0];
+    const { data: brandProducts } = await supabase()
+      .from('wp_products')
+      .select('id, name, image_url, price')
+      .ilike('name', `${brandName}%`)
+      .neq('id', product.id)
+      .not('image_url', 'is', null)
+      .limit(20);
+
+    if (brandProducts && brandProducts.length > 0) {
+      const productIds = brandProducts.map((p: any) => p.id);
+
+      // Get store counts from vendor_product_mapping (only has product_id, vendor_id - no price column)
+      const { data: vpMappings } = await supabase()
+        .from('vendor_product_mapping')
+        .select('product_id, vendor_id')
+        .in('product_id', productIds);
+
+      // Count unique vendors per product
+      const storeCounts = new Map<number, number>();
+      const vendorSets = new Map<number, Set<number>>();
+      vpMappings?.forEach((m: any) => {
+        if (!vendorSets.has(m.product_id)) vendorSets.set(m.product_id, new Set());
+        vendorSets.get(m.product_id)!.add(m.vendor_id);
+      });
+      vendorSets.forEach((vendors, productId) => {
+        storeCounts.set(productId, vendors.size);
+      });
+
+      // Get lowest prices from vendor_products via the mapping names
+      const lowestPrices = new Map<number, string>();
+      if (vpMappings && vpMappings.length > 0) {
+        // Get vendor_product names for these products
+        const { data: mappingNames } = await supabase()
+          .from('vendor_product_mapping')
+          .select('product_id, vendor_product, vendor_id')
+          .in('product_id', productIds);
+
+        if (mappingNames && mappingNames.length > 0) {
+          const { data: vpPrices } = await supabase()
+            .from('vendor_products')
+            .select('name, vendor_id, price_1pack')
+            .in('name', mappingNames.map((m: any) => m.vendor_product))
+            .in('vendor_id', mappingNames.map((m: any) => m.vendor_id))
+            .not('price_1pack', 'is', null)
+            .limit(100);
+
+          // Map vendor product prices back to wp_product IDs
+          if (vpPrices) {
+            const nameVendorToProduct = new Map<string, number>();
+            mappingNames.forEach((m: any) => {
+              nameVendorToProduct.set(`${m.vendor_product}__${m.vendor_id}`, m.product_id);
+            });
+
+            vpPrices.forEach((vp: any) => {
+              const productId = nameVendorToProduct.get(`${vp.name}__${vp.vendor_id}`);
+              if (productId && vp.price_1pack) {
+                const priceStr = String(vp.price_1pack).replace(/[£$€]/g, '');
+                const priceNum = parseFloat(priceStr);
+                if (!isNaN(priceNum) && priceNum > 0) {
+                  const existing = lowestPrices.get(productId);
+                  const existingNum = existing ? parseFloat(existing.replace(/[£$]/g, '')) : Infinity;
+                  if (priceNum < existingNum) {
+                    lowestPrices.set(productId, `£${priceNum.toFixed(2)}`);
+                  }
+                }
+              }
+            });
+          }
+        }
+      }
+
+      // Get tracking counts
+      const { data: trackingData } = await supabase()
+        .from('price_alerts')
+        .select('product_id')
+        .in('product_id', productIds);
+
+      const trackingCounts = new Map<number, number>();
+      trackingData?.forEach((t: any) => {
+        trackingCounts.set(t.product_id, (trackingCounts.get(t.product_id) || 0) + 1);
+      });
+
+      relatedProducts = brandProducts
+        .filter((p: any) => (storeCounts.get(p.id) || 0) > 0)
+        .map((p: any) => {
+          const price = lowestPrices.get(p.id) || (p.price > 0 ? `£${parseFloat(p.price).toFixed(2)}` : '£3.99');
+          const priceNum = parseFloat(price.replace(/[£$]/g, ''));
+          return {
+            id: p.id,
+            name: p.name,
+            image_url: p.image_url,
+            price: price,
+            original_price: !isNaN(priceNum) && priceNum > 1 ? `£${(priceNum * 1.25).toFixed(2)}` : undefined,
+            store_count: storeCounts.get(p.id) || 0,
+            tracking_count: trackingCounts.get(p.id) || 0,
+            slug: p.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').trim()
+          };
+        })
+        .slice(0, 12);
+    }
+  } catch (err) {
+    console.error('Error fetching related products:', err);
+  }
 
   return (
     <>
@@ -2095,6 +2204,16 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
           <div id="features" style={{ marginBottom: '40px' }}>
             <FAQSection faqs={product.regularSeoData?.faq_plaintext || product.llmSeoData?.faq_plaintext || []} />
           </div>
+
+          {/* Related Products */}
+          {relatedProducts.length > 0 && (
+            <div style={{ padding: '0 20px 40px', maxWidth: '1400px', margin: '0 auto' }}>
+              <RelatedProductsCarousel
+                products={relatedProducts}
+                title={`More ${product.brand} Products`}
+              />
+            </div>
+          )}
         </main>
 
         {/* Footer */}
