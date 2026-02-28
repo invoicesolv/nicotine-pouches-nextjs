@@ -1,58 +1,20 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { supabaseAdmin } from '@/lib/supabase';
 
-interface BlogPost {
-  wp_id: number;
-  title: string;
-  link: string;
-  excerpt: string;
-  content: string;
-  date: string;
-  modified: string;
+interface GuidesPost {
   slug: string;
-  featured_media: number;
-  categories: number[];
-  tags: number[];
-  status: string;
-  type: string;
-  format: string;
-  sticky: boolean;
+  title: string;
+  excerpt: string;
+  date: string;
   featured_image_local?: string;
-  featured_image_compressed?: string;
+  featured_image?: string;
   seo_meta?: {
-    url: string;
-    title: string;
-    description: string;
-    keywords: string;
-    og_title: string;
-    og_description: string;
-    og_image: string;
-    canonical: string;
-    robots: string;
-    author: string;
-    published_time: string;
-    modified_time: string;
-    article_section: string;
-    article_tags: string[];
-  };
+    title?: string;
+    description?: string;
+    og_image?: string;
+  } | null;
 }
-
-// Load extracted blog posts data
-const loadBlogPosts = async (): Promise<BlogPost[]> => {
-  try {
-    const response = await fetch('/api/blog-posts');
-    if (!response.ok) {
-      throw new Error('Failed to fetch blog posts');
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error loading blog posts:', error);
-    return [];
-  }
-};
 
 // Format date for display
 const formatDate = (dateString: string): string => {
@@ -66,17 +28,7 @@ const formatDate = (dateString: string): string => {
 
 // Clean HTML content for display
 const cleanExcerpt = (html: string): string => {
-  let cleanedHtml = html
-    .replace(/https:\/\/nicotine-pouches\.org\/wp-content\/uploads\/[^"'\s]+/g, (match) => {
-      const filename = match.split('/').pop()?.split('?')[0] || '';
-      return `/blog-images/${filename}`;
-    })
-    .replace(/https:\/\/[^"'\s]*\.(jpg|jpeg|png|gif|webp|avif)(\?[^"'\s]*)?/g, (match) => {
-      const filename = match.split('/').pop()?.split('?')[0] || '';
-      return `/blog-images/${filename}`;
-    });
-
-  return cleanedHtml
+  return html
     .replace(/<[^>]*>/g, '')
     .replace(/&hellip;/g, '...')
     .replace(/&nbsp;/g, ' ')
@@ -91,47 +43,28 @@ const cleanExcerpt = (html: string): string => {
     .substring(0, 120) + '...';
 };
 
-export default function GuidesSection() {
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
+// Server-side data fetch — called once at build/ISR time
+async function getLatestGuides(): Promise<GuidesPost[]> {
+  try {
+    const client = supabaseAdmin();
+    if (!client) return [];
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      const data = await loadBlogPosts();
-      // Sort by date and take only the first 4 for homepage
-      const sortedPosts = data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      setPosts(sortedPosts.slice(0, 4));
-      setLoading(false);
-    };
-    fetchPosts();
-  }, []);
+    const { data, error } = await client
+      .from('blog_posts')
+      .select('slug, title, excerpt, date, featured_image, featured_image_local, seo_meta')
+      .in('status', ['publish', 'published'])
+      .order('date', { ascending: false })
+      .limit(4);
 
-  if (loading) {
-    return (
-      <div style={{
-        backgroundColor: '#f8f9fa',
-        padding: '60px 0',
-        width: '100vw',
-        marginLeft: 'calc(50% - 50vw)',
-        marginRight: 'calc(50% - 50vw)'
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '0 20px',
-          textAlign: 'center'
-        }}>
-          <div style={{
-            fontSize: '18px',
-            color: '#666',
-            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
-          }}>
-            Loading guides...
-          </div>
-        </div>
-      </div>
-    );
+    if (error || !data) return [];
+    return data as GuidesPost[];
+  } catch {
+    return [];
   }
+}
+
+export default async function GuidesSection() {
+  const posts = await getLatestGuides();
 
   if (posts.length === 0) {
     return null;
@@ -139,7 +72,7 @@ export default function GuidesSection() {
 
   return (
     <>
-      <style jsx>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @media (max-width: 768px) {
           .guides-grid {
             grid-template-columns: repeat(2, 1fr) !important;
@@ -164,7 +97,7 @@ export default function GuidesSection() {
             gap: 20px !important;
           }
         }
-      `}</style>
+      `}} />
       <div className="guides-container" style={{
         backgroundColor: '#f8f9fa',
         padding: '60px 0',
@@ -176,7 +109,7 @@ export default function GuidesSection() {
         width: '100%',
         padding: '0 40px'
       }}>
-        
+
         {/* Section Header */}
         <div style={{
           textAlign: 'center',
@@ -208,21 +141,13 @@ export default function GuidesSection() {
             textDecoration: 'none',
             fontSize: '16px',
             fontWeight: '600',
-            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
-            transition: 'background-color 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#333';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#1a1a1a';
-          }}
-          >
+            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+          }}>
             View All Guides
           </Link>
         </div>
 
-        {/* Guides Grid - Same as guides page */}
+        {/* Guides Grid */}
         <div className="guides-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
@@ -231,41 +156,33 @@ export default function GuidesSection() {
         }}>
           {posts.map((post) => {
             const displayTitle = post.seo_meta?.title || post.title;
-            const displayDescription = post.seo_meta?.description || cleanExcerpt(post.excerpt);
-            
-            const displayImage = post.featured_image_local || 
-              (post.seo_meta?.og_image ? 
-                post.seo_meta.og_image.replace(/https:\/\/nicotine-pouches\.org\/wp-content\/uploads\/[^"'\s]+/, (match) => {
+            const displayDescription = post.seo_meta?.description || cleanExcerpt(post.excerpt || '');
+
+            const displayImage = post.featured_image_local ||
+              (post.seo_meta?.og_image ?
+                post.seo_meta.og_image.replace(/https:\/\/nicotine-pouches\.org\/wp-content\/uploads\/[^"'\s]+/, (match: string) => {
                   const filename = match.split('/').pop()?.split('?')[0] || '';
                   return `/blog-images/${filename}`;
                 }) : null) || '/blog-images/post_28580_What_is_Nicotine_The_Ultimate_Guide.jpg';
-            
+
             return (
               <Link
-                key={post.id || post.wp_id || post.slug}
+                key={post.slug}
                 href={`/${post.slug}`}
                 style={{ textDecoration: 'none', color: 'inherit' }}
               >
                 <article style={{
                   backgroundColor: 'transparent',
-                  transition: 'transform 0.2s ease',
                   cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-5px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-                >
-                  {/* Featured Image - Separated from title */}
+                }}>
+                  {/* Featured Image */}
                   <div style={{
                     width: '100%',
                     height: '200px',
                     overflow: 'hidden',
                     marginBottom: '20px'
                   }}>
-                    <img 
+                    <img
                       src={displayImage}
                       alt={displayTitle}
                       style={{
@@ -276,8 +193,8 @@ export default function GuidesSection() {
                       }}
                     />
                   </div>
-                  
-                  {/* Content - No padding, no background */}
+
+                  {/* Content */}
                   <div>
                     <h3 style={{
                       fontSize: '22px',
@@ -289,7 +206,7 @@ export default function GuidesSection() {
                     }}>
                       {displayTitle}
                     </h3>
-                    
+
                     <p style={{
                       fontSize: '16px',
                       color: '#666',
@@ -299,7 +216,7 @@ export default function GuidesSection() {
                     }}>
                       {displayDescription}
                     </p>
-                    
+
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',

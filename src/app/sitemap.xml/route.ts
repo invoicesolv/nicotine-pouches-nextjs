@@ -42,12 +42,19 @@ export async function GET() {
       console.error('Error fetching US products for sitemap:', usProductsError);
     }
 
-    // Get blog posts for sitemap (using the blog_posts API)
+    // Get blog posts for sitemap (direct DB query — no self-fetch fragility)
     let blogPosts: any[] = [];
     try {
-      const response = await fetch(`${baseUrl}/api/blog-posts`);
-      if (response.ok) {
-        blogPosts = await response.json();
+      const { data: dbPosts, error: blogError } = await supabase()
+        .from('blog_posts')
+        .select('slug, date')
+        .in('status', ['publish', 'published'])
+        .not('slug', 'is', null);
+
+      if (blogError) {
+        console.error('Error fetching blog posts for sitemap:', blogError);
+      } else {
+        blogPosts = dbPosts || [];
       }
     } catch (error) {
       console.error('Error fetching blog posts for sitemap:', error);

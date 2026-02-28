@@ -199,6 +199,75 @@ const Footer = () => {
         </div>
       </div>
 
+      {/* Popular Guides Section - UK Only */}
+      {!isUSRoute && (
+        <div style={{
+          padding: '30px 20px',
+          borderBottom: '1px solid rgba(255,255,255,0.1)'
+        }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <h3 style={{
+              color: 'white',
+              fontSize: '16px',
+              fontWeight: '700',
+              margin: '0 0 16px 0',
+              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+            }}>
+              Popular Guides
+            </h3>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px 16px',
+              marginBottom: '24px'
+            }}>
+              {[
+                { href: '/are-nicotine-pouches-legal', label: 'Are Nicotine Pouches Legal?' },
+                { href: '/vaping-vs-nicotine-pouches', label: 'Vaping vs Nicotine Pouches' },
+                { href: '/cheap-nicotine-pouches', label: 'Cheap Nicotine Pouches' },
+                { href: '/do-nicotine-pouches-help-quit-smoking', label: 'Do They Help Quit Smoking?' },
+                { href: '/can-you-overdose-on-nicotine-pouches', label: 'Can You Overdose?' },
+                { href: '/6mg-nicotine-pouches', label: '6mg Nicotine Pouches' },
+                { href: '/nicotine-pouches-health-risks', label: 'Health Risks' },
+                { href: '/asda-nicotine-pouches', label: 'Asda Nicotine Pouches' },
+                { href: '/tesco-nicotine-pouches', label: 'Tesco Nicotine Pouches' },
+                { href: '/nicotine-pouches-pros-and-cons', label: 'Pros and Cons' },
+                { href: '/does-nicotine-pouches-cause-cancer', label: 'Do They Cause Cancer?' },
+                { href: '/nicotine-pouches-vs-snus', label: 'Pouches vs Snus' },
+                { href: '/is-nicotine-pouches-bad-for-you', label: 'Are They Bad for You?' },
+                { href: '/nicotine-pouches-uk-law', label: 'UK Law' },
+                { href: '/nicotine-pouches-teeth', label: 'Effects on Teeth' },
+                { href: '/strong-nicotine-pouches', label: 'Strong Pouches' },
+                { href: '/nicotine-pouches-uk-ban', label: 'UK Ban News' },
+                { href: '/cheapest-nicotine-pouches', label: 'Cheapest Pouches' },
+                { href: '/quitting-nicotine-pouches', label: 'Quitting Pouches' },
+                { href: '/nicotine-pouches-on-plane', label: 'Pouches on Planes' },
+                { href: '/what-are-nicotine-pouches', label: 'What Are Nicotine Pouches?' },
+                { href: '/nicotine-pouches-regulation-uk', label: 'UK Regulation' },
+                { href: '/best-tasting-nicotine-pouches', label: 'Best Tasting Pouches' },
+                { href: '/do-nicotine-pouches-expire', label: 'Do They Expire?' },
+                { href: '/risks-of-nicotine-pouches', label: 'Risks' },
+                { href: '/nicotine-gum-vs-pouches', label: 'Gum vs Pouches' },
+              ].map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  style={{
+                    color: 'rgba(255,255,255,0.6)',
+                    textDecoration: 'none',
+                    fontSize: '14px',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                    transition: 'color 0.2s ease'
+                  }}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Popular Locations Section - UK Only */}
       {!isUSRoute && (
         <div style={{

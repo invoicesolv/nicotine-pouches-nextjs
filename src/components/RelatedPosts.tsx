@@ -1,22 +1,20 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { supabaseAdmin } from '@/lib/supabase';
 
 interface BlogPost {
-  wp_id: number;
+  wp_id?: number;
+  id?: number;
   title: string;
   slug: string;
   excerpt: string;
   date: string;
-  author: string;
-  featured_image: string;
+  featured_image?: string;
   featured_image_local?: string;
   seo_meta?: {
     title?: string;
     description?: string;
-  };
+  } | null;
 }
 
 interface RelatedPostsProps {
@@ -25,77 +23,82 @@ interface RelatedPostsProps {
   limit?: number;
 }
 
-export default function RelatedPosts({ 
-  currentPostSlug, 
-  currentPostTitle, 
-  limit = 3 
+// Helper function to find related posts based on title keywords
+function findRelatedPosts(posts: BlogPost[], currentTitle: string, limit: number): BlogPost[] {
+  const currentKeywords = currentTitle
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '')
+    .split(/\s+/)
+    .filter(word => word.length > 3);
+
+  const scoredPosts = posts.map(post => {
+    const postTitle = (post.seo_meta?.title || post.title).toLowerCase();
+    const postExcerpt = (post.seo_meta?.description || post.excerpt || '').toLowerCase();
+    const postContent = postTitle + ' ' + postExcerpt;
+
+    let score = 0;
+
+    currentKeywords.forEach(keyword => {
+      if (postTitle.includes(keyword)) score += 3;
+      if (postContent.includes(keyword)) score += 1;
+    });
+
+    const nicotineTerms = ['nicotine', 'pouch', 'pouches', 'zyn', 'snus', 'tobacco', 'smoking', 'quit', 'health', 'safety'];
+    nicotineTerms.forEach(term => {
+      if (postContent.includes(term)) score += 0.5;
+    });
+
+    return { post, score };
+  });
+
+  return scoredPosts
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(item => item.post);
+}
+
+// Clean excerpt text
+function cleanText(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, '')
+    .replace(/\[&hellip;\]/g, '...')
+    .replace(/&#8217;/g, "'")
+    .replace(/&#8211;/g, "–")
+    .replace(/&#8212;/g, "—")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&hellip;/g, '...')
+    .replace(/&nbsp;/g, ' ');
+}
+
+export default async function RelatedPosts({
+  currentPostSlug,
+  currentPostTitle,
+  limit = 3
 }: RelatedPostsProps) {
-  const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Server-side fetch — HTML rendered with actual links for Googlebot
+  let relatedPosts: BlogPost[] = [];
 
-  useEffect(() => {
-    const fetchRelatedPosts = async () => {
-      try {
-        // Use AbortController for timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+  try {
+    const client = supabaseAdmin();
+    if (client) {
+      const { data, error } = await client
+        .from('blog_posts')
+        .select('id, wp_id, title, slug, excerpt, date, featured_image, featured_image_local, seo_meta')
+        .in('status', ['publish', 'published'])
+        .neq('slug', currentPostSlug)
+        .order('date', { ascending: false })
+        .limit(20);
 
-        const response = await fetch('/api/blog-posts?limit=20', {
-          signal: controller.signal,
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        });
-
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          const allPosts = await response.json();
-
-          // Filter out the current post
-          const otherPosts = allPosts.filter((post: BlogPost) => post.slug !== currentPostSlug);
-
-          // Simple keyword-based matching for related posts
-          const related = findRelatedPosts(otherPosts, currentPostTitle, limit);
-          setRelatedPosts(related);
-        }
-      } catch (error) {
-        // Silently handle errors - don't log to console in production
-        // Related posts are non-critical, so we just show nothing on error
-        if (error instanceof Error && error.name !== 'AbortError') {
-          // Only log non-abort errors in development
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Error fetching related posts:', error);
-          }
-        }
-      } finally {
-        setLoading(false);
+      if (!error && data) {
+        relatedPosts = findRelatedPosts(data as BlogPost[], currentPostTitle, limit);
       }
-    };
-
-    fetchRelatedPosts();
-  }, [currentPostSlug, currentPostTitle, limit]);
-
-  if (loading) {
-    return (
-      <div style={{
-        marginTop: '60px',
-        padding: '40px 20px',
-        backgroundColor: '#f9fafb',
-        borderRadius: '12px'
-      }}>
-        <h3 style={{
-          fontSize: '24px',
-          fontWeight: '600',
-          color: '#1a1a1a',
-          margin: '0 0 20px 0',
-          fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
-        }}>
-          Related Articles
-        </h3>
-        <div style={{ color: '#666', fontSize: '16px' }}>Loading related posts...</div>
-      </div>
-    );
+    }
+  } catch {
+    // Non-critical — fail silently
   }
 
   if (relatedPosts.length === 0) {
@@ -167,7 +170,7 @@ export default function RelatedPosts({
           }}>
             Related Articles
           </h3>
-          
+
           <div className="related-posts-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
@@ -175,186 +178,118 @@ export default function RelatedPosts({
             width: '100%',
             boxSizing: 'border-box'
           }}>
-        {relatedPosts.map((post) => {
-          const displayTitle = post.seo_meta?.title || post.title;
-          const displayDescription = post.seo_meta?.description || post.excerpt;
-          const displayImage = post.featured_image_local || post.featured_image || '/placeholder-product.jpg';
-          
-          return (
-            <Link
-              key={post.id || post.wp_id || post.slug}
-              href={`/${post.slug}`}
-              style={{ textDecoration: 'none', color: 'inherit' }}
-            >
-              <article style={{
-                backgroundColor: 'transparent',
-                borderRadius: '0',
-                overflow: 'visible',
-                boxShadow: 'none',
-                transition: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                border: 'none',
-                width: '100%',
-                maxWidth: '100%',
-                boxSizing: 'border-box'
-              }}>
-                {/* Featured Image - Rounded Corners and Separate */}
-                <div style={{
-                  width: '100%',
-                  height: '210px',
-                  overflow: 'hidden',
-                  borderRadius: '25px',
-                  marginBottom: '20px',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  maxWidth: '100%'
-                }}>
-                  <Image 
-                    src={displayImage}
-                    alt={displayTitle}
-                    width={300}
-                    height={230}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      borderRadius: '12px',
-                      maxWidth: '100%'
-                    }}
-                  />
-                </div>
-                
-                {/* Content - No border, no shadow */}
-                <div style={{ 
-                  padding: '0',
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  border: 'none',
-                  outline: 'none',
-                  backgroundColor: 'transparent',
-                  boxShadow: 'none',
-                  width: '100%',
-                  maxWidth: '100%',
-                  boxSizing: 'border-box'
-                }}>
-                  <h4 style={{
-                    fontSize: '26px',
-                    fontWeight: '500',
-                    color: '#333',
-                    margin: '0 0 12px 0',
-                    lineHeight: '1.3',
-                    width: '100%',
-                    maxWidth: '100%',
-                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
-                    wordWrap: 'break-word',
-                    overflowWrap: 'break-word'
-                  }}>
-                    {displayTitle}
-                  </h4>
-                  
-                  <p style={{
-                    fontSize: '14px',
-                    color: '#666',
-                    lineHeight: '1.5',
-                    margin: '0 0 16px 0',
-                    flex: 1,
-                    whiteSpace: 'normal',
-                    wordWrap: 'break-word',
-                    overflowWrap: 'break-word',
-                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
-                    width: '100%',
-                    maxWidth: '100%'
-                  }}>
-                    {(() => {
-                      const content = displayDescription || '';
-                      const cleanedText = content
-                        .replace(/<[^>]*>/g, '')
-                        .replace(/\[&hellip;\]/g, '...')
-                        .replace(/&#8217;/g, "'")
-                        .replace(/&#8211;/g, "–")
-                        .replace(/&#8212;/g, "—")
-                        .replace(/&amp;/g, "&")
-                        .replace(/&lt;/g, "<")
-                        .replace(/&gt;/g, ">")
-                        .replace(/&quot;/g, '"')
-                        .replace(/&#39;/g, "'");
-                      return cleanedText.length > 360 ? cleanedText.substring(0, 360) + '...' : cleanedText;
-                    })()}
-                  </p>
-                  
-                  <div style={{
+            {relatedPosts.map((post) => {
+              const displayTitle = post.seo_meta?.title || post.title;
+              const displayDescription = post.seo_meta?.description || post.excerpt || '';
+              const displayImage = post.featured_image_local || post.featured_image || '/placeholder-product.jpg';
+              const cleanedDesc = cleanText(displayDescription);
+
+              return (
+                <Link
+                  key={post.id || post.wp_id || post.slug}
+                  href={`/${post.slug}`}
+                  style={{ textDecoration: 'none', color: 'inherit' }}
+                >
+                  <article style={{
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    fontSize: '12px',
-                    color: '#999',
-                    marginTop: 'auto',
-                    fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                    flexDirection: 'column',
                     width: '100%',
                     maxWidth: '100%',
-                    flexWrap: 'wrap',
-                    gap: '8px'
+                    boxSizing: 'border-box'
                   }}>
-                    <span style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>By {post.author}</span>
-                    <span style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>{new Date(post.date).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              </article>
-            </Link>
-          );
-        })}
+                    {/* Featured Image */}
+                    <div style={{
+                      width: '100%',
+                      height: '210px',
+                      overflow: 'hidden',
+                      borderRadius: '25px',
+                      marginBottom: '20px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      maxWidth: '100%'
+                    }}>
+                      <Image
+                        src={displayImage}
+                        alt={displayTitle}
+                        width={300}
+                        height={230}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          borderRadius: '12px',
+                          maxWidth: '100%'
+                        }}
+                      />
+                    </div>
+
+                    {/* Content */}
+                    <div style={{
+                      padding: '0',
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      width: '100%',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box'
+                    }}>
+                      <h4 style={{
+                        fontSize: '26px',
+                        fontWeight: '500',
+                        color: '#333',
+                        margin: '0 0 12px 0',
+                        lineHeight: '1.3',
+                        width: '100%',
+                        maxWidth: '100%',
+                        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                        wordWrap: 'break-word',
+                        overflowWrap: 'break-word'
+                      }}>
+                        {displayTitle}
+                      </h4>
+
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#666',
+                        lineHeight: '1.5',
+                        margin: '0 0 16px 0',
+                        flex: 1,
+                        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                        width: '100%',
+                        maxWidth: '100%',
+                        wordWrap: 'break-word',
+                        overflowWrap: 'break-word'
+                      }}>
+                        {cleanedDesc.length > 360 ? cleanedDesc.substring(0, 360) + '...' : cleanedDesc}
+                      </p>
+
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '12px',
+                        color: '#999',
+                        marginTop: 'auto',
+                        fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                        width: '100%',
+                        maxWidth: '100%',
+                        flexWrap: 'wrap',
+                        gap: '8px'
+                      }}>
+                        <span>By Nicotine Pouches Team</span>
+                        <span>{new Date(post.date).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </article>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>
     </>
   );
-}
-
-// Helper function to find related posts based on title keywords
-function findRelatedPosts(posts: BlogPost[], currentTitle: string, limit: number): BlogPost[] {
-  // Extract keywords from current post title
-  const currentKeywords = currentTitle
-    .toLowerCase()
-    .replace(/[^\w\s]/g, '')
-    .split(/\s+/)
-    .filter(word => word.length > 3);
-
-  // Score each post based on keyword matches
-  const scoredPosts = posts.map(post => {
-    const postTitle = (post.seo_meta?.title || post.title).toLowerCase();
-    const postExcerpt = (post.seo_meta?.description || post.excerpt).toLowerCase();
-    const postContent = postTitle + ' ' + postExcerpt;
-    
-    let score = 0;
-    
-    // Check for keyword matches in title (higher weight)
-    currentKeywords.forEach(keyword => {
-      if (postTitle.includes(keyword)) {
-        score += 3;
-      }
-      if (postContent.includes(keyword)) {
-        score += 1;
-      }
-    });
-
-    // Check for common nicotine pouch related terms
-    const nicotineTerms = ['nicotine', 'pouch', 'pouches', 'zyn', 'snus', 'tobacco', 'smoking', 'quit', 'health', 'safety'];
-    nicotineTerms.forEach(term => {
-      if (postContent.includes(term)) {
-        score += 0.5;
-      }
-    });
-
-    return { post, score };
-  });
-
-  // Sort by score and return top posts
-  return scoredPosts
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map(item => item.post);
 }
