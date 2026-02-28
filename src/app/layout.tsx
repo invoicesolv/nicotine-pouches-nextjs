@@ -9,7 +9,7 @@ import GoogleAnalytics from '@/components/GoogleAnalytics'
 import SearchConsoleMonitor from '@/components/SearchConsoleMonitor'
 import { LiveChatWidget } from '@/components/LiveChatWidget'
 import ClientPriceAlertModal from '@/components/ClientPriceAlertModal'
-import AdSenseInit from '@/components/AdSenseInit'
+// AdSenseInit removed from global layout — ads only on product pages & guide posts
 
 const inter = Inter({
   subsets: ['latin'],
@@ -230,12 +230,7 @@ export default async function RootLayout({
             __html: JSON.stringify(faqSchema)
           }}
         />
-        {/* Google AdSense - using dangerouslySetInnerHTML to avoid data-nscript attribute */}
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9898973838473500"
-          crossOrigin="anonymous"
-        />
+        {/* AdSense script removed from global layout — loaded only on product pages & guide posts */}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-9FT722JELW'}`}
           strategy="lazyOnload"
@@ -259,7 +254,6 @@ export default async function RootLayout({
             <SearchConsoleMonitor />
             <LiveChatWidget />
             <ClientPriceAlertModal />
-            <AdSenseInit />
           </AuthProvider>
         </LanguageProvider>
       </body>
