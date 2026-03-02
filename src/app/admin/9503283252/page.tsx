@@ -24,7 +24,8 @@ import {
   ShieldCheck,
   Store,
   ArrowLeftRight,
-  Filter
+  Filter,
+  ClipboardCopy
 } from 'lucide-react';
 
 // Offer Vendor Row Component - Compact table row version
@@ -715,6 +716,17 @@ export default function AdminDashboard() {
   const [showMapDialog, setShowMapDialog] = useState<any>(null);
   const [mapSearchTerm, setMapSearchTerm] = useState('');
   const [mapSearchResults, setMapSearchResults] = useState<any[]>([]);
+
+  // Store Applications state
+  const [applications, setApplications] = useState<any[]>([]);
+  const [applicationsTotal, setApplicationsTotal] = useState(0);
+  const [applicationsPage, setApplicationsPage] = useState(1);
+  const [applicationsTotalPages, setApplicationsTotalPages] = useState(1);
+  const [applicationsStatusFilter, setApplicationsStatusFilter] = useState('pending');
+  const [applicationsPendingCount, setApplicationsPendingCount] = useState(0);
+  const [applicationsLoading, setApplicationsLoading] = useState(false);
+  const [approvedCredentials, setApprovedCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [applicationActionLoading, setApplicationActionLoading] = useState<string | null>(null);
   const [mapSearchLoading, setMapSearchLoading] = useState(false);
 
   useEffect(() => {
@@ -785,6 +797,84 @@ export default function AdminDashboard() {
   useEffect(() => {
     setUnmappedPage(1);
   }, [unmappedStatusFilter, unmappedVendorFilter, unmappedSearch]);
+
+  // Load store applications when switching to applications tab
+  useEffect(() => {
+    if (adminKey && activeTab === 'applications') {
+      loadApplications();
+    }
+  }, [adminKey, activeTab, applicationsPage, applicationsStatusFilter]);
+
+  // Load pending count for badge on mount
+  useEffect(() => {
+    if (adminKey) {
+      loadApplicationsPendingCount();
+    }
+  }, [adminKey]);
+
+  const loadApplicationsPendingCount = async () => {
+    try {
+      const res = await fetch('/api/admin/store-applications?status=pending&limit=1');
+      const data = await res.json();
+      if (data.total !== undefined) {
+        setApplicationsPendingCount(data.total);
+      }
+    } catch {
+      // Silently fail for badge count
+    }
+  };
+
+  const loadApplications = async () => {
+    setApplicationsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        status: applicationsStatusFilter,
+        page: applicationsPage.toString(),
+        limit: '50',
+      });
+      const res = await fetch(`/api/admin/store-applications?${params}`);
+      const data = await res.json();
+      if (data.data) {
+        setApplications(data.data);
+        setApplicationsTotal(data.total || 0);
+        setApplicationsTotalPages(data.totalPages || 1);
+      }
+    } catch (error) {
+      console.error('Error loading applications:', error);
+      toast.error('Failed to load applications');
+    } finally {
+      setApplicationsLoading(false);
+    }
+  };
+
+  const handleApplicationAction = async (id: string, action: 'approve' | 'reject') => {
+    setApplicationActionLoading(id);
+    setApprovedCredentials(null);
+    try {
+      const res = await fetch('/api/admin/store-applications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Action failed');
+        return;
+      }
+      if (action === 'approve' && data.credentials) {
+        setApprovedCredentials(data.credentials);
+        toast.success('Application approved! Credentials generated.');
+      } else {
+        toast.success('Application rejected.');
+      }
+      loadApplications();
+      loadApplicationsPendingCount();
+    } catch {
+      toast.error('An error occurred');
+    } finally {
+      setApplicationActionLoading(null);
+    }
+  };
 
   const loadVendors = async () => {
     setLoading(true);
@@ -2046,6 +2136,22 @@ export default function AdminDashboard() {
                 >
                   <span className="text-sm">🎁</span>
                   Offers
+                </button>
+                <button
+                  onClick={() => setActiveTab('applications')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTab === 'applications'
+                      ? 'bg-slate-700 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Store className="h-3.5 w-3.5" />
+                  Applications
+                  {applicationsPendingCount > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full leading-none">
+                      {applicationsPendingCount}
+                    </span>
+                  )}
                 </button>
               </div>
 
@@ -4014,6 +4120,188 @@ export default function AdminDashboard() {
                         )}
                       </div>
                     </Card>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'applications' && (
+              <div className="space-y-4">
+                {/* Credentials Banner */}
+                {approvedCredentials && (
+                  <div className="bg-emerald-900/30 border border-emerald-700/50 rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-sm font-semibold text-emerald-400 mb-2">Store Credentials Generated</h3>
+                        <div className="space-y-1 text-sm">
+                          <p className="text-slate-300">
+                            Email: <span className="text-white font-mono">{approvedCredentials.email}</span>
+                          </p>
+                          <p className="text-slate-300">
+                            Password: <span className="text-white font-mono">{approvedCredentials.password}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(`Email: ${approvedCredentials.email}\nPassword: ${approvedCredentials.password}`);
+                            toast.success('Credentials copied!');
+                          }}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded transition-colors"
+                        >
+                          <ClipboardCopy className="h-3 w-3" />
+                          Copy
+                        </button>
+                        <button
+                          onClick={() => setApprovedCredentials(null)}
+                          className="text-slate-400 hover:text-white"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Stats & Filters */}
+                <div className="flex items-center justify-between bg-slate-800/30 rounded-lg px-4 py-2">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500 text-xs">Total</span>
+                      <span className="text-white font-semibold">{applicationsTotal}</span>
+                    </div>
+                    <div className="h-4 w-px bg-slate-700" />
+                    <select
+                      value={applicationsStatusFilter}
+                      onChange={(e) => { setApplicationsStatusFilter(e.target.value); setApplicationsPage(1); }}
+                      className="h-7 px-2 bg-slate-900/50 border border-slate-700/50 rounded text-xs text-slate-300"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="all">All</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Applications Table */}
+                {applicationsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400"></div>
+                  </div>
+                ) : applications.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400">
+                    <Store className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">No applications found</p>
+                  </div>
+                ) : (
+                  <div className="bg-slate-900/30 rounded-lg border border-slate-800/50 overflow-hidden">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-800/50 bg-slate-800/30">
+                          <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Store</th>
+                          <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Email</th>
+                          <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Website</th>
+                          <th className="text-center px-3 py-2 text-xs font-medium text-slate-500 uppercase">Country</th>
+                          <th className="text-center px-3 py-2 text-xs font-medium text-slate-500 uppercase">Status</th>
+                          <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Date</th>
+                          <th className="text-right px-3 py-2 text-xs font-medium text-slate-500 uppercase">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/30">
+                        {applications.map((app: any) => (
+                          <tr key={app.id} className="hover:bg-slate-800/20 transition-colors">
+                            <td className="px-3 py-2">
+                              <span className="text-sm text-white font-medium">{app.store_name}</span>
+                              {app.message && (
+                                <p className="text-xs text-slate-500 truncate max-w-[200px]" title={app.message}>{app.message}</p>
+                              )}
+                            </td>
+                            <td className="px-3 py-2">
+                              <span className="text-sm text-slate-300">{app.contact_email}</span>
+                            </td>
+                            <td className="px-3 py-2">
+                              {app.website_url ? (
+                                <a href={app.website_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline truncate block max-w-[180px]">
+                                  {app.website_url.replace(/^https?:\/\//, '')}
+                                </a>
+                              ) : (
+                                <span className="text-xs text-slate-600">-</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <span className="text-xs px-2 py-0.5 bg-slate-700/50 text-slate-300 rounded uppercase">
+                                {app.country}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <span className={`text-xs px-2 py-0.5 rounded ${
+                                app.status === 'pending' ? 'bg-amber-500/10 text-amber-400' :
+                                app.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400' :
+                                'bg-red-500/10 text-red-400'
+                              }`}>
+                                {app.status}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2">
+                              <span className="text-xs text-slate-400">
+                                {new Date(app.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              {app.status === 'pending' && (
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleApplicationAction(app.id, 'approve')}
+                                    disabled={applicationActionLoading === app.id}
+                                    className="h-6 px-2 text-xs bg-emerald-600 hover:bg-emerald-700"
+                                  >
+                                    {applicationActionLoading === app.id ? '...' : 'Approve'}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleApplicationAction(app.id, 'reject')}
+                                    disabled={applicationActionLoading === app.id}
+                                    className="h-6 px-2 text-xs bg-red-600 hover:bg-red-700"
+                                  >
+                                    Reject
+                                  </Button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    {/* Pagination */}
+                    {applicationsTotalPages > 1 && (
+                      <div className="flex justify-between items-center px-3 py-2 border-t border-slate-800/50">
+                        <span className="text-xs text-slate-500">Page {applicationsPage} of {applicationsTotalPages}</span>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setApplicationsPage(p => Math.max(1, p - 1))}
+                            disabled={applicationsPage === 1}
+                            className="h-6 px-2 text-xs border-slate-700"
+                          >
+                            Prev
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setApplicationsPage(p => Math.min(applicationsTotalPages, p + 1))}
+                            disabled={applicationsPage === applicationsTotalPages}
+                            className="h-6 px-2 text-xs border-slate-700"
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

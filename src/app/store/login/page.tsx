@@ -130,11 +130,17 @@ export default function StoreLoginPage() {
             </button>
           </div>
 
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <p className="text-sm text-gray-600">
               Have an invite code?{' '}
               <Link href="/store/register" className="font-medium text-blue-600 hover:text-blue-500">
                 Create an account
+              </Link>
+            </p>
+            <p className="text-sm text-gray-600">
+              Want to list your store?{' '}
+              <Link href="/store/apply" className="font-medium text-blue-600 hover:text-blue-500">
+                Apply as a store
               </Link>
             </p>
           </div>
