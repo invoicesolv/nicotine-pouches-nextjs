@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { pushReviewToAxelio } from '@/lib/axelio';
 
 export async function POST(request: Request) {
   try {
@@ -85,6 +86,18 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    // Sync to Axelio CRM (fire-and-forget)
+    pushReviewToAxelio({
+      source: 'user',
+      source_id: String(data[0].id),
+      product_id: productId,
+      reviewer_name: userId,
+      rating,
+      body: reviewText,
+    }).catch((err) => {
+      console.error('Failed to push review to Axelio:', err);
+    });
 
     return NextResponse.json(
       { message: 'Review submitted successfully', review: data[0] },
