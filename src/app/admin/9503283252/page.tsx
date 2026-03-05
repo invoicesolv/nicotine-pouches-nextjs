@@ -718,6 +718,7 @@ export default function AdminDashboard() {
   const [mapSearchResults, setMapSearchResults] = useState<any[]>([]);
   const [showProductDetail, setShowProductDetail] = useState<any>(null);
   const [confirmAction, setConfirmAction] = useState<{ id: number; action: 'create' | 'reject'; product: any } | null>(null);
+  const [createForm, setCreateForm] = useState<{ id: number; product: any; name: string; brand: string; strength_mg: string; flavour: string; format: string; pouch_count: string; image_url: string } | null>(null);
 
   // Store Applications state
   const [applications, setApplications] = useState<any[]>([]);
@@ -3999,7 +4000,11 @@ export default function AdminDashboard() {
                                 <div className="flex items-center justify-end gap-1">
                                   <Button
                                     size="sm"
-                                    onClick={() => setConfirmAction({ id: product.id, action: 'create', product })}
+                                    onClick={() => {
+                                      const name = product.product_name;
+                                      const brand = name.split(' ')[0];
+                                      setCreateForm({ id: product.id, product, name, brand, strength_mg: '', flavour: '', format: '', pouch_count: '', image_url: product.image_url || '' });
+                                    }}
                                     disabled={actionLoading === product.id}
                                     className="h-6 px-2 text-xs bg-emerald-600 hover:bg-emerald-700"
                                   >
@@ -4068,7 +4073,7 @@ export default function AdminDashboard() {
                 {/* Product Detail Modal */}
                 {showProductDetail && (
                   <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowProductDetail(null)}>
-                    <Card className="bg-slate-900 border-slate-700 p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                    <Card className="bg-slate-900 border-slate-700 p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-between items-start mb-4">
                         <h3 className="text-lg font-semibold text-white">Product Details</h3>
                         <button onClick={() => setShowProductDetail(null)} className="text-slate-400 hover:text-white">
@@ -4164,7 +4169,12 @@ export default function AdminDashboard() {
                           <div className="flex gap-2 pt-2 border-t border-slate-800">
                             <Button
                               size="sm"
-                              onClick={() => { setShowProductDetail(null); setConfirmAction({ id: showProductDetail.id, action: 'create', product: showProductDetail }); }}
+                              onClick={() => {
+                                const name = showProductDetail.product_name;
+                                const brand = name.split(' ')[0];
+                                setShowProductDetail(null);
+                                setCreateForm({ id: showProductDetail.id, product: showProductDetail, name, brand, strength_mg: '', flavour: '', format: '', pouch_count: '', image_url: showProductDetail.image_url || '' });
+                              }}
                               className="bg-emerald-600 hover:bg-emerald-700 text-xs"
                             >
                               Create Product
@@ -4193,7 +4203,7 @@ export default function AdminDashboard() {
                 {/* Confirm Action Dialog */}
                 {confirmAction && (
                   <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setConfirmAction(null)}>
-                    <Card className="bg-slate-900 border-slate-700 p-6 w-full max-w-md" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                    <Card className="bg-slate-900 border-slate-700 p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
                       <h3 className="text-lg font-semibold text-white mb-2">
                         {confirmAction.action === 'create' ? 'Create New Product?' : 'Reject Product?'}
                       </h3>
@@ -4226,6 +4236,107 @@ export default function AdminDashboard() {
                         >
                           {actionLoading === confirmAction.id ? '...' : confirmAction.action === 'create' ? 'Yes, Create' : 'Yes, Reject'}
                         </Button>
+                      </div>
+                    </Card>
+                  </div>
+                )}
+
+                {/* Create Product Form */}
+                {createForm && (
+                  <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setCreateForm(null)}>
+                    <Card className="bg-slate-900 border-slate-700 p-6 w-full max-w-xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-lg font-semibold text-white">Create New Product</h3>
+                        <button onClick={() => setCreateForm(null)} className="text-slate-400 hover:text-white">
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {/* Image preview */}
+                        <div className="flex items-center gap-3 bg-slate-800/50 rounded-lg p-3">
+                          {createForm.image_url ? (
+                            <img src={createForm.image_url} alt="" className="w-16 h-16 rounded object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-16 h-16 rounded bg-slate-700 flex items-center justify-center flex-shrink-0">
+                              <Package className="w-6 h-6 text-slate-500" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs text-slate-500">Source: {createForm.product.source_vendor}</span>
+                            <p className="text-xs text-slate-400 truncate">{createForm.product.product_name}</p>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-xs text-slate-400 block mb-1">Product Name</label>
+                          <Input value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} className="bg-slate-800 border-slate-700 text-white" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs text-slate-400 block mb-1">Brand</label>
+                            <Input value={createForm.brand} onChange={(e) => setCreateForm({ ...createForm, brand: e.target.value })} className="bg-slate-800 border-slate-700 text-white" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-400 block mb-1">Strength (mg)</label>
+                            <Input value={createForm.strength_mg} onChange={(e) => setCreateForm({ ...createForm, strength_mg: e.target.value })} placeholder="e.g. 10" className="bg-slate-800 border-slate-700 text-white" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs text-slate-400 block mb-1">Flavour</label>
+                            <Input value={createForm.flavour} onChange={(e) => setCreateForm({ ...createForm, flavour: e.target.value })} placeholder="e.g. Mint" className="bg-slate-800 border-slate-700 text-white" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-400 block mb-1">Format</label>
+                            <Input value={createForm.format} onChange={(e) => setCreateForm({ ...createForm, format: e.target.value })} placeholder="e.g. Slim" className="bg-slate-800 border-slate-700 text-white" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs text-slate-400 block mb-1">Pouch Count</label>
+                            <Input value={createForm.pouch_count} onChange={(e) => setCreateForm({ ...createForm, pouch_count: e.target.value })} placeholder="e.g. 20" className="bg-slate-800 border-slate-700 text-white" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-400 block mb-1">Image URL</label>
+                            <Input value={createForm.image_url} onChange={(e) => setCreateForm({ ...createForm, image_url: e.target.value })} placeholder="https://..." className="bg-slate-800 border-slate-700 text-white text-xs" />
+                          </div>
+                        </div>
+
+                        {/* Prices from source */}
+                        {createForm.product.source_prices && Object.keys(createForm.product.source_prices).length > 0 && (
+                          <div className="bg-slate-800/30 rounded p-2">
+                            <span className="text-xs text-slate-500">Source prices:</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {Object.entries(createForm.product.source_prices).map(([tier, price]) => (
+                                <span key={tier} className="text-xs px-1.5 py-0.5 bg-slate-700/50 rounded text-slate-300">{tier}: {price as string}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                          <Button size="sm" variant="outline" onClick={() => setCreateForm(null)} className="text-xs border-slate-700">Cancel</Button>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              handleUnmappedAction(createForm.id, 'create', undefined, {
+                                name: createForm.name,
+                                brand: createForm.brand,
+                                image_url: createForm.image_url,
+                                strength_mg: createForm.strength_mg ? parseFloat(createForm.strength_mg) : null,
+                                flavour: createForm.flavour || null,
+                                format: createForm.format || null,
+                                pouch_count: createForm.pouch_count ? parseInt(createForm.pouch_count) : null,
+                              });
+                              setCreateForm(null);
+                            }}
+                            disabled={!createForm.name || actionLoading === createForm.id}
+                            className="text-xs bg-emerald-600 hover:bg-emerald-700"
+                          >
+                            {actionLoading === createForm.id ? '...' : 'Create Product'}
+                          </Button>
+                        </div>
                       </div>
                     </Card>
                   </div>

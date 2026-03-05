@@ -18,6 +18,7 @@ interface Product {
   stores: number;
   tracking: number;
   link: string;
+  created_at?: string;
 }
 
 interface Filters {
@@ -218,7 +219,8 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
         link: `https://nicotine-pouches.org/product/${slug}`,
         brand: brand,
         flavour: flavour,
-        format: 'Slim' // Default format since wp_products doesn't have this field
+        format: 'Slim', // Default format since wp_products doesn't have this field
+        created_at: product.created_at
       };
     });
 

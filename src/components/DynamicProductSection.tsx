@@ -18,6 +18,7 @@ interface Product {
   tracking_count: number;
   trend_score: number;
   strength_group: string;
+  created_at?: string;
 }
 
 interface DynamicProductSectionProps {
@@ -169,15 +170,10 @@ export default function DynamicProductSection({
     setActivePopup(null);
   };
 
-  // Different starting offsets for each section to ensure unique products
-  // Tightened offsets: popular 0-11, trending 12-23, new 24-35
+  // Each section uses offset 0 - the API scores products differently per section
+  // (popular = store count, trending = recent clicks, new = recency)
   const getSectionOffset = () => {
-    switch (section) {
-      case 'popular': return 0;
-      case 'trending': return 12;
-      case 'new': return 24;
-      default: return 0;
-    }
+    return 0;
   };
 
   // Initial load only - fetch fewer products on mobile
@@ -292,18 +288,39 @@ export default function DynamicProductSection({
                     position: 'absolute',
                     top: '6px',
                     left: '6px',
-                    background: '#e5ff7d',
-                    padding: '2px 6px',
-                    borderRadius: '100px',
-                    fontSize: '9px',
-                    fontWeight: '600',
-                    color: 'rgba(0, 0, 0, 0.9)',
-                    zIndex: 2,
-                    letterSpacing: '-0.1px',
-                    whiteSpace: 'nowrap',
-                    lineHeight: '1.4'
+                    display: 'flex',
+                    gap: '4px',
+                    zIndex: 2
                   }}>
-                    {product.tracking_count > 0 ? `${product.tracking_count} tracking` : 'Track price'}
+                    <div style={{
+                      background: '#e5ff7d',
+                      padding: '2px 6px',
+                      borderRadius: '100px',
+                      fontSize: '9px',
+                      fontWeight: '600',
+                      color: 'rgba(0, 0, 0, 0.9)',
+                      letterSpacing: '-0.1px',
+                      whiteSpace: 'nowrap',
+                      lineHeight: '1.4'
+                    }}>
+                      {product.tracking_count > 0 ? `${product.tracking_count} tracking` : 'Track price'}
+                    </div>
+                    {product.created_at && (Date.now() - new Date(product.created_at).getTime()) < 30 * 24 * 60 * 60 * 1000 && (
+                      <div style={{
+                        background: '#3b82f6',
+                        padding: '2px 6px',
+                        borderRadius: '100px',
+                        fontSize: '9px',
+                        fontWeight: '700',
+                        color: '#fff',
+                        letterSpacing: '0.5px',
+                        whiteSpace: 'nowrap',
+                        lineHeight: '1.4',
+                        textTransform: 'uppercase'
+                      }}>
+                        NEW
+                      </div>
+                    )}
                   </div>
 
                   {/* Action Button with Dropdown */}

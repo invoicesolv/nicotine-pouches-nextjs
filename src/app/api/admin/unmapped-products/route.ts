@@ -145,15 +145,21 @@ export async function PATCH(request: NextRequest) {
       case 'create':
         // Create as new product in wp_products
         const productName = newProductData?.name || unmapped.product_name;
-        const brand = productName.split(' ')[0];
+        const brand = newProductData?.brand || productName.split(' ')[0];
 
         const { data: newProduct, error: createError } = await supabaseAdmin()
           .from('wp_products')
           .insert({
+            id: newProductData?.id || undefined,
             name: productName,
-            brand: brand,
+            brand_name: brand,
             image_url: newProductData?.image_url || unmapped.image_url || null,
             price: newProductData?.price || null,
+            nicotine_mg: newProductData?.nicotine_mg || null,
+            flavour_category: newProductData?.flavour_category || null,
+            pouch_format: newProductData?.pouch_format || null,
+            strength_category: newProductData?.strength_category || null,
+            status: 'publish',
             created_at: new Date().toISOString()
           })
           .select()

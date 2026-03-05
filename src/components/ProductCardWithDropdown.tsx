@@ -17,6 +17,7 @@ interface Product {
   stores: number;
   tracking: number;
   link: string;
+  created_at?: string;
 }
 
 interface ProductCardWithDropdownProps {
@@ -202,23 +203,44 @@ export default function ProductCardWithDropdown({ product }: ProductCardWithDrop
              cursor: 'pointer'
            }}>
 
-        {/* Watching Badge */}
+        {/* Watching Badge + NEW Badge */}
         <div style={{
           position: 'absolute',
           top: '6px',
           left: '6px',
-          background: '#e5ff7d',
-          padding: '2px 6px',
-          borderRadius: '100px',
-          fontSize: '9px',
-          fontWeight: '600',
-          color: 'rgba(0, 0, 0, 0.9)',
-          zIndex: 2,
-          letterSpacing: '-0.1px',
-          whiteSpace: 'nowrap',
-          lineHeight: '1.4'
+          display: 'flex',
+          gap: '4px',
+          zIndex: 2
         }}>
-          {product.tracking > 0 ? `${product.tracking} tracking` : 'Track price'}
+          <div style={{
+            background: '#e5ff7d',
+            padding: '2px 6px',
+            borderRadius: '100px',
+            fontSize: '9px',
+            fontWeight: '600',
+            color: 'rgba(0, 0, 0, 0.9)',
+            letterSpacing: '-0.1px',
+            whiteSpace: 'nowrap',
+            lineHeight: '1.4'
+          }}>
+            {product.tracking > 0 ? `${product.tracking} tracking` : 'Track price'}
+          </div>
+          {product.created_at && (Date.now() - new Date(product.created_at).getTime()) < 30 * 24 * 60 * 60 * 1000 && (
+            <div style={{
+              background: '#3b82f6',
+              padding: '2px 6px',
+              borderRadius: '100px',
+              fontSize: '9px',
+              fontWeight: '700',
+              color: '#fff',
+              letterSpacing: '0.5px',
+              whiteSpace: 'nowrap',
+              lineHeight: '1.4',
+              textTransform: 'uppercase'
+            }}>
+              NEW
+            </div>
+          )}
         </div>
 
         {/* Action Button with Dropdown */}

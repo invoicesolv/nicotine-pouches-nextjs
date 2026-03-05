@@ -15,6 +15,7 @@ interface Product {
   page_url?: string;
   description?: string;
   store_count: number;
+  created_at?: string;
 }
 
 interface ProductCardProps {
@@ -159,23 +160,44 @@ const ProductCard = ({
              e.currentTarget.style.transform = 'translateY(-1px)';
            }}>
         
-        {/* Watching Badge */}
-        <div className="watching-badge" style={{
+        {/* Watching Badge + NEW Badge */}
+        <div style={{
           position: 'absolute',
           top: '10px',
           left: '10px',
-          background: '#e5ff7d',
-          padding: '3px 8px',
-          borderRadius: '100px',
-          fontSize: '11px',
-          fontWeight: '600',
-          color: 'rgba(0, 0, 0, 0.9)',
-          zIndex: 2,
-          letterSpacing: '-0.1px',
-          whiteSpace: 'nowrap',
-          lineHeight: '1.4'
+          display: 'flex',
+          gap: '4px',
+          zIndex: 2
         }}>
-          {watching}+ watching
+          <div className="watching-badge" style={{
+            background: '#e5ff7d',
+            padding: '3px 8px',
+            borderRadius: '100px',
+            fontSize: '11px',
+            fontWeight: '600',
+            color: 'rgba(0, 0, 0, 0.9)',
+            letterSpacing: '-0.1px',
+            whiteSpace: 'nowrap',
+            lineHeight: '1.4'
+          }}>
+            {watching}+ watching
+          </div>
+          {product.created_at && (Date.now() - new Date(product.created_at).getTime()) < 30 * 24 * 60 * 60 * 1000 && (
+            <div style={{
+              background: '#3b82f6',
+              padding: '3px 8px',
+              borderRadius: '100px',
+              fontSize: '11px',
+              fontWeight: '700',
+              color: '#fff',
+              letterSpacing: '0.5px',
+              whiteSpace: 'nowrap',
+              lineHeight: '1.4',
+              textTransform: 'uppercase'
+            }}>
+              NEW
+            </div>
+          )}
         </div>
         
         {/* Button Group */}

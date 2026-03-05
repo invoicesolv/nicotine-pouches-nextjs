@@ -182,13 +182,13 @@ export default async function Home() {
         startPage: getFullUrl('/')
       }) : null}
       
-      <div id="boxed-wrapper" className="page-transition">
-        <div id="wrapper" className="fusion-wrapper">
-          
+      <div id="boxed-wrapper" className="page-transition" suppressHydrationWarning>
+        <div id="wrapper" className="fusion-wrapper" suppressHydrationWarning>
+
           {/* Header */}
           <Header />
 
-        <main id="main-content">
+        <main id="main-content" suppressHydrationWarning>
           {/* Homepage Hero */}
           <div className="fade-in">
             <CTASection />
