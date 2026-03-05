@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { pushReviewsBatchToAxelio } from '@/lib/axelio';
 
 // API Key for crawler authentication
 const CRAWLER_API_KEY = (process.env.CRAWLER_API_KEY || '').trim();
@@ -228,7 +229,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`✅ Reviews processing complete: ${results.success} success, ${results.failed} failed`);
+    console.log(`Reviews processing complete: ${results.success} success, ${results.failed} failed`);
+
+    // Sync successfully processed reviews to Axelio CRM (fire-and-forget)
+    if (results.success > 0) {
+      const axelioReviews = reviews
+        .filter(r => r.reviewUrl && r.customerName && r.rating && r.reviewText)
+        .map(r => ({
+          source: 'trustpilot' as const,
+          source_id: r.reviewUrl,
+          product_name: vendor.name,
+          reviewer_name: r.customerName,
+          rating: r.rating,
+          title: r.headline || '',
+          body: r.reviewText,
+          reviewed_at: r.reviewDate ? new Date(r.reviewDate).toISOString() : undefined,
+        }));
+
+      if (axelioReviews.length > 0) {
+        pushReviewsBatchToAxelio(axelioReviews).catch((err) => {
+          console.error('Failed to push reviews to Axelio:', err);
+        });
+      }
+    }
 
     return NextResponse.json({
       success: true,

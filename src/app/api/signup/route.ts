@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { Resend } from 'resend';
+import { pushLeadToAxelio } from '@/lib/axelio';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -105,6 +106,11 @@ export async function POST(request: NextRequest) {
       // Log email error but don't fail the signup
       console.error('Failed to send confirmation email:', emailError);
     }
+
+    // Push to Axelio CRM as a lead (fire-and-forget)
+    pushLeadToAxelio(emailLower, source).catch((err) => {
+      console.error('Failed to push lead to Axelio:', err);
+    });
 
     return NextResponse.json(
       {

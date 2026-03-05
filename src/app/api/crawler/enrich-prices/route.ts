@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { pushProductsBatchToAxelio } from '@/lib/axelio';
 
 // API Key for crawler authentication
 const CRAWLER_API_KEY = (process.env.CRAWLER_API_KEY || '').trim();
@@ -637,6 +638,25 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Sync updated products to Axelio CRM (fire-and-forget)
+      if (results.success > 0) {
+        const axelioProducts = products
+          .filter(p => p.productName)
+          .map(p => ({
+            name: p.productName,
+            sku: `us-${usVendorId}-${(p.productName || '').toLowerCase().replace(/\s+/g, '-').slice(0, 50)}`,
+            price: parseFloat(parsePrice(p.price1Pack || p['1-pack']) || '0') || 0,
+            currency: 'USD',
+            external_product_id: `us-${usVendorId}-${p.productName}`,
+            vendor_name: vendorName || usVendorId,
+            url: p.url || '',
+            stock_status: (p.outOfStock || p.out_of_stock) ? 'out_of_stock' : 'in_stock',
+          }));
+        pushProductsBatchToAxelio(axelioProducts).catch(err => {
+          console.error('Failed to push US products to Axelio:', err);
+        });
+      }
+
       return NextResponse.json({
         success: true,
         vendorId: usVendorId,
@@ -957,6 +977,25 @@ export async function POST(request: NextRequest) {
           error: error.message || 'Unknown error'
         });
       }
+    }
+
+    // Sync updated products to Axelio CRM (fire-and-forget)
+    if (results.success > 0) {
+      const axelioProducts = products
+        .filter(p => p.productName)
+        .map(p => ({
+          name: p.productName,
+          sku: `uk-${finalVendorId}-${(p.productName || '').toLowerCase().replace(/\s+/g, '-').slice(0, 50)}`,
+          price: parseFloat(parsePrice(p.price1Pack || p['1-pack']) || '0') || 0,
+          currency: 'GBP',
+          external_product_id: `uk-${finalVendorId}-${p.productName}`,
+          vendor_name: vendorName || `ID: ${finalVendorId}`,
+          url: p.url || '',
+          stock_status: (p.outOfStock || p.out_of_stock) ? 'out_of_stock' : 'in_stock',
+        }));
+      pushProductsBatchToAxelio(axelioProducts).catch(err => {
+        console.error('Failed to push UK products to Axelio:', err);
+      });
     }
 
     return NextResponse.json({

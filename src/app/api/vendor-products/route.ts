@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../lib/supabase';
+import { pushProductToAxelio } from '@/lib/axelio';
 
 export async function GET(request: NextRequest) {
   try {
@@ -84,6 +85,19 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) throw error;
+
+    // Sync to Axelio CRM (fire-and-forget)
+    pushProductToAxelio({
+      name: name,
+      sku: `vp-${data.id}`,
+      price: parseFloat(price_1pack) || 0,
+      currency: 'GBP',
+      external_product_id: String(data.id),
+      vendor_name: brand || '',
+      url: url || '',
+    }).catch((err) => {
+      console.error('Failed to push product to Axelio:', err);
+    });
 
     return NextResponse.json({ product: data });
   } catch (error) {
