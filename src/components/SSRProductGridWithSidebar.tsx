@@ -64,18 +64,27 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
       const { data: vendor, error: vendorError } = await supabase()
         .from('vendors')
         .select('id')
-        .ilike('name', `%${vendorFilter}%`)
+        .ilike('name', vendorFilter)
         .single();
 
       if (vendorError || !vendor) {
         throw new Error('Vendor not found');
       }
 
-      // Get mapped products for this vendor
+      // Get total count for pagination
+      const { count: vendorProductCount } = await supabase()
+        .from('vendor_product_mapping')
+        .select('product_id', { count: 'exact', head: true })
+        .eq('vendor_id', vendor.id);
+
+      totalProducts = vendorProductCount || 0;
+
+      // Get paginated mapped product IDs
       const { data: mappings, error: mappingError } = await supabase()
         .from('vendor_product_mapping')
         .select('product_id')
-        .eq('vendor_id', vendor.id);
+        .eq('vendor_id', vendor.id)
+        .range(offset, offset + PRODUCTS_PER_PAGE - 1);
 
       if (mappingError) {
         throw mappingError;
@@ -224,35 +233,23 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
       };
     });
 
-    // Fetch sidebar data — parallel queries, no duplicate fetches
+    // Fetch sidebar data via DB functions — no full table scans
     try {
-      const [productNamesResult, vendorDataResult, vendorMappingCountsResult] = await Promise.all([
-        supabase().from('wp_products').select('name').not('name', 'is', null),
-        supabase().from('vendors').select('name, id').eq('is_active', true),
-        supabase().from('vendor_product_mapping').select('vendor_id')
+      const [brandResult, vendorResult, totalResult] = await Promise.all([
+        supabase().rpc('get_sidebar_brand_counts'),
+        supabase().rpc('get_sidebar_vendor_counts'),
+        supabase().rpc('get_total_product_count')
       ]);
 
-      const productDataForSidebar = productNamesResult.data || [];
+      sidebarData.brands = (brandResult.data || []).map((b: any) => ({
+        name: b.brand_name,
+        count: Number(b.product_count)
+      }));
 
-      // Brands
-      const brandCounts: Record<string, number> = {};
-      const flavourCounts: Record<string, number> = {};
-      productDataForSidebar.forEach((product: any) => {
-        const brandName = product.name.split(' ')[0];
-        if (brandName) brandCounts[brandName] = (brandCounts[brandName] || 0) + 1;
-        const flavourName = product.name.split(' ').slice(1).join(' ');
-        if (flavourName?.trim()) flavourCounts[flavourName] = (flavourCounts[flavourName] || 0) + 1;
-      });
+      // Flavours not available from brand RPC — skip (not critical for sidebar)
+      sidebarData.flavours = [];
 
-      sidebarData.brands = Object.entries(brandCounts)
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count);
-
-      sidebarData.flavours = Object.entries(flavourCounts)
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count);
-
-      const sidebarTotal = productDataForSidebar.length;
+      const sidebarTotal = Number(totalResult.data) || 0;
       sidebarData.strengths = [
         { name: 'Normal', count: Math.floor(sidebarTotal * 0.4) },
         { name: 'Strong', count: Math.floor(sidebarTotal * 0.3) },
@@ -264,24 +261,12 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
         { name: 'Mini', count: Math.floor(sidebarTotal * 0.2) }
       ];
 
-      // Vendors
-      const vendorData = vendorDataResult.data;
-      const allMappings = vendorMappingCountsResult.data;
-      const vendorCounts: Record<string, number> = {};
-      if (vendorData && allMappings) {
-        const mappingCounts = allMappings.reduce((acc: Record<string, number>, mapping: any) => {
-          acc[mapping.vendor_id] = (acc[mapping.vendor_id] || 0) + 1;
-          return acc;
-        }, {});
-        vendorData.forEach((vendor: any) => {
-          vendorCounts[vendor.name] = mappingCounts[vendor.id] || 0;
-        });
-      }
-
-      sidebarData.vendors = Object.entries(vendorCounts)
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 15);
+      sidebarData.vendors = (vendorResult.data || [])
+        .filter((v: any) => v.product_count > 0)
+        .map((v: any) => ({
+          name: v.vendor_name,
+          count: Number(v.product_count)
+        }));
 
     } catch (sidebarError) {
       console.error('Error fetching sidebar data:', sidebarError);

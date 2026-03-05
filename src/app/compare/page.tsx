@@ -16,32 +16,15 @@ export const revalidate = 3600;
 
 async function getTopBrandsAndCount() {
   try {
-    // Fetch product names to extract brands from first word (like the sidebar does)
-    const { data, error } = await supabase()
-      .from('wp_products')
-      .select('name')
-      .not('name', 'is', null);
+    const [brandResult, totalResult] = await Promise.all([
+      supabase().rpc('get_sidebar_brand_counts'),
+      supabase().rpc('get_total_product_count')
+    ]);
 
-    if (error || !data) return { brands: [], totalProducts: 0 };
-
-    const totalProducts = data.length;
-
-    // Extract brands from first word of product name
-    const brandCounts: Record<string, number> = {};
-    data.forEach((item: { name: string }) => {
-      if (item.name) {
-        const brandName = item.name.split(' ')[0];
-        if (brandName) {
-          brandCounts[brandName] = (brandCounts[brandName] || 0) + 1;
-        }
-      }
-    });
-
-    // Sort by count and get top 10
-    const brands = Object.entries(brandCounts)
-      .sort((a, b) => b[1] - a[1])
+    const totalProducts = Number(totalResult.data) || 0;
+    const brands = (brandResult.data || [])
       .slice(0, 10)
-      .map(([name, count]) => ({ name, count, logo: getBrandLogo(name) }));
+      .map((b: any) => ({ name: b.brand_name, count: Number(b.product_count), logo: getBrandLogo(b.brand_name) }));
 
     return { brands, totalProducts };
   } catch {
