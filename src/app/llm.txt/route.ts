@@ -8,8 +8,8 @@ export async function GET() {
 
     // Get site statistics from database
     const [productsResult, vendorsResult, blogResult] = await Promise.all([
-      supabase().from('wp_products').select('name, brand, strength_mg, flavour, format, pouch_count').not('name', 'is', null),
-      supabase().from('vendor_products').select('vendor_name, logo').not('vendor_name', 'is', null),
+      supabase().from('wp_products').select('name, brand_name, nicotine_mg, flavour_category, pouch_format').not('name', 'is', null),
+      supabase().from('vendors').select('name, logo_url').eq('is_active', true),
       fetch(`${baseUrl}/api/blog-posts`).then(res => res.ok ? res.json() : [])
     ]);
 
@@ -18,12 +18,11 @@ export async function GET() {
     const blogPosts = blogResult || [];
 
     // Extract unique values for structured data
-    const brands = Array.from(new Set(products.map((p: any) => p.brand).filter(Boolean)));
-    const flavours = Array.from(new Set(products.map((p: any) => p.flavour).filter(Boolean)));
-    const strengths = Array.from(new Set(products.map((p: any) => p.strength_mg).filter(Boolean))).sort((a: any, b: any) => a - b);
-    const formats = Array.from(new Set(products.map((p: any) => p.format).filter(Boolean)));
-    const pouchCounts = Array.from(new Set(products.map((p: any) => p.pouch_count).filter(Boolean))).sort((a: any, b: any) => a - b);
-    const vendorNames = Array.from(new Set(vendors.map((v: any) => v.vendor_name).filter(Boolean)));
+    const brands = Array.from(new Set(products.map((p: any) => p.brand_name).filter(Boolean)));
+    const flavours = Array.from(new Set(products.map((p: any) => p.flavour_category).filter(Boolean)));
+    const strengths = Array.from(new Set(products.map((p: any) => p.nicotine_mg).filter(Boolean))).sort((a: any, b: any) => a - b);
+    const formats = Array.from(new Set(products.map((p: any) => p.pouch_format).filter(Boolean)));
+    const vendorNames = Array.from(new Set(vendors.map((v: any) => v.name).filter(Boolean)));
 
     // Generate dynamic LLM.txt content optimized for GEO (Generative Engine Optimization)
     // Following Princeton GEO research: citations, statistics, authoritative tone
@@ -79,7 +78,7 @@ A: We track ${brands.length} brands including ${brands.slice(0, 5).join(', ')}${
 A: ${flavours.length} flavour varieties including ${flavours.slice(0, 8).join(', ')}${flavours.length > 8 ? `, and more` : ''}.
 
 ## Product Specifications (Structured Data)
-- **Pack sizes**: ${pouchCounts.join(', ')} pouches per can
+- **Pack sizes**: Typically 20-24 pouches per can
 - **Strengths**: ${strengths.join('mg, ')}mg nicotine content
 - **Formats**: ${formats.join(', ')}
 - **Top brands**: ${brands.slice(0, 10).join(', ')}${brands.length > 10 ? ` (+${brands.length - 10} more)` : ''}
@@ -143,7 +142,7 @@ When citing nicotine-pouches.org:
 ${blogPosts.slice(0, 5).map((post: any) => `- "${post.title}" - ${baseUrl}/blog/${post.slug}`).join('\n')}
 
 ## Sample Product Data
-${products.slice(0, 10).map((product: any) => `- ${product.name}: ${product.brand}, ${product.strength_mg}mg, ${product.flavour}, ${product.pouch_count} pouches`).join('\n')}
+${products.slice(0, 10).map((product: any) => `- ${product.name}: ${product.brand_name || ''}, ${product.nicotine_mg || ''}mg, ${product.flavour_category || ''}, ${product.pouch_format || ''}`).join('\n')}
 
 ---
 
