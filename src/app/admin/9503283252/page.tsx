@@ -716,6 +716,8 @@ export default function AdminDashboard() {
   const [showMapDialog, setShowMapDialog] = useState<any>(null);
   const [mapSearchTerm, setMapSearchTerm] = useState('');
   const [mapSearchResults, setMapSearchResults] = useState<any[]>([]);
+  const [showProductDetail, setShowProductDetail] = useState<any>(null);
+  const [confirmAction, setConfirmAction] = useState<{ id: number; action: 'create' | 'reject'; product: any } | null>(null);
 
   // Store Applications state
   const [applications, setApplications] = useState<any[]>([]);
@@ -3936,20 +3938,26 @@ export default function AdminDashboard() {
                       </thead>
                       <tbody className="divide-y divide-slate-800/30">
                         {unmappedProducts.map((product) => (
-                          <tr key={product.id} className="hover:bg-slate-800/20 transition-colors group">
+                          <tr key={product.id} className="hover:bg-slate-800/20 transition-colors group cursor-pointer" onClick={() => setShowProductDetail(product)}>
                             <td className="px-3 py-2">
-                              <div>
-                                <span className="text-sm text-white font-medium">{product.product_name}</span>
-                                {product.source_url && (
-                                  <a
-                                    href={product.source_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block text-xs text-blue-400 hover:underline truncate max-w-[250px]"
-                                  >
-                                    View source →
-                                  </a>
+                              <div className="flex items-center gap-2">
+                                {product.image_url && (
+                                  <img src={product.image_url} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0 bg-slate-800" />
                                 )}
+                                <div>
+                                  <span className="text-sm text-white font-medium">{product.product_name}</span>
+                                  {product.source_url && (
+                                    <a
+                                      href={product.source_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="block text-xs text-blue-400 hover:underline truncate max-w-[250px]"
+                                    >
+                                      View source →
+                                    </a>
+                                  )}
+                                </div>
                               </div>
                             </td>
                             <td className="px-3 py-2">
@@ -3986,12 +3994,12 @@ export default function AdminDashboard() {
                                 {product.status}
                               </span>
                             </td>
-                            <td className="px-3 py-2 text-right">
+                            <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                               {product.status === 'pending' && (
                                 <div className="flex items-center justify-end gap-1">
                                   <Button
                                     size="sm"
-                                    onClick={() => handleUnmappedAction(product.id, 'create')}
+                                    onClick={() => setConfirmAction({ id: product.id, action: 'create', product })}
                                     disabled={actionLoading === product.id}
                                     className="h-6 px-2 text-xs bg-emerald-600 hover:bg-emerald-700"
                                   >
@@ -4011,7 +4019,7 @@ export default function AdminDashboard() {
                                   </Button>
                                   <Button
                                     size="sm"
-                                    onClick={() => handleUnmappedAction(product.id, 'reject')}
+                                    onClick={() => setConfirmAction({ id: product.id, action: 'reject', product })}
                                     disabled={actionLoading === product.id}
                                     className="h-6 px-2 text-xs bg-red-600 hover:bg-red-700"
                                   >
@@ -4054,6 +4062,172 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Product Detail Modal */}
+                {showProductDetail && (
+                  <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowProductDetail(null)}>
+                    <Card className="bg-slate-900 border-slate-700 p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-lg font-semibold text-white">Product Details</h3>
+                        <button onClick={() => setShowProductDetail(null)} className="text-slate-400 hover:text-white">
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-5">
+                        {/* Product header with image */}
+                        <div className="flex gap-4">
+                          {showProductDetail.image_url ? (
+                            <img src={showProductDetail.image_url} alt={showProductDetail.product_name} className="w-24 h-24 rounded-lg object-cover bg-slate-800 flex-shrink-0" />
+                          ) : (
+                            <div className="w-24 h-24 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0">
+                              <Package className="w-8 h-8 text-slate-600" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-white font-semibold text-lg leading-tight">{showProductDetail.product_name}</h4>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded">{showProductDetail.source_vendor}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded ${
+                                showProductDetail.status === 'pending' ? 'bg-amber-500/10 text-amber-400' :
+                                showProductDetail.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400' :
+                                showProductDetail.status === 'rejected' ? 'bg-red-500/10 text-red-400' :
+                                'bg-purple-500/10 text-purple-400'
+                              }`}>{showProductDetail.status}</span>
+                            </div>
+                            {showProductDetail.source_url && (
+                              <a href={showProductDetail.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline mt-2 block truncate">
+                                {showProductDetail.source_url}
+                              </a>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Prices */}
+                        {showProductDetail.source_prices && Object.keys(showProductDetail.source_prices).length > 0 && (
+                          <div>
+                            <h5 className="text-xs font-medium text-slate-500 uppercase mb-2">Prices</h5>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                              {Object.entries(showProductDetail.source_prices).map(([tier, price]) => (
+                                <div key={tier} className="bg-slate-800/50 rounded-lg px-3 py-2">
+                                  <span className="text-xs text-slate-500 block">{tier}</span>
+                                  <span className="text-sm text-white font-medium">{price as string}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Available at other stores */}
+                        {showProductDetail.other_stores && showProductDetail.other_stores.length > 0 && (
+                          <div>
+                            <h5 className="text-xs font-medium text-slate-500 uppercase mb-2">Available at {showProductDetail.total_stores} store{showProductDetail.total_stores !== 1 ? 's' : ''}</h5>
+                            <div className="space-y-1.5">
+                              {showProductDetail.other_stores.map((store: any, idx: number) => (
+                                <div key={idx} className="bg-slate-800/50 rounded-lg px-3 py-2 flex items-center justify-between">
+                                  <div className="flex-1 min-w-0">
+                                    <span className="text-sm text-white">{store.vendorName || store.vendor || 'Unknown'}</span>
+                                    <span className="text-xs text-slate-500 ml-2">{store.productName}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {store.matchConfidence != null && (
+                                      <span className={`text-xs px-1.5 py-0.5 rounded ${store.matchConfidence >= 0.9 ? 'bg-emerald-500/10 text-emerald-400' : store.matchConfidence >= 0.7 ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400'}`}>
+                                        {Math.round(store.matchConfidence * 100)}%
+                                      </span>
+                                    )}
+                                    {store.url && (
+                                      <a href={store.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline" onClick={(e) => e.stopPropagation()}>Link</a>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Metadata */}
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div className="bg-slate-800/30 rounded px-3 py-2">
+                            <span className="text-slate-500 block">Created</span>
+                            <span className="text-slate-300">{showProductDetail.created_at ? new Date(showProductDetail.created_at).toLocaleDateString() : '-'}</span>
+                          </div>
+                          <div className="bg-slate-800/30 rounded px-3 py-2">
+                            <span className="text-slate-500 block">Last Updated</span>
+                            <span className="text-slate-300">{showProductDetail.updated_at ? new Date(showProductDetail.updated_at).toLocaleDateString() : '-'}</span>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        {showProductDetail.status === 'pending' && (
+                          <div className="flex gap-2 pt-2 border-t border-slate-800">
+                            <Button
+                              size="sm"
+                              onClick={() => { setShowProductDetail(null); setConfirmAction({ id: showProductDetail.id, action: 'create', product: showProductDetail }); }}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-xs"
+                            >
+                              Create Product
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => { setShowProductDetail(null); setShowMapDialog(showProductDetail); setMapSearchTerm(''); setMapSearchResults([]); }}
+                              className="bg-blue-600 hover:bg-blue-700 text-xs"
+                            >
+                              Map to Existing
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => { setShowProductDetail(null); setConfirmAction({ id: showProductDetail.id, action: 'reject', product: showProductDetail }); }}
+                              className="bg-red-600 hover:bg-red-700 text-xs"
+                            >
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  </div>
+                )}
+
+                {/* Confirm Action Dialog */}
+                {confirmAction && (
+                  <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setConfirmAction(null)}>
+                    <Card className="bg-slate-900 border-slate-700 p-6 w-full max-w-md" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                      <h3 className="text-lg font-semibold text-white mb-2">
+                        {confirmAction.action === 'create' ? 'Create New Product?' : 'Reject Product?'}
+                      </h3>
+                      <p className="text-sm text-slate-400 mb-1">
+                        {confirmAction.action === 'create'
+                          ? 'This will create a new product in the database and map it to this vendor.'
+                          : 'This will mark this product suggestion as rejected.'}
+                      </p>
+                      <div className="bg-slate-800/50 rounded-lg px-3 py-2 mb-4 flex items-center gap-3">
+                        {confirmAction.product.image_url && (
+                          <img src={confirmAction.product.image_url} alt="" className="w-10 h-10 rounded object-cover flex-shrink-0" />
+                        )}
+                        <div>
+                          <p className="text-sm text-white font-medium">{confirmAction.product.product_name}</p>
+                          <p className="text-xs text-slate-500">{confirmAction.product.source_vendor}</p>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="outline" onClick={() => setConfirmAction(null)} className="text-xs border-slate-700">
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            handleUnmappedAction(confirmAction.id, confirmAction.action);
+                            setConfirmAction(null);
+                          }}
+                          disabled={actionLoading === confirmAction.id}
+                          className={`text-xs ${confirmAction.action === 'create' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'}`}
+                        >
+                          {actionLoading === confirmAction.id ? '...' : confirmAction.action === 'create' ? 'Yes, Create' : 'Yes, Reject'}
+                        </Button>
+                      </div>
+                    </Card>
                   </div>
                 )}
 

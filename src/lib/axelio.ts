@@ -1,23 +1,27 @@
 const AXELIO_BASE_URL = process.env.AXELIO_BASE_URL || 'https://www.axelio.io';
-const AXELIO_WORKSPACE_ID = process.env.CRM_WORKSPACE_ID || '';
-const AXELIO_API_TOKEN = process.env.AXELIO_API_TOKEN || AXELIO_WORKSPACE_ID;
 
-function isEnabled(): boolean {
-  return !!AXELIO_WORKSPACE_ID && !!AXELIO_API_TOKEN;
+interface WorkspaceConfig {
+  id: string;
+  token: string;
 }
 
-async function axelioPost(endpoint: string, data: any): Promise<{ ok: boolean; status: number; body: any }> {
-  if (!isEnabled()) {
-    return { ok: false, status: 0, body: { error: 'Axelio not configured' } };
-  }
+const WORKSPACES: WorkspaceConfig[] = [
+  { id: process.env.CRM_WORKSPACE_ID || '', token: process.env.AXELIO_API_TOKEN || process.env.CRM_WORKSPACE_ID || '' },
+  { id: process.env.CRM_WORKSPACE_ID_2 || '', token: process.env.AXELIO_API_TOKEN_2 || process.env.CRM_WORKSPACE_ID_2 || '' },
+].filter(w => w.id && w.token);
 
-  const url = `${AXELIO_BASE_URL}${endpoint}?workspace_id=${AXELIO_WORKSPACE_ID}`;
+function isEnabled(): boolean {
+  return WORKSPACES.length > 0;
+}
+
+async function axelioPostSingle(endpoint: string, data: any, workspace: WorkspaceConfig): Promise<{ ok: boolean; status: number; body: any }> {
+  const url = `${AXELIO_BASE_URL}${endpoint}?workspace_id=${workspace.id}`;
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${AXELIO_API_TOKEN}`,
+      'Authorization': `Bearer ${workspace.token}`,
     },
     body: JSON.stringify(data),
   });
@@ -30,10 +34,25 @@ async function axelioPost(endpoint: string, data: any): Promise<{ ok: boolean; s
   }
 
   if (!response.ok) {
-    console.error(`Axelio ${endpoint} error:`, response.status, body);
+    console.error(`Axelio ${endpoint} error (workspace ${workspace.id.slice(0, 8)}...):`, response.status, body);
   }
 
   return { ok: response.ok, status: response.status, body };
+}
+
+async function axelioPost(endpoint: string, data: any): Promise<{ ok: boolean; status: number; body: any }> {
+  if (!isEnabled()) {
+    return { ok: false, status: 0, body: { error: 'Axelio not configured' } };
+  }
+
+  const results = await Promise.allSettled(
+    WORKSPACES.map(ws => axelioPostSingle(endpoint, data, ws))
+  );
+
+  // Return the first workspace result for backward compatibility
+  const first = results[0];
+  if (first.status === 'fulfilled') return first.value;
+  return { ok: false, status: 0, body: { error: 'All workspace pushes failed' } };
 }
 
 // Push a signup as a lead
