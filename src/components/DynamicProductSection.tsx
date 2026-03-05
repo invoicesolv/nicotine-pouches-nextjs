@@ -170,10 +170,15 @@ export default function DynamicProductSection({
     setActivePopup(null);
   };
 
-  // Each section uses offset 0 - the API scores products differently per section
-  // (popular = store count, trending = recent clicks, new = recency)
+  // Different starting offsets to avoid duplicate products across sections
+  // New Arrivals uses offset 0 so newest products always appear first
   const getSectionOffset = () => {
-    return 0;
+    switch (section) {
+      case 'popular': return 0;
+      case 'trending': return 12;
+      case 'new': return 0;
+      default: return 0;
+    }
   };
 
   // Initial load only - fetch fewer products on mobile

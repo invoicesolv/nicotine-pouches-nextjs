@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Image from 'next/image';
@@ -8,12 +8,17 @@ import ReviewBalls from '@/components/ReviewBalls';
 import ProductGrid from '@/components/ProductGrid';
 import Link from 'next/link';
 
+// Generate canonical slug from vendor name
+function vendorSlug(name: string) {
+  return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+}
+
 // Fetch vendor data and their products
 async function getVendorData(slug: string) {
   try {
     // Convert slug back to proper case name
     const properCaseName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-    
+
     // First try to find by exact name match
     let { data: vendor, error } = await supabase()
       .from('vendors')
@@ -21,12 +26,12 @@ async function getVendorData(slug: string) {
       .eq('name', properCaseName)
       .single();
 
-    // If not found, try case-insensitive match
+    // If not found, try exact case-insensitive match (not partial)
     if (error || !vendor) {
       const { data: vendors, error: searchError } = await supabase()
         .from('vendors')
         .select('*')
-        .ilike('name', `%${slug.replace(/-/g, ' ')}%`)
+        .ilike('name', slug.replace(/-/g, ' '))
         .limit(1);
 
       if (searchError || !vendors || vendors.length === 0) {
@@ -97,6 +102,12 @@ export default async function VendorPage({ params }: VendorPageProps) {
 
   if (!vendorData) {
     notFound();
+  }
+
+  // Redirect to canonical slug if the URL slug doesn't match
+  const canonicalSlug = vendorSlug(vendorData.vendorName);
+  if (slug !== canonicalSlug) {
+    redirect(`/vendor/${canonicalSlug}`);
   }
 
   return (
@@ -318,9 +329,14 @@ export async function generateMetadata({ params }: VendorPageProps) {
     };
   }
 
+  const canonicalSlug = vendorSlug(vendorData.vendorName);
+
   return {
     title: `${vendorData.vendorName} - Compare Prices | Nicotine Pouches`,
     description: `Compare prices for all ${vendorData.vendorName} nicotine pouches across multiple UK stores. ${vendorData.totalProducts} products available.`,
+    alternates: {
+      canonical: `https://nicotine-pouches.org/vendor/${canonicalSlug}`,
+    },
     openGraph: {
       title: `${vendorData.vendorName} - Compare Prices`,
       description: `Compare prices for all ${vendorData.vendorName} nicotine pouches across multiple UK stores.`,

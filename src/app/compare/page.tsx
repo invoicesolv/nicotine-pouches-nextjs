@@ -11,6 +11,9 @@ import { getBrandLogo } from '@/lib/brand-logos';
 import { supabase } from '@/lib/supabase';
 import './compare-page.css';
 
+// Cache for 1 hour
+export const revalidate = 3600;
+
 async function getTopBrandsAndCount() {
   try {
     // Fetch product names to extract brands from first word (like the sidebar does)

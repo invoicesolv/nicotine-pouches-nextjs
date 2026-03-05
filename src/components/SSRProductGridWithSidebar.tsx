@@ -171,30 +171,30 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
       data = [];
     }
 
-    // Fetch vendor product mappings to calculate real store counts
-    const { data: mappings, error: mappingsError } = await supabase()
-      .from('vendor_product_mapping')
-      .select('product_id');
+    // Fetch store counts and tracking counts in parallel
+    // Only fetch mappings for products on current page instead of entire table
+    const productIds = data.map((p: any) => p.id);
 
-    if (mappingsError) {
-      console.error('Error fetching mappings:', mappingsError);
+    const [mappingsResult, priceAlertsResult] = await Promise.all([
+      productIds.length > 0
+        ? supabase().from('vendor_product_mapping').select('product_id').in('product_id', productIds)
+        : Promise.resolve({ data: [], error: null }),
+      supabaseAdmin().from('price_alerts').select('product_id').eq('is_active', true).in('product_id', productIds)
+    ]);
+
+    if (mappingsResult.error) {
+      console.error('Error fetching mappings:', mappingsResult.error);
     }
 
     // Count stores per product
     const storeCounts = new Map<number, number>();
-    mappings?.forEach((mapping: any) => {
+    mappingsResult.data?.forEach((mapping: any) => {
       const count = storeCounts.get(mapping.product_id) || 0;
       storeCounts.set(mapping.product_id, count + 1);
     });
 
-    // Fetch real price alert tracking counts from database (by product_id) - use admin to bypass RLS
-    const { data: priceAlerts } = await supabaseAdmin()
-      .from('price_alerts')
-      .select('product_id')
-      .eq('is_active', true);
-
     const trackingCounts = new Map<number, number>();
-    priceAlerts?.forEach((alert: any) => {
+    priceAlertsResult.data?.forEach((alert: any) => {
       if (alert.product_id) {
         const count = trackingCounts.get(alert.product_id) || 0;
         trackingCounts.set(alert.product_id, count + 1);
@@ -224,71 +224,55 @@ const SSRProductGridWithSidebar = async ({ brandFilter, vendorFilter, isUSRoute 
       };
     });
 
-    // Fetch sidebar data
+    // Fetch sidebar data — parallel queries, no duplicate fetches
     try {
-      // Fetch brands with counts - extract from product names
-      const { data: productDataForSidebar } = await supabase()
-        .from('wp_products')
-        .select('name')
-        .not('name', 'is', null);
-      
+      const [productNamesResult, vendorDataResult, vendorMappingCountsResult] = await Promise.all([
+        supabase().from('wp_products').select('name').not('name', 'is', null),
+        supabase().from('vendors').select('name, id').eq('is_active', true),
+        supabase().from('vendor_product_mapping').select('vendor_id')
+      ]);
+
+      const productDataForSidebar = productNamesResult.data || [];
+
+      // Brands
       const brandCounts: Record<string, number> = {};
-      (productDataForSidebar || []).forEach((product: any) => {
+      const flavourCounts: Record<string, number> = {};
+      productDataForSidebar.forEach((product: any) => {
         const brandName = product.name.split(' ')[0];
-        if (brandName) {
-          brandCounts[brandName] = (brandCounts[brandName] || 0) + 1;
-        }
+        if (brandName) brandCounts[brandName] = (brandCounts[brandName] || 0) + 1;
+        const flavourName = product.name.split(' ').slice(1).join(' ');
+        if (flavourName?.trim()) flavourCounts[flavourName] = (flavourCounts[flavourName] || 0) + 1;
       });
-      
+
       sidebarData.brands = Object.entries(brandCounts)
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count);
 
-      // Fetch flavours with counts - extract from product names
-      const flavourCounts: Record<string, number> = {};
-      (productDataForSidebar || []).forEach((product: any) => {
-        const flavourName = product.name.split(' ').slice(1).join(' ');
-        if (flavourName && flavourName.trim()) {
-          flavourCounts[flavourName] = (flavourCounts[flavourName] || 0) + 1;
-        }
-      });
-      
       sidebarData.flavours = Object.entries(flavourCounts)
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count);
 
-      // Use default strengths since wp_products doesn't have strength data
-      const totalProducts = productDataForSidebar?.length || 0;
+      const sidebarTotal = productDataForSidebar.length;
       sidebarData.strengths = [
-        { name: 'Normal', count: Math.floor(totalProducts * 0.4) },
-        { name: 'Strong', count: Math.floor(totalProducts * 0.3) },
-        { name: 'Extra Strong', count: Math.floor(totalProducts * 0.3) }
+        { name: 'Normal', count: Math.floor(sidebarTotal * 0.4) },
+        { name: 'Strong', count: Math.floor(sidebarTotal * 0.3) },
+        { name: 'Extra Strong', count: Math.floor(sidebarTotal * 0.3) }
       ];
-
-      // Use default formats since wp_products doesn't have format data
       sidebarData.formats = [
-        { name: 'Slim', count: Math.floor(totalProducts * 0.6) },
-        { name: 'Original', count: Math.floor(totalProducts * 0.2) },
-        { name: 'Mini', count: Math.floor(totalProducts * 0.2) }
+        { name: 'Slim', count: Math.floor(sidebarTotal * 0.6) },
+        { name: 'Original', count: Math.floor(sidebarTotal * 0.2) },
+        { name: 'Mini', count: Math.floor(sidebarTotal * 0.2) }
       ];
 
-      // Fetch vendors with counts
-      const { data: vendorData } = await supabase()
-        .from('vendors')
-        .select('name, id')
-        .eq('is_active', true);
-
-      const { data: allMappings } = await supabase()
-        .from('vendor_product_mapping')
-        .select('vendor_id');
-
+      // Vendors
+      const vendorData = vendorDataResult.data;
+      const allMappings = vendorMappingCountsResult.data;
       const vendorCounts: Record<string, number> = {};
       if (vendorData && allMappings) {
         const mappingCounts = allMappings.reduce((acc: Record<string, number>, mapping: any) => {
           acc[mapping.vendor_id] = (acc[mapping.vendor_id] || 0) + 1;
           return acc;
         }, {});
-
         vendorData.forEach((vendor: any) => {
           vendorCounts[vendor.name] = mappingCounts[vendor.id] || 0;
         });

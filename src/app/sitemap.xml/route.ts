@@ -86,8 +86,6 @@ export async function GET() {
       { url: '/sustainability', priority: '0.6', changefreq: 'monthly' },
       { url: '/digital-services-act', priority: '0.5', changefreq: 'yearly' },
       { url: '/nicotine-pouches-api', priority: '0.6', changefreq: 'monthly' },
-      { url: '/features', priority: '0.6', changefreq: 'monthly' }, // Only include features (canonical)
-      // Exclude /news and /press as they canonical to /features
       { url: '/work-with-us', priority: '0.6', changefreq: 'monthly' },
       { url: '/here-we-are', priority: '0.6', changefreq: 'monthly' },
       { url: '/blog', priority: '0.7', changefreq: 'weekly' },
