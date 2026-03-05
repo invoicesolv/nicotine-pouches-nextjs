@@ -181,11 +181,11 @@ export async function GET(request: Request) {
       // Different scoring based on section
       let score = 0;
       if (section === 'trending') {
-        // Trending: prioritize recent clicks
-        score = (clicks * 0.5) + (stores * 0.3) + (recencyBonus * 0.2 * 100);
+        // Trending: prioritize recent clicks — products must have at least 1 store
+        score = stores === 0 ? -1 : (clicks * 0.5) + (stores * 0.3) + (recencyBonus * 0.2 * 100);
       } else if (section === 'popular') {
-        // Popular: prioritize store count and total engagement
-        score = (stores * 0.5) + (clicks * 0.3) + (recencyBonus * 0.2 * 100);
+        // Popular: prioritize store count — products must have at least 1 store
+        score = stores === 0 ? -1 : (stores * 0.5) + (clicks * 0.3) + (recencyBonus * 0.2 * 100);
       } else if (section === 'new') {
         // New: prioritize recency
         score = (recencyBonus * 0.6 * 100) + (clicks * 0.2) + (stores * 0.2);
@@ -231,9 +231,10 @@ export async function GET(request: Request) {
     processedProducts.sort((a: any, b: any) => b.trend_score - a.trend_score);
 
     // Deduplicate by product name (keep the one with highest score)
-    // Also exclude products that were already shown in another section
+    // Also exclude products with negative score (e.g. 0-store products in popular/trending)
     const seenNames = new Set<string>(excludeNames);
     const uniqueProducts = processedProducts.filter((product: any) => {
+      if (product.trend_score < 0) return false;
       const normalizedName = product.name.toLowerCase().trim();
       if (seenNames.has(normalizedName)) {
         return false;
