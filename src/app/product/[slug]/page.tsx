@@ -7,6 +7,9 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
+
+// Cache product pages for 1 hour
+export const revalidate = 3600;
 import { generateLLMSEO, extractLLMSEODataFromDB } from '@/lib/llm-seo';
 import { generateProductSEO, extractProductDataFromDB } from '@/lib/seo';
 import { getSEOTags, renderSchemaTag, generateStandaloneAggregateRating, generateBreadcrumbSchema } from '@/lib/seo-core';
@@ -913,51 +916,44 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     notFound();
   }
 
-  // Fetch aggregate rating for the product
-  const ratingData = await getProductAggregateRating(product.id);
-  
-  // Fetch vendor review counts - use count queries (no data fetched, just counts)
+  // Fetch rating, review counts, reviews, and vendor data ALL in parallel
   const vendorReviewCountMap = new Map<number, number>();
-  if (product.stores && product.stores.length > 0) {
-    const vendorIds = product.stores.map((store: any) => store.vendorId).filter(Boolean);
-
-    // Get counts for each vendor in parallel (count only, no row data)
-    await Promise.all(vendorIds.map(async (vendorId: number) => {
-      const [userResult, trustpilotResult] = await Promise.all([
-        supabase()
-          .from('reviews')
-          .select('*', { count: 'exact', head: true })
-          .eq('vendor_id', vendorId)
-          .eq('is_approved', true),
-        supabase()
-          .from('trustpilot_reviews')
-          .select('*', { count: 'exact', head: true })
-          .eq('vendor_id', vendorId)
-      ]);
-
-      const total = (userResult.count || 0) + (trustpilotResult.count || 0);
-      if (total > 0) {
-        vendorReviewCountMap.set(vendorId, total);
-      }
-    }));
-  }
-  
-  // Fetch ALL Trustpilot reviews for all vendors (server-side) - sorted by date newest first
   const allTrustpilotReviews: any[] = [];
   const vendorNameMap = new Map<number, string>();
   const vendorLogoMap = new Map<number, string>();
-  if (product.stores && product.stores.length > 0) {
-    const vendorIds = product.stores.map((store: any) => store.vendorId);
-    console.log('🔍 Fetching reviews for vendorIds:', vendorIds);
-    console.log('🔍 Stores:', product.stores.map((s: any) => ({ name: s.name, vendorId: s.vendorId })));
-    
-    // Fetch vendor logos directly from vendors table (same as SSR table)
-    const { data: vendors } = await supabase()
-      .from('vendors')
-      .select('id, name, logo_url')
-      .in('id', vendorIds);
-    
-    // Build maps from vendors table data - convert to local public paths where needed
+  let totalTrustpilotReviewCount = 0;
+  let ratingData: any = null;
+
+  const vendorIds = product.stores?.map((store: any) => store.vendorId).filter(Boolean) || [];
+
+  // All independent queries in one Promise.all
+  const [ratingResult, ...reviewResults] = await Promise.all([
+    getProductAggregateRating(product.id),
+    ...(vendorIds.length > 0 ? [
+      supabase().from('reviews').select('vendor_id').in('vendor_id', vendorIds).eq('is_approved', true),
+      supabase().from('trustpilot_reviews').select('vendor_id').in('vendor_id', vendorIds),
+      supabase().from('vendors').select('id, name, logo_url').in('id', vendorIds),
+      supabase().from('trustpilot_reviews').select('*').in('vendor_id', vendorIds)
+        .order('review_date', { ascending: false, nullsFirst: false }).limit(10),
+      supabase().from('trustpilot_reviews').select('*', { count: 'exact', head: true }).in('vendor_id', vendorIds)
+    ] : [])
+  ]);
+
+  ratingData = ratingResult;
+
+  if (vendorIds.length > 0) {
+    const [userReviews, trustpilotReviewsList, vendorsResult, reviewsResult, reviewCountResult] = reviewResults as any[];
+
+    // Count review counts per vendor
+    userReviews?.data?.forEach((r: any) => {
+      vendorReviewCountMap.set(r.vendor_id, (vendorReviewCountMap.get(r.vendor_id) || 0) + 1);
+    });
+    trustpilotReviewsList?.data?.forEach((r: any) => {
+      vendorReviewCountMap.set(r.vendor_id, (vendorReviewCountMap.get(r.vendor_id) || 0) + 1);
+    });
+
+    totalTrustpilotReviewCount = reviewCountResult?.count || 0;
+
     const vendorLogoMapping: { [key: string]: string } = {
       'Two Wombats': '/vendor-logos/two-wombats.jpg',
       'HAYYP': '/vendor-logos/HAYPP.jpg',
@@ -982,51 +978,19 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       'SnusBoys': '/vendor-logos/SnusBoys.png',
       'NicPouchesDirect': '/vendor-logos/NicPouchesDirect.png',
     };
-    
-    if (vendors) {
-      vendors.forEach((vendor: any) => {
-        vendorNameMap.set(vendor.id, vendor.name);
-        // Use local public path if mapped, otherwise use logo_url from database
-        const localLogoPath = vendorLogoMapping[vendor.name];
-        vendorLogoMap.set(vendor.id, localLogoPath || vendor.logo_url || '');
-      });
-    }
-    
-    // Fetch first 10 reviews across all vendors (single query with limit)
-    const { data: reviews } = await supabase()
-      .from('trustpilot_reviews')
-      .select('*')
-      .in('vendor_id', vendorIds)
-      .order('review_date', { ascending: false, nullsFirst: false })
-      .limit(10);
 
-    if (reviews && reviews.length > 0) {
-      console.log('🔍 Reviews fetched:', reviews.length);
-      console.log('🔍 Review vendor_ids:', [...new Set(reviews.map((r: any) => r.vendor_id))]);
-      reviews.forEach((review: any) => {
-        const vendorLogo = vendorLogoMap.get(review.vendor_id);
-        const vendorName = vendorNameMap.get(review.vendor_id) || 'Unknown Vendor';
-        allTrustpilotReviews.push({
-          ...review,
-          vendor_name: vendorName,
-          vendor_logo: vendorLogo || null
-        });
-      });
-    } else {
-      console.log('🔍 No reviews returned from query');
-    }
-  }
+    vendorsResult?.data?.forEach((vendor: any) => {
+      vendorNameMap.set(vendor.id, vendor.name);
+      vendorLogoMap.set(vendor.id, vendorLogoMapping[vendor.name] || vendor.logo_url || '');
+    });
 
-  // Get total count of trustpilot reviews for all vendors
-  let totalTrustpilotReviewCount = 0;
-  if (product.stores && product.stores.length > 0) {
-    const vendorIds = product.stores.map((store: any) => store.vendorId).filter(Boolean);
-    const { count } = await supabase()
-      .from('trustpilot_reviews')
-      .select('*', { count: 'exact', head: true })
-      .in('vendor_id', vendorIds);
-    totalTrustpilotReviewCount = count || 0;
-    console.log('🔍 Total trustpilot reviews count:', totalTrustpilotReviewCount);
+    reviewsResult?.data?.forEach((review: any) => {
+      allTrustpilotReviews.push({
+        ...review,
+        vendor_name: vendorNameMap.get(review.vendor_id) || 'Unknown Vendor',
+        vendor_logo: vendorLogoMap.get(review.vendor_id) || null
+      });
+    });
   }
   
   // Prepare product data for schema
@@ -1071,16 +1035,18 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     if (brandProducts && brandProducts.length > 0) {
       const productIds = brandProducts.map((p: any) => p.id);
 
-      // Get store counts from vendor_product_mapping (only has product_id, vendor_id - no price column)
-      const { data: vpMappings } = await supabase()
-        .from('vendor_product_mapping')
-        .select('product_id, vendor_id')
-        .in('product_id', productIds);
+      // Fetch mappings + tracking in parallel (was 4 sequential queries, now 2 parallel)
+      const [mappingsResult, trackingResult] = await Promise.all([
+        supabase().from('vendor_product_mapping').select('product_id, vendor_id, vendor_product').in('product_id', productIds),
+        supabase().from('price_alerts').select('product_id').in('product_id', productIds)
+      ]);
+
+      const vpMappings = mappingsResult.data || [];
 
       // Count unique vendors per product
       const storeCounts = new Map<number, number>();
       const vendorSets = new Map<number, Set<number>>();
-      vpMappings?.forEach((m: any) => {
+      vpMappings.forEach((m: any) => {
         if (!vendorSets.has(m.product_id)) vendorSets.set(m.product_id, new Set());
         vendorSets.get(m.product_id)!.add(m.vendor_id);
       });
@@ -1088,57 +1054,42 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
         storeCounts.set(productId, vendors.size);
       });
 
-      // Get lowest prices from vendor_products via the mapping names
+      // Get lowest prices — single query using mapping data we already have
       const lowestPrices = new Map<number, string>();
-      if (vpMappings && vpMappings.length > 0) {
-        // Get vendor_product names for these products
-        const { data: mappingNames } = await supabase()
-          .from('vendor_product_mapping')
-          .select('product_id, vendor_product, vendor_id')
-          .in('product_id', productIds);
+      if (vpMappings.length > 0) {
+        const { data: vpPrices } = await supabase()
+          .from('vendor_products')
+          .select('name, vendor_id, price_1pack')
+          .in('name', vpMappings.map((m: any) => m.vendor_product))
+          .in('vendor_id', vpMappings.map((m: any) => m.vendor_id))
+          .not('price_1pack', 'is', null)
+          .limit(100);
 
-        if (mappingNames && mappingNames.length > 0) {
-          const { data: vpPrices } = await supabase()
-            .from('vendor_products')
-            .select('name, vendor_id, price_1pack')
-            .in('name', mappingNames.map((m: any) => m.vendor_product))
-            .in('vendor_id', mappingNames.map((m: any) => m.vendor_id))
-            .not('price_1pack', 'is', null)
-            .limit(100);
+        if (vpPrices) {
+          const nameVendorToProduct = new Map<string, number>();
+          vpMappings.forEach((m: any) => {
+            nameVendorToProduct.set(`${m.vendor_product}__${m.vendor_id}`, m.product_id);
+          });
 
-          // Map vendor product prices back to wp_product IDs
-          if (vpPrices) {
-            const nameVendorToProduct = new Map<string, number>();
-            mappingNames.forEach((m: any) => {
-              nameVendorToProduct.set(`${m.vendor_product}__${m.vendor_id}`, m.product_id);
-            });
-
-            vpPrices.forEach((vp: any) => {
-              const productId = nameVendorToProduct.get(`${vp.name}__${vp.vendor_id}`);
-              if (productId && vp.price_1pack) {
-                const priceStr = String(vp.price_1pack).replace(/[£$€]/g, '');
-                const priceNum = parseFloat(priceStr);
-                if (!isNaN(priceNum) && priceNum > 0) {
-                  const existing = lowestPrices.get(productId);
-                  const existingNum = existing ? parseFloat(existing.replace(/[£$]/g, '')) : Infinity;
-                  if (priceNum < existingNum) {
-                    lowestPrices.set(productId, `£${priceNum.toFixed(2)}`);
-                  }
+          vpPrices.forEach((vp: any) => {
+            const productId = nameVendorToProduct.get(`${vp.name}__${vp.vendor_id}`);
+            if (productId && vp.price_1pack) {
+              const priceStr = String(vp.price_1pack).replace(/[£$€]/g, '');
+              const priceNum = parseFloat(priceStr);
+              if (!isNaN(priceNum) && priceNum > 0) {
+                const existing = lowestPrices.get(productId);
+                const existingNum = existing ? parseFloat(existing.replace(/[£$]/g, '')) : Infinity;
+                if (priceNum < existingNum) {
+                  lowestPrices.set(productId, `£${priceNum.toFixed(2)}`);
                 }
               }
-            });
-          }
+            }
+          });
         }
       }
 
-      // Get tracking counts
-      const { data: trackingData } = await supabase()
-        .from('price_alerts')
-        .select('product_id')
-        .in('product_id', productIds);
-
       const trackingCounts = new Map<number, number>();
-      trackingData?.forEach((t: any) => {
+      trackingResult.data?.forEach((t: any) => {
         trackingCounts.set(t.product_id, (trackingCounts.get(t.product_id) || 0) + 1);
       });
 
