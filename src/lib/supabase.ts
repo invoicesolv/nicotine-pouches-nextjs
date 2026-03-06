@@ -51,12 +51,6 @@ export const supabase = () => {
       global: {
         headers: {
           'X-Client-Info': 'supabase-js-web'
-        },
-        fetch: (url, options = {}) => {
-          return fetch(url, {
-            ...options,
-            cache: 'no-store'
-          })
         }
       }
     })
