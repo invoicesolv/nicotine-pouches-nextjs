@@ -5,10 +5,12 @@ interface ProductDetailsCardProps {
     name: string;
     brand: string;
     flavour: string;
+    flavour_category?: string;
     strength_group?: string;
     format?: string;
     description?: string;
     description_long?: string;
+    headline?: string;
     stores: Array<{
       name: string;
       variants?: Array<{
@@ -86,7 +88,7 @@ const ProductDetailsCard: React.FC<ProductDetailsCardProps> = ({ product }) => {
       {/* Details List */}
       <div>
         <DetailRow label="Brand" value={product.brand} />
-        <DetailRow label="Flavour" value={product.flavour} />
+        <DetailRow label="Flavour" value={product.flavour_category && product.flavour_category !== 'default' ? product.flavour_category.charAt(0).toUpperCase() + product.flavour_category.slice(1) : product.flavour} />
         {product.strength_group && (
           <DetailRow label="Strength" value={product.strength_group} />
         )}
