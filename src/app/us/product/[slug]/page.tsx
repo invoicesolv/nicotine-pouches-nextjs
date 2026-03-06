@@ -297,11 +297,25 @@ async function getUSProduct(slug: string) {
       image: product.image_url || '/placeholder-product.svg',
       rating: 4.5, // Default rating
       description: product.description || `Compare ${product.product_title} - best prices and deals.`,
+      headline: product.headline || '',
+      short_description: product.short_description || '',
+      description_long: product.description_long || '',
+      content: product.content || '',
       brand: product.brand,
       flavour: product.flavour,
       strength_group: product.strength,
       format: product.format,
+      nicotine_mg: product.nicotine_mg_pouch,
       page_url: product.page_url,
+      ingredients: Array.isArray(product.ingredients) ? product.ingredients : (typeof product.ingredients === 'string' ? (() => { try { return JSON.parse(product.ingredients); } catch { return []; } })() : []),
+      faq: Array.isArray(product.faq) ? product.faq : (typeof product.faq === 'string' ? (() => { try { return JSON.parse(product.faq); } catch { return []; } })() : []),
+      usage_tips: product.usage_tips || '',
+      usage_beginners: product.usage_beginners || '',
+      usage_switchers: product.usage_switchers || '',
+      brand_story: product.brand_story || '',
+      brand_facts: product.brand_facts || '',
+      meta_title: product.meta_title || '',
+      meta_description: product.meta_description || '',
       stores: stores
     };
 
@@ -525,8 +539,8 @@ export async function generateMetadata({ params }: USProductPageProps): Promise<
   const llmSeoData = product.llmSeoData;
 
   return {
-    title: llmSeoData?.meta?.title || regularSeoData?.meta?.title || product.title || `${product.name} - Compare Prices & Deals US`,
-    description: llmSeoData?.meta?.description || regularSeoData?.meta?.description || product.description || `Compare ${product.name} prices from top US vendors. Find the best deals and reviews.`,
+    title: product.meta_title || llmSeoData?.meta?.title || regularSeoData?.meta?.title || product.title || `${product.name} - Compare Prices & Deals US`,
+    description: product.meta_description || llmSeoData?.meta?.description || regularSeoData?.meta?.description || product.short_description || product.description || `Compare ${product.name} prices from top US vendors. Find the best deals and reviews.`,
     keywords: regularSeoData?.graphql_keywords?.seed_terms?.join(', ') || `${product.brand}, ${product.flavour}, nicotine pouches, ${product.strength_group}`,
     robots: llmSeoData?.meta?.robots || regularSeoData?.meta?.robots || "index,follow",
     authors: [{ name: 'Nicotine Pouches US' }],
@@ -576,12 +590,11 @@ export default async function USProductPage({ params, searchParams }: USProductP
 
   return (
     <>
-      {/* Google AdSense - only loaded on product pages */}
-      <Script
+      {/* Google AdSense - raw script to avoid data-nscript attribute */}
+      <script
         async
         src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9898973838473500"
         crossOrigin="anonymous"
-        strategy="lazyOnload"
       />
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -863,7 +876,7 @@ export default async function USProductPage({ params, searchParams }: USProductP
                 "@type": "Brand",
                 "name": product.brand || 'Unknown Brand'
               },
-              "description": product.description || `Compare ${product.name} prices from top US vendors.`,
+              "description": product.short_description || product.description || `Compare ${product.name} prices from top US vendors.`,
               "image": product.image || '/placeholder-product.jpg',
               "category": "Nicotine Pouches",
               "offers": {
@@ -980,6 +993,20 @@ export default async function USProductPage({ params, searchParams }: USProductP
                       {/* Use ProductHeroActions component for consistent icons */}
                       <ProductHeroActions product={product} ratingData={null} isUS={true} />
 
+                      {/* Headline */}
+                      {product.headline && (
+                        <p style={{
+                          fontSize: '15px',
+                          color: '#374151',
+                          fontWeight: '500',
+                          lineHeight: '1.5',
+                          marginBottom: '8px',
+                          fontFamily: "'Plus Jakarta Sans', sans-serif"
+                        }}>
+                          {product.headline}
+                        </p>
+                      )}
+
                       {/* Short Description */}
                       <p className="product-description-desktop" style={{
                         fontSize: '14px',
@@ -987,8 +1014,8 @@ export default async function USProductPage({ params, searchParams }: USProductP
                         lineHeight: '1.6',
                         marginBottom: '16px'
                       }}>
-                        {(product.excerpt || product.description || '').replace(/<[^>]*>/g, '').replace(/\\n/g, '').trim().substring(0, 200)}
-                        {(product.excerpt || product.description || '').length > 200 && '...'}
+                        {(product.short_description || product.excerpt || product.description || '').replace(/<[^>]*>/g, '').replace(/\\n/g, '').trim().substring(0, 250)}
+                        {(product.short_description || product.excerpt || product.description || '').length > 250 && '...'}
                       </p>
                     </div>
                   </div>
@@ -1222,9 +1249,188 @@ export default async function USProductPage({ params, searchParams }: USProductP
             </div>
           </div>
 
-            {/* FAQ Section */}
+            {/* About This Product - Long Description */}
+            {product.description_long && (
+              <div style={{
+                backgroundColor: '#ffffff',
+                padding: '40px 0',
+                marginBottom: '0'
+              }}>
+                <div className="content-container">
+                  <h3 style={{
+                    fontSize: '1.5rem',
+                    fontWeight: '600',
+                    color: '#1a1a1a',
+                    marginBottom: '1.5rem',
+                    fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
+                  }}>
+                    About {product.name}
+                  </h3>
+                  <div style={{ maxWidth: '720px' }}>
+                    {product.description_long.split('\n\n').map((paragraph: string, i: number) => (
+                      <p key={i} style={{
+                        fontSize: '0.95rem',
+                        color: '#374151',
+                        lineHeight: '1.75',
+                        marginBottom: '1rem'
+                      }}>
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Ingredients */}
+            {product.ingredients && product.ingredients.length > 0 && (
+              <div style={{
+                backgroundColor: '#f9fafb',
+                padding: '32px 0'
+              }}>
+                <div className="content-container">
+                  <h3 style={{
+                    fontSize: '1.25rem',
+                    fontWeight: '600',
+                    color: '#1a1a1a',
+                    marginBottom: '1rem',
+                    fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
+                  }}>
+                    Ingredients
+                  </h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {product.ingredients.map((item: string, i: number) => (
+                      <span key={i} style={{
+                        padding: '6px 14px',
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '20px',
+                        fontSize: '0.85rem',
+                        color: '#4b5563'
+                      }}>
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Usage Tips & Brand Story */}
+            {(product.usage_tips || product.brand_story) && (
+              <div style={{
+                backgroundColor: '#ffffff',
+                padding: '40px 0'
+              }}>
+                <div className="content-container">
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: product.brand_story && product.usage_tips ? '1fr 1fr' : '1fr',
+                    gap: '2rem'
+                  }}>
+                    {product.usage_tips && (
+                      <div>
+                        <h3 style={{
+                          fontSize: '1.25rem',
+                          fontWeight: '600',
+                          color: '#1a1a1a',
+                          marginBottom: '1rem',
+                          fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
+                        }}>
+                          Usage Tips
+                        </h3>
+                        <p style={{ fontSize: '0.9rem', color: '#4b5563', lineHeight: '1.7' }}>
+                          {product.usage_tips}
+                        </p>
+                      </div>
+                    )}
+                    {product.brand_story && (
+                      <div>
+                        <h3 style={{
+                          fontSize: '1.25rem',
+                          fontWeight: '600',
+                          color: '#1a1a1a',
+                          marginBottom: '1rem',
+                          fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
+                        }}>
+                          About {product.brand || 'This Brand'}
+                        </h3>
+                        <p style={{ fontSize: '0.9rem', color: '#4b5563', lineHeight: '1.7' }}>
+                          {product.brand_story}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Beginners & Switchers */}
+            {(product.usage_beginners || product.usage_switchers) && (
+              <div style={{
+                backgroundColor: '#f9fafb',
+                padding: '40px 0'
+              }}>
+                <div className="content-container">
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: product.usage_beginners && product.usage_switchers ? '1fr 1fr' : '1fr',
+                    gap: '2rem'
+                  }}>
+                    {product.usage_beginners && (
+                      <div style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: '12px',
+                        padding: '24px',
+                        border: '1px solid #e5e7eb'
+                      }}>
+                        <h4 style={{
+                          fontSize: '1.1rem',
+                          fontWeight: '600',
+                          color: '#1a1a1a',
+                          marginBottom: '0.75rem',
+                          fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
+                        }}>
+                          For Beginners
+                        </h4>
+                        <p style={{ fontSize: '0.9rem', color: '#4b5563', lineHeight: '1.7' }}>
+                          {product.usage_beginners}
+                        </p>
+                      </div>
+                    )}
+                    {product.usage_switchers && (
+                      <div style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: '12px',
+                        padding: '24px',
+                        border: '1px solid #e5e7eb'
+                      }}>
+                        <h4 style={{
+                          fontSize: '1.1rem',
+                          fontWeight: '600',
+                          color: '#1a1a1a',
+                          marginBottom: '0.75rem',
+                          fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif"
+                        }}>
+                          Switching from Cigarettes
+                        </h4>
+                        <p style={{ fontSize: '0.9rem', color: '#4b5563', lineHeight: '1.7' }}>
+                          {product.usage_switchers}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* FAQ Section - Prefer product-level FAQs, fall back to SEO-generated */}
             <div id="features" style={{ marginBottom: '40px' }}>
-              <FAQSection faqs={product.regularSeoData?.faq_plaintext || product.llmSeoData?.faq_plaintext || []} />
+              <FAQSection faqs={
+                product.faq && product.faq.length > 0
+                  ? product.faq.map((f: any) => ({ q: f.question, a: f.answer }))
+                  : (product.regularSeoData?.faq_plaintext || product.llmSeoData?.faq_plaintext || [])
+              } />
             </div>
         </main>
 

@@ -182,13 +182,13 @@ export async function GET(request: Request) {
       let score = 0;
       if (section === 'trending') {
         // Trending: prioritize recent clicks — products must have at least 1 store
-        score = stores === 0 ? -1 : (clicks * 0.5) + (stores * 0.3) + (recencyBonus * 0.2 * 100);
+        score = stores === 0 ? -1 : (clicks * 5) + (stores * 2) + (recencyBonus * 10);
       } else if (section === 'popular') {
-        // Popular: prioritize store count — products must have at least 1 store
-        score = stores === 0 ? -1 : (stores * 0.5) + (clicks * 0.3) + (recencyBonus * 0.2 * 100);
+        // Popular: heavily prioritize store count — products must have at least 1 store
+        score = stores === 0 ? -1 : (stores * 10) + (clicks * 2);
       } else if (section === 'new') {
         // New: prioritize recency
-        score = (recencyBonus * 0.6 * 100) + (clicks * 0.2) + (stores * 0.2);
+        score = (recencyBonus * 100) + (clicks * 0.2) + (stores * 0.2);
       }
 
       // Get tracking count from price alerts by product_id

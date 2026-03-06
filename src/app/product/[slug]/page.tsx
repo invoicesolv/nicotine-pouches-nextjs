@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import Script from 'next/script';
+
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Image from 'next/image';
@@ -845,6 +845,8 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       usage_beginners: Array.isArray(product.usage_beginners) ? product.usage_beginners : [],
       usage_switchers: Array.isArray(product.usage_switchers) ? product.usage_switchers : [],
       brand_story: product.brand_story || '',
+      meta_title: product.meta_title || '',
+      meta_description: product.meta_description || '',
       regularSeoData,
       llmSeoData,
       selectedPack: packSize,
@@ -897,7 +899,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   // Generate SEO data using centralized template
   const seoData = getProductSEOTemplate(productData);
-  
+
+  // Override with DB meta fields when set
+  if (product.meta_title) seoData.title = product.meta_title;
+  if (product.meta_description) seoData.description = product.meta_description;
+
   // Use centralized SEO function
   return getSEOTags('product', seoData);
 }
@@ -1125,12 +1131,11 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
 
   return (
     <>
-      {/* Google AdSense - only loaded on product pages */}
-      <Script
+      {/* Google AdSense - raw script to avoid data-nscript attribute */}
+      <script
         async
         src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9898973838473500"
         crossOrigin="anonymous"
-        strategy="lazyOnload"
       />
       {/* Standalone AggregateRating Schema - Only render if reviewCount > 0 */}
       {ratingData && ratingData.reviewCount > 0 && (() => {
@@ -1764,12 +1769,11 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                       {/* Headline */}
                       {product.headline && (
                         <p style={{
-                          fontSize: '16px',
-                          color: '#4b5563',
-                          fontWeight: '500',
+                          fontSize: '15px',
+                          color: '#6b7280',
+                          fontWeight: '400',
                           lineHeight: '1.5',
-                          marginBottom: '8px',
-                          fontStyle: 'italic'
+                          marginBottom: '8px'
                         }}>
                           {product.headline}
                         </p>
@@ -2121,7 +2125,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               </div>
             </div>
 
-          {/* Product Details Section */}
+          {/* Product Details + Extra Info Section — sits beside ad sidebar */}
           <div id="product-details" style={{
             backgroundColor: '#ffffff',
             padding: '40px 0',
@@ -2131,20 +2135,193 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               display: 'flex',
               gap: '24px'
             }}>
-              {/* Left - Product Details Content */}
+              {/* Left Column — all product info */}
               <div style={{ flex: '1', minWidth: 0 }}>
+                {/* Product Details Card */}
                 <h3 style={{
                   fontSize: '1.5rem',
-                  fontWeight: '600',
-                  color: '#1a1a1a',
-                  marginBottom: '1.5rem'
+                  fontWeight: '700',
+                  color: '#0B051D',
+                  marginBottom: '1.5rem',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif"
                 }}>
                   Product Details
                 </h3>
                 <ProductDetailsCard product={product} />
+
+                {/* Ingredients — PriceRunner table style */}
+                {product.ingredients && product.ingredients.length > 0 && (
+                  <div style={{ marginTop: '40px' }}>
+                    <h3 style={{
+                      fontSize: '1.25rem',
+                      fontWeight: '700',
+                      color: '#0B051D',
+                      marginBottom: '16px',
+                      fontFamily: "'Plus Jakarta Sans', sans-serif"
+                    }}>
+                      Ingredients
+                    </h3>
+                    <div style={{ borderRadius: '12px', overflow: 'hidden' }}>
+                      {product.ingredients.map((item: string, i: number) => (
+                        <div key={i} style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '14px 20px',
+                          backgroundColor: i % 2 === 0 ? '#f3f4f6' : '#ffffff',
+                          fontSize: '14px'
+                        }}>
+                          <span style={{ color: '#6b7280' }}>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Usage Tips — two-column PriceRunner layout */}
+                {(product.usage_tips?.length > 0 || product.brand_story) && (
+                  <div style={{ marginTop: '40px' }}>
+                    <h3 style={{
+                      fontSize: '1.25rem',
+                      fontWeight: '700',
+                      color: '#0B051D',
+                      marginBottom: '16px',
+                      fontFamily: "'Plus Jakarta Sans', sans-serif"
+                    }}>
+                      How to use
+                    </h3>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: product.brand_story && product.usage_tips?.length > 0 ? '1fr 1fr' : '1fr',
+                      gap: '24px'
+                    }}>
+                      {product.usage_tips && product.usage_tips.length > 0 && (
+                        <div style={{ borderRadius: '12px', overflow: 'hidden' }}>
+                          {product.usage_tips.map((tip: string, i: number) => (
+                            <div key={i} style={{
+                              display: 'flex',
+                              gap: '12px',
+                              padding: '14px 20px',
+                              backgroundColor: i % 2 === 0 ? '#f3f4f6' : '#ffffff',
+                              fontSize: '14px',
+                              lineHeight: '1.5'
+                            }}>
+                              <span style={{ color: '#9ca3af', fontWeight: '700', flexShrink: 0 }}>{i + 1}</span>
+                              <span style={{ color: '#374151' }}>{tip}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {product.brand_story && (
+                        <div>
+                          <h4 style={{
+                            fontSize: '1rem',
+                            fontWeight: '700',
+                            color: '#0B051D',
+                            marginBottom: '12px',
+                            fontFamily: "'Plus Jakarta Sans', sans-serif"
+                          }}>
+                            About {product.brand}
+                          </h4>
+                          <div style={{
+                            padding: '20px',
+                            backgroundColor: '#f3f4f6',
+                            borderRadius: '12px',
+                            fontSize: '14px',
+                            color: '#374151',
+                            lineHeight: '1.7'
+                          }}>
+                            {product.brand_story}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Beginner & Switcher Tips — two-column PriceRunner layout */}
+                {(product.usage_beginners?.length > 0 || product.usage_switchers?.length > 0) && (
+                  <div style={{ marginTop: '40px' }}>
+                    <h3 style={{
+                      fontSize: '1.25rem',
+                      fontWeight: '700',
+                      color: '#0B051D',
+                      marginBottom: '16px',
+                      fontFamily: "'Plus Jakarta Sans', sans-serif"
+                    }}>
+                      Getting started
+                    </h3>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: product.usage_beginners?.length > 0 && product.usage_switchers?.length > 0 ? '1fr 1fr' : '1fr',
+                      gap: '24px'
+                    }}>
+                      {product.usage_beginners && product.usage_beginners.length > 0 && (
+                        <div>
+                          <h4 style={{
+                            fontSize: '1rem',
+                            fontWeight: '700',
+                            color: '#0B051D',
+                            marginBottom: '12px',
+                            fontFamily: "'Plus Jakarta Sans', sans-serif"
+                          }}>
+                            New to pouches
+                          </h4>
+                          <div style={{ borderRadius: '12px', overflow: 'hidden' }}>
+                            {product.usage_beginners.map((tip: string, i: number) => (
+                              <div key={i} style={{
+                                display: 'flex',
+                                gap: '12px',
+                                padding: '14px 20px',
+                                backgroundColor: i % 2 === 0 ? '#f3f4f6' : '#ffffff',
+                                fontSize: '14px',
+                                lineHeight: '1.5',
+                                alignItems: 'flex-start'
+                              }}>
+                                <span style={{ color: '#10b981', fontWeight: '700', flexShrink: 0 }}>&#10003;</span>
+                                <span style={{ color: '#374151' }}>{tip}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {product.usage_switchers && product.usage_switchers.length > 0 && (
+                        <div>
+                          <h4 style={{
+                            fontSize: '1rem',
+                            fontWeight: '700',
+                            color: '#0B051D',
+                            marginBottom: '12px',
+                            fontFamily: "'Plus Jakarta Sans', sans-serif"
+                          }}>
+                            Switching from smoking or vaping
+                          </h4>
+                          <div style={{ borderRadius: '12px', overflow: 'hidden' }}>
+                            {product.usage_switchers.map((tip: string, i: number) => (
+                              <div key={i} style={{
+                                display: 'flex',
+                                gap: '12px',
+                                padding: '14px 20px',
+                                backgroundColor: i % 2 === 0 ? '#f3f4f6' : '#ffffff',
+                                fontSize: '14px',
+                                lineHeight: '1.5',
+                                alignItems: 'flex-start'
+                              }}>
+                                <span style={{ color: '#3b82f6', fontWeight: '700', flexShrink: 0 }}>&#8594;</span>
+                                <span style={{ color: '#374151' }}>{tip}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Right - Ad Sidebar */}
+              {/* Right — Ad Sidebar */}
               <div className="details-ad-sidebar" style={{ flex: '0 0 300px', maxWidth: '300px' }}>
                 <div style={{
                   position: 'sticky',
@@ -2172,216 +2349,6 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               </div>
             </div>
           </div>
-
-          {/* Ingredients, Usage Tips, Brand Story Section */}
-          {(product.ingredients?.length > 0 || product.usage_tips?.length > 0 || product.brand_story) && (
-            <div style={{
-              backgroundColor: '#ffffff',
-              padding: '40px 0',
-              marginBottom: '0'
-            }}>
-              <div className="content-container" style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                gap: '32px'
-              }}>
-                {/* Ingredients */}
-                {product.ingredients && product.ingredients.length > 0 && (
-                  <div style={{
-                    backgroundColor: '#f9fafb',
-                    borderRadius: '12px',
-                    padding: '24px',
-                    border: '1px solid #e5e7eb'
-                  }}>
-                    <h3 style={{
-                      fontSize: '1.1rem',
-                      fontWeight: '600',
-                      color: '#1f2937',
-                      marginBottom: '16px',
-                      margin: '0 0 16px 0'
-                    }}>
-                      Ingredients
-                    </h3>
-                    <ul style={{
-                      listStyle: 'none',
-                      padding: 0,
-                      margin: 0,
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: '8px'
-                    }}>
-                      {product.ingredients.map((item: string, i: number) => (
-                        <li key={i} style={{
-                          backgroundColor: '#ffffff',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '20px',
-                          padding: '6px 14px',
-                          fontSize: '13px',
-                          color: '#4b5563'
-                        }}>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Usage Tips */}
-                {product.usage_tips && product.usage_tips.length > 0 && (
-                  <div style={{
-                    backgroundColor: '#f9fafb',
-                    borderRadius: '12px',
-                    padding: '24px',
-                    border: '1px solid #e5e7eb'
-                  }}>
-                    <h3 style={{
-                      fontSize: '1.1rem',
-                      fontWeight: '600',
-                      color: '#1f2937',
-                      marginBottom: '16px',
-                      margin: '0 0 16px 0'
-                    }}>
-                      How to use
-                    </h3>
-                    <ul style={{
-                      listStyle: 'none',
-                      padding: 0,
-                      margin: 0
-                    }}>
-                      {product.usage_tips.map((tip: string, i: number) => (
-                        <li key={i} style={{
-                          fontSize: '14px',
-                          color: '#4b5563',
-                          lineHeight: '1.6',
-                          padding: '8px 0',
-                          borderBottom: i < product.usage_tips.length - 1 ? '1px solid #e5e7eb' : 'none',
-                          display: 'flex',
-                          gap: '10px'
-                        }}>
-                          <span style={{ color: '#9ca3af', fontWeight: '600', flexShrink: 0 }}>{i + 1}.</span>
-                          <span>{tip}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Brand Story */}
-                {product.brand_story && (
-                  <div style={{
-                    backgroundColor: '#f9fafb',
-                    borderRadius: '12px',
-                    padding: '24px',
-                    border: '1px solid #e5e7eb'
-                  }}>
-                    <h3 style={{
-                      fontSize: '1.1rem',
-                      fontWeight: '600',
-                      color: '#1f2937',
-                      marginBottom: '16px',
-                      margin: '0 0 16px 0'
-                    }}>
-                      About {product.brand}
-                    </h3>
-                    <p style={{
-                      fontSize: '14px',
-                      color: '#4b5563',
-                      lineHeight: '1.7',
-                      margin: 0
-                    }}>
-                      {product.brand_story}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Beginner & Switcher Tips */}
-          {(product.usage_beginners?.length > 0 || product.usage_switchers?.length > 0) && (
-            <div style={{
-              backgroundColor: '#f5f5f7',
-              padding: '40px 0'
-            }}>
-              <div className="content-container" style={{
-                display: 'grid',
-                gridTemplateColumns: product.usage_beginners?.length > 0 && product.usage_switchers?.length > 0 ? '1fr 1fr' : '1fr',
-                gap: '24px'
-              }}>
-                {product.usage_beginners && product.usage_beginners.length > 0 && (
-                  <div style={{
-                    backgroundColor: '#ffffff',
-                    borderRadius: '12px',
-                    padding: '24px',
-                    border: '1px solid #e5e7eb'
-                  }}>
-                    <h3 style={{
-                      fontSize: '1.1rem',
-                      fontWeight: '600',
-                      color: '#1f2937',
-                      marginBottom: '16px',
-                      margin: '0 0 16px 0'
-                    }}>
-                      New to nicotine pouches?
-                    </h3>
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                      {product.usage_beginners.map((tip: string, i: number) => (
-                        <li key={i} style={{
-                          fontSize: '14px',
-                          color: '#4b5563',
-                          lineHeight: '1.6',
-                          padding: '8px 0',
-                          borderBottom: i < product.usage_beginners.length - 1 ? '1px solid #f3f4f6' : 'none',
-                          display: 'flex',
-                          gap: '10px',
-                          alignItems: 'flex-start'
-                        }}>
-                          <span style={{ color: '#10b981', fontSize: '16px', flexShrink: 0, lineHeight: '1.4' }}>&#10003;</span>
-                          <span>{tip}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {product.usage_switchers && product.usage_switchers.length > 0 && (
-                  <div style={{
-                    backgroundColor: '#ffffff',
-                    borderRadius: '12px',
-                    padding: '24px',
-                    border: '1px solid #e5e7eb'
-                  }}>
-                    <h3 style={{
-                      fontSize: '1.1rem',
-                      fontWeight: '600',
-                      color: '#1f2937',
-                      marginBottom: '16px',
-                      margin: '0 0 16px 0'
-                    }}>
-                      Switching from smoking or vaping?
-                    </h3>
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                      {product.usage_switchers.map((tip: string, i: number) => (
-                        <li key={i} style={{
-                          fontSize: '14px',
-                          color: '#4b5563',
-                          lineHeight: '1.6',
-                          padding: '8px 0',
-                          borderBottom: i < product.usage_switchers.length - 1 ? '1px solid #f3f4f6' : 'none',
-                          display: 'flex',
-                          gap: '10px',
-                          alignItems: 'flex-start'
-                        }}>
-                          <span style={{ color: '#3b82f6', fontSize: '16px', flexShrink: 0, lineHeight: '1.4' }}>&#8594;</span>
-                          <span>{tip}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* FAQ Section */}
           <div id="features" style={{ marginBottom: '40px' }}>

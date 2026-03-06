@@ -55,38 +55,57 @@ async function getHomepageProducts() {
       return [];
     }
     
-    // Fetch all mappings for products with price data
+    // Fetch all mappings for products and their prices
     const productIds = wpProducts.map((p: any) => p.id);
     const { data: mappings } = await supabase()
       .from('vendor_product_mapping')
-      .select('product_id, vendor_id, price')
+      .select('product_id, vendor_id, vendor_product')
       .in('product_id', productIds);
-    
-    // Count stores per product, identify priority products, and get price range
+
+    // Count stores per product and identify priority products
     const storeCounts = new Map<number, number>();
     const isPriorityProduct = new Map<number, boolean>();
     const priceRanges = new Map<number, { low: number; high: number }>();
-    
+
     mappings?.forEach((mapping: any) => {
       const count = storeCounts.get(mapping.product_id) || 0;
       storeCounts.set(mapping.product_id, count + 1);
-      
+
       if (priorityVendorIds.includes(mapping.vendor_id)) {
         isPriorityProduct.set(mapping.product_id, true);
       }
-      
-      // Track price ranges
-      if (mapping.price) {
-        const price = parseFloat(String(mapping.price).replace(/[£$]/g, ''));
-        if (!isNaN(price)) {
-          const existing = priceRanges.get(mapping.product_id) || { low: price, high: price };
-          priceRanges.set(mapping.product_id, {
-            low: Math.min(existing.low, price),
-            high: Math.max(existing.high, price)
+    });
+
+    // Fetch prices from vendor_products for mapped products
+    if (mappings && mappings.length > 0) {
+      const vendorProductNames = mappings.map((m: any) => m.vendor_product).filter(Boolean);
+      if (vendorProductNames.length > 0) {
+        const { data: vendorPrices } = await supabase()
+          .from('vendor_products')
+          .select('name, vendor_id, price_1pack')
+          .in('name', vendorProductNames)
+          .not('price_1pack', 'is', null)
+          .gt('price_1pack', 0);
+
+        // Map vendor prices back to product IDs
+        if (vendorPrices) {
+          const mappingLookup = new Map(mappings.map((m: any) => [`${m.vendor_product}|${m.vendor_id}`, m.product_id]));
+          vendorPrices.forEach((vp: any) => {
+            const productId = mappingLookup.get(`${vp.name}|${vp.vendor_id}`);
+            if (productId && vp.price_1pack) {
+              const price = parseFloat(String(vp.price_1pack));
+              if (!isNaN(price)) {
+                const existing = priceRanges.get(productId) || { low: price, high: price };
+                priceRanges.set(productId, {
+                  low: Math.min(existing.low, price),
+                  high: Math.max(existing.high, price)
+                });
+              }
+            }
           });
         }
       }
-    });
+    }
     
     // Process products with full details
     const processedProducts = wpProducts.map((product: any) => {
