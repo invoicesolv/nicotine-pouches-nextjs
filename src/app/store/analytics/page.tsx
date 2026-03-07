@@ -34,7 +34,7 @@ export default function StoreAnalyticsPage() {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [days, setDays] = useState(30);
+  const [days, setDays] = useState(90);
 
   useEffect(() => {
     fetchData();
@@ -43,9 +43,10 @@ export default function StoreAnalyticsPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
+      const daysParam = days === 0 ? 365 : days;
       const [overviewRes, clicksRes] = await Promise.all([
-        fetch(`/api/store/analytics/overview?days=${days}`, { credentials: 'include' }),
-        fetch(`/api/store/analytics/clicks?days=${days}`, { credentials: 'include' }),
+        fetch(`/api/store/analytics/overview?days=${daysParam}`, { credentials: 'include' }),
+        fetch(`/api/store/analytics/clicks?days=${daysParam}`, { credentials: 'include' }),
       ]);
 
       if (overviewRes.ok) {
@@ -65,7 +66,7 @@ export default function StoreAnalyticsPage() {
     }
   };
 
-  const maxClicks = Math.max(...chartData.map(d => d.clicks), 1);
+  const maxImpressions = Math.max(...chartData.map(d => d.impressions), 1);
 
   return (
     <StoreLayout>
@@ -90,6 +91,7 @@ export default function StoreAnalyticsPage() {
               <option value={7}>Last 7 days</option>
               <option value={30}>Last 30 days</option>
               <option value={90}>Last 90 days</option>
+              <option value={0}>All time</option>
             </select>
           </div>
         </div>
@@ -99,9 +101,25 @@ export default function StoreAnalyticsPage() {
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Clicks Chart */}
+          {/* Impressions & Clicks Chart */}
           <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Clicks Over Time</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900">Traffic Over Time</h3>
+              <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-blue-200 rounded-sm" />
+                  <span className="text-gray-500">Impressions</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-blue-600 rounded-sm" />
+                  <span className="text-gray-500">Clicks</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-green-500 rounded-sm" />
+                  <span className="text-gray-500">Conversions</span>
+                </div>
+              </div>
+            </div>
             {loading ? (
               <div className="h-64 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -112,24 +130,43 @@ export default function StoreAnalyticsPage() {
               </div>
             ) : (
               <div className="h-64">
-                {/* Simple bar chart */}
-                <div className="flex items-end h-48 gap-1">
-                  {chartData.slice(-30).map((data, index) => {
-                    const height = (data.clicks / maxClicks) * 100;
+                {/* Stacked bar chart */}
+                <div className="flex items-end h-48 gap-[2px]">
+                  {chartData.slice(-60).map((data) => {
+                    const impressionHeight = (data.impressions / maxImpressions) * 100;
+                    const clickHeight = maxImpressions > 0 ? (data.clicks / maxImpressions) * 100 : 0;
+                    const conversionHeight = maxImpressions > 0 ? (data.conversions / maxImpressions) * 100 : 0;
                     return (
                       <div
                         key={data.date}
-                        className="flex-1 group relative"
+                        className="flex-1 group relative flex flex-col items-stretch justify-end h-full"
                       >
+                        {/* Impressions bar (background) */}
                         <div
-                          className="bg-blue-500 hover:bg-blue-600 rounded-t transition-colors"
-                          style={{ height: `${Math.max(height, 2)}%` }}
-                        />
+                          className="bg-blue-100 hover:bg-blue-200 rounded-t transition-colors relative"
+                          style={{ height: `${Math.max(impressionHeight, 1)}%` }}
+                        >
+                          {/* Clicks overlay */}
+                          {data.clicks > 0 && (
+                            <div
+                              className="absolute bottom-0 left-0 right-0 bg-blue-500 rounded-t"
+                              style={{ height: `${Math.max(clickHeight / impressionHeight * 100, 4)}%` }}
+                            />
+                          )}
+                          {/* Conversions dot */}
+                          {data.conversions > 0 && (
+                            <div
+                              className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-green-500 rounded-full border border-white"
+                            />
+                          )}
+                        </div>
                         {/* Tooltip */}
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                          <div className="bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
-                            <div className="font-medium">{data.clicks} clicks</div>
-                            <div className="text-gray-400">{new Date(data.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}</div>
+                          <div className="bg-gray-900 text-white text-xs rounded px-2 py-1.5 whitespace-nowrap">
+                            <div className="text-gray-400 mb-1">{new Date(data.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}</div>
+                            <div>{data.impressions} impressions</div>
+                            <div>{data.clicks} clicks</div>
+                            <div className="text-green-400">{data.conversions} conversions</div>
                           </div>
                         </div>
                       </div>
@@ -140,7 +177,7 @@ export default function StoreAnalyticsPage() {
                 <div className="flex justify-between mt-2 text-xs text-gray-500">
                   {chartData.length > 0 && (
                     <>
-                      <span>{new Date(chartData[Math.max(0, chartData.length - 30)].date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}</span>
+                      <span>{new Date(chartData[Math.max(0, chartData.length - 60)].date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}</span>
                       <span>{new Date(chartData[chartData.length - 1].date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}</span>
                     </>
                   )}
@@ -163,11 +200,11 @@ export default function StoreAnalyticsPage() {
               </div>
             ) : topProducts.length === 0 ? (
               <div className="text-gray-500 text-sm">
-                No product click data available
+                No product click data for this period
               </div>
             ) : (
               <div className="space-y-4">
-                {topProducts.slice(0, 5).map((product, index) => (
+                {topProducts.slice(0, 8).map((product, index) => (
                   <div key={`${product.name}-${index}`} className="flex items-center gap-3">
                     <span className="text-sm font-medium text-gray-400 w-5">
                       {index + 1}
@@ -209,7 +246,7 @@ export default function StoreAnalyticsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {chartData.slice(-7).reverse().map((row) => {
+                  {chartData.slice(-14).reverse().map((row) => {
                     const ctr = row.impressions > 0
                       ? ((row.clicks / row.impressions) * 100).toFixed(2)
                       : '0.00';
@@ -229,7 +266,7 @@ export default function StoreAnalyticsPage() {
                           {row.clicks.toLocaleString()}
                         </td>
                         <td className="px-4 py-2 text-sm text-green-600 text-right font-medium">
-                          {(row.conversions || 0).toLocaleString()}
+                          {row.conversions.toLocaleString()}
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-500 text-right">
                           {ctr}%
@@ -241,6 +278,29 @@ export default function StoreAnalyticsPage() {
               </table>
             </div>
           )}
+        </div>
+
+        {/* Tips */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Improve your performance</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border border-gray-100 rounded-lg p-4">
+              <div className="text-sm font-medium text-gray-900 mb-1">Competitive pricing</div>
+              <p className="text-xs text-gray-600">Products priced lowest get the top position. Check competitor prices regularly and match or beat them on your best-selling items.</p>
+            </div>
+            <div className="border border-gray-100 rounded-lg p-4">
+              <div className="text-sm font-medium text-gray-900 mb-1">Stock availability</div>
+              <p className="text-xs text-gray-600">Out-of-stock products still show but get pushed down. Keep your top sellers in stock to maintain visibility.</p>
+            </div>
+            <div className="border border-gray-100 rounded-lg p-4">
+              <div className="text-sm font-medium text-gray-900 mb-1">Product coverage</div>
+              <p className="text-xs text-gray-600">The more products you have mapped, the more comparison pages you appear on. Map all your products to maximize exposure.</p>
+            </div>
+            <div className="border border-gray-100 rounded-lg p-4">
+              <div className="text-sm font-medium text-gray-900 mb-1">Shipping & offers</div>
+              <p className="text-xs text-gray-600">Free shipping and bundle deals are shown on your listings. Update your shipping info and offers in Settings to stand out.</p>
+            </div>
+          </div>
         </div>
       </div>
     </StoreLayout>

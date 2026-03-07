@@ -1,12 +1,93 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import StoreLayout from '@/components/store/StoreLayout';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
+
+interface ShippingInfo {
+  shipping_info: string | null;
+  delivery_speed: string | null;
+  cutoff_time: string | null;
+  free_shipping_threshold: string | null;
+  shipping_methods: string | null;
+  same_day_available: boolean;
+  same_day_location: string | null;
+  shipping_cost: string | null;
+  offer_type: string | null;
+  offer_value: string | null;
+  offer_description: string | null;
+  trustpilot_score: string | null;
+  review_count: number | null;
+  trustpilot_url: string | null;
+}
+
+interface VendorListItem {
+  id: string;
+  name: string;
+  country: string;
+  logo_url: string | null;
+  hasAccount: boolean;
+  accountEmail: string | null;
+}
 
 export default function StoreSettingsPage() {
   const { user, vendor, logout } = useStoreAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [shipping, setShipping] = useState<ShippingInfo | null>(null);
+  const [shippingLoading, setShippingLoading] = useState(true);
+  const [vendors, setVendors] = useState<VendorListItem[]>([]);
+  const [impersonating, setImpersonating] = useState(false);
+
+  const isSuperAdmin = user?.role === 'super_admin';
+
+  useEffect(() => {
+    fetchShipping();
+    if (isSuperAdmin) fetchVendors();
+  }, []);
+
+  const fetchShipping = async () => {
+    try {
+      const res = await fetch('/api/store/shipping', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setShipping(data.shipping);
+      }
+    } catch {} finally {
+      setShippingLoading(false);
+    }
+  };
+
+  const fetchVendors = async () => {
+    try {
+      const res = await fetch('/api/store/admin/vendors', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setVendors(data.vendors || []);
+      }
+    } catch {}
+  };
+
+  const handleImpersonate = async (vendorId: string) => {
+    setImpersonating(true);
+    try {
+      const res = await fetch('/api/store/admin/impersonate', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendorId }),
+      });
+      if (res.ok) {
+        window.location.href = '/store';
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Impersonation failed');
+      }
+    } catch {
+      alert('Failed to impersonate');
+    } finally {
+      setImpersonating(false);
+    }
+  };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -20,9 +101,59 @@ export default function StoreSettingsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
           <p className="text-gray-600 mt-1">
-            Manage your account and preferences
+            Manage your account and store information
           </p>
         </div>
+
+        {/* Super Admin: Switch Store */}
+        {isSuperAdmin && (
+          <div className="bg-purple-50 rounded-xl border border-purple-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-purple-200 bg-purple-100">
+              <h2 className="font-semibold text-purple-900 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                Super Admin — Switch Store
+              </h2>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-purple-800 mb-4">
+                View any vendor's store portal as if you were logged in as them.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                {vendors.filter(v => v.hasAccount).map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => handleImpersonate(v.id)}
+                    disabled={impersonating}
+                    className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-colors ${
+                      vendor?.id === v.id
+                        ? 'border-purple-400 bg-purple-100'
+                        : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+                    } disabled:opacity-50`}
+                  >
+                    {v.logo_url ? (
+                      <img src={v.logo_url} alt={v.name} className="w-8 h-8 object-contain rounded" />
+                    ) : (
+                      <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center text-xs font-bold text-gray-500">
+                        {v.name[0]}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-gray-900 truncate">{v.name}</div>
+                      <div className="text-xs text-gray-500">{v.country === 'us' ? 'US' : 'UK'}{vendor?.id === v.id ? ' — current' : ''}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              {vendors.filter(v => !v.hasAccount).length > 0 && (
+                <p className="text-xs text-purple-600 mt-3">
+                  {vendors.filter(v => !v.hasAccount).length} vendors without store accounts
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Account Info */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -31,33 +162,25 @@ export default function StoreSettingsPage() {
           </div>
           <div className="p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">
-                Email
-              </label>
+              <label className="block text-sm font-medium text-gray-500 mb-1">Email</label>
               <p className="text-gray-900">{user?.email}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">
-                Role
-              </label>
+              <label className="block text-sm font-medium text-gray-500 mb-1">Role</label>
               <p className="text-gray-900 capitalize">
                 {user?.role?.replace('_', ' ') || 'Store Owner'}
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">
-                Last Login
-              </label>
+              <label className="block text-sm font-medium text-gray-500 mb-1">Last Login</label>
               <p className="text-gray-900">
-                {user?.last_login
-                  ? new Date(user.last_login).toLocaleString()
-                  : 'Never'}
+                {user?.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Vendor Info */}
+        {/* Store Info */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
             <h2 className="font-semibold text-gray-900">Store Information</h2>
@@ -66,30 +189,17 @@ export default function StoreSettingsPage() {
             {vendor ? (
               <div className="flex items-start gap-4">
                 {vendor.logo_url ? (
-                  <img
-                    src={vendor.logo_url}
-                    alt={vendor.name}
-                    className="w-16 h-16 object-contain rounded-lg border border-gray-200"
-                  />
+                  <img src={vendor.logo_url} alt={vendor.name} className="w-16 h-16 object-contain rounded-lg border border-gray-200" />
                 ) : (
                   <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl font-bold text-blue-600">
-                      {vendor.name[0]}
-                    </span>
+                    <span className="text-2xl font-bold text-blue-600">{vendor.name[0]}</span>
                   </div>
                 )}
                 <div>
                   <h3 className="font-semibold text-gray-900">{vendor.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {vendor.country === 'us' ? 'US' : 'UK'} Store
-                  </p>
+                  <p className="text-sm text-gray-500 mt-1">{vendor.country === 'us' ? 'US' : 'UK'} Store</p>
                   {vendor.website_url && (
-                    <a
-                      href={vendor.website_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline mt-2 inline-block"
-                    >
+                    <a href={vendor.website_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline mt-2 inline-block">
                       Visit Store Website
                     </a>
                   )}
@@ -101,41 +211,94 @@ export default function StoreSettingsPage() {
           </div>
         </div>
 
-        {/* Permissions */}
+        {/* Shipping Info */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h2 className="font-semibold text-gray-900">Permissions</h2>
+            <h2 className="font-semibold text-gray-900">Shipping & Delivery</h2>
+            <p className="text-xs text-gray-500 mt-0.5">This information is shown to customers on your product listings</p>
           </div>
           <div className="p-6">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-700">View Analytics</span>
-                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  user?.permissions?.can_view_analytics
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {user?.permissions?.can_view_analytics ? 'Enabled' : 'Disabled'}
-                </span>
+            {shippingLoading ? (
+              <div className="animate-pulse space-y-3">
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-700">Export Data</span>
-                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  user?.permissions?.can_export_data
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {user?.permissions?.can_export_data ? 'Enabled' : 'Disabled'}
-                </span>
+            ) : shipping ? (
+              <div className="space-y-4">
+                {shipping.shipping_info && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">Shipping Info</label>
+                    <p className="text-gray-900">{shipping.shipping_info}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">Shipping Cost</label>
+                    <p className="text-gray-900">
+                      {!shipping.shipping_cost || shipping.shipping_cost === '0' ? 'Free' : `£${shipping.shipping_cost}`}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">Free Shipping From</label>
+                    <p className="text-gray-900">
+                      {!shipping.free_shipping_threshold || shipping.free_shipping_threshold === '0'
+                        ? 'Always free'
+                        : `£${shipping.free_shipping_threshold}`}
+                    </p>
+                  </div>
+                  {shipping.delivery_speed && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500 mb-1">Delivery Speed</label>
+                      <p className="text-gray-900">{shipping.delivery_speed}</p>
+                    </div>
+                  )}
+                  {shipping.cutoff_time && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500 mb-1">Order Cutoff</label>
+                      <p className="text-gray-900">{shipping.cutoff_time}</p>
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">Same Day Delivery</label>
+                    <p className="text-gray-900">
+                      {shipping.same_day_available ? `Yes${shipping.same_day_location ? ` — ${shipping.same_day_location}` : ''}` : 'No'}
+                    </p>
+                  </div>
+                </div>
+                {shipping.offer_description && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <label className="block text-sm font-medium text-green-800 mb-1">Active Offer</label>
+                    <p className="text-green-900">{shipping.offer_description}</p>
+                  </div>
+                )}
+                {shipping.trustpilot_score && (
+                  <div className="border-t border-gray-100 pt-4">
+                    <label className="block text-sm font-medium text-gray-500 mb-1">Trustpilot</label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold text-gray-900">{shipping.trustpilot_score}</span>
+                      <span className="text-sm text-gray-500">/ 5</span>
+                      {shipping.review_count && (
+                        <span className="text-sm text-gray-500">({shipping.review_count} reviews)</span>
+                      )}
+                      {shipping.trustpilot_url && (
+                        <a href={shipping.trustpilot_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline ml-2">
+                          View on Trustpilot
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <p className="text-xs text-gray-500 mt-2">
+                  Contact support@nicotine-pouches.org to update your shipping details.
+                </p>
               </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-4">
-              Contact support to request additional permissions.
-            </p>
+            ) : (
+              <p className="text-gray-500 text-sm">No shipping information available</p>
+            )}
           </div>
         </div>
 
-        {/* Danger Zone */}
+        {/* Session */}
         <div className="bg-white rounded-xl border border-red-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-red-200 bg-red-50">
             <h2 className="font-semibold text-red-900">Session</h2>
@@ -163,13 +326,9 @@ export default function StoreSettingsPage() {
             <div>
               <h3 className="font-semibold text-blue-900">Need Help?</h3>
               <p className="text-blue-700 text-sm mt-1">
-                If you have any questions or need assistance with your store portal,
-                please contact our support team.
+                Contact our support team for any questions about your store portal.
               </p>
-              <a
-                href="mailto:support@nicotine-pouches.org"
-                className="inline-block mt-3 text-sm font-medium text-blue-600 hover:text-blue-800"
-              >
+              <a href="mailto:support@nicotine-pouches.org" className="inline-block mt-3 text-sm font-medium text-blue-600 hover:text-blue-800">
                 Contact Support
               </a>
             </div>
