@@ -8,9 +8,9 @@ export const SEO_CONFIG = {
   appDescription: 'Compare nicotine pouches from top UK brands including ZYN, VELO, and LOOP. Find the best prices, strengths, and flavours with live price updates.',
   
   // Social Media
-  twitterHandle: '@nicotinepouches',
-  facebookPage: 'https://facebook.com/nicotinepouches',
-  instagramPage: 'https://instagram.com/nicotinepouches',
+  twitterHandle: '@nicotinepouchuk',
+  facebookPage: 'https://www.facebook.com/profile.php?id=61584629112745',
+  instagramPage: 'https://www.instagram.com/nicotinepouchesorg/',
   
   // Organization Details
   organization: {
@@ -19,7 +19,7 @@ export const SEO_CONFIG = {
     url: 'https://nicotine-pouches.org',
     logo: 'https://nicotine-pouches.org/logo.png',
     description: 'Premium nicotine pouches price comparison service. Find the best deals on nicotine pouches in the UK with our comprehensive price comparison platform.',
-    foundingDate: '2024',
+    foundingDate: '2021',
     founder: {
       name: 'Nicotine Pouches Team'
     },

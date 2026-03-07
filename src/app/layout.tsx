@@ -53,8 +53,9 @@ export default async function RootLayout({
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": "https://nicotine-pouches.org/#organization",
     "name": "Nicotine Pouches",
-    "alternateName": "Nicotine Pouches UK",
+    "alternateName": ["Nicotine Pouches UK", "nicotine-pouches.org", "NicotinePouches"],
     "url": "https://nicotine-pouches.org",
     "logo": {
       "@type": "ImageObject",
@@ -62,54 +63,57 @@ export default async function RootLayout({
       "width": 200,
       "height": 60
     },
-    "description": "Premium nicotine pouches price comparison service. Find the best deals on nicotine pouches in the UK with our comprehensive price comparison platform.",
-    "foundingDate": "2024",
-    "founder": {
-      "@type": "Person",
-      "name": "Nicotine Pouches Team"
-    },
+    "image": "https://nicotine-pouches.org/android-chrome-512x512.png",
+    "description": "The UK's largest nicotine pouch price comparison site. Compare 700+ products across 10+ retailers with live prices, reviews, and stock updates.",
+    "foundingDate": "2021",
     "address": {
       "@type": "PostalAddress",
-      "addressCountry": "GB",
-      "addressRegion": "England"
+      "addressCountry": "GB"
     },
     "contactPoint": {
       "@type": "ContactPoint",
       "contactType": "customer service",
       "email": "support@nicotine-pouches.org",
-      "availableLanguage": ["English"]
+      "availableLanguage": "English"
     },
     "sameAs": [
-      "https://twitter.com/nicotinepouches",
-      "https://facebook.com/nicotinepouches",
-      "https://instagram.com/nicotinepouches"
+      "https://x.com/nicotinepouchuk",
+      "https://www.instagram.com/nicotinepouchesorg/",
+      "https://www.facebook.com/profile.php?id=61584629112745"
     ],
-    "serviceArea": {
-      "@type": "Country",
-      "name": "United Kingdom"
-    },
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": {
-        "@type": "EntryPoint",
-        "urlTemplate": "https://nicotine-pouches.org/search?q={search_term_string}"
+    "knowsAbout": [
+      "Nicotine pouches",
+      "Tobacco-free nicotine products",
+      "ZYN nicotine pouches",
+      "VELO nicotine pouches",
+      "Nordic Spirit",
+      "Nicotine pouch price comparison",
+      "UK nicotine pouch market"
+    ],
+    "areaServed": [
+      {
+        "@type": "Country",
+        "name": "United Kingdom"
       },
-      "query-input": "required name=search_term_string"
-    }
+      {
+        "@type": "Country",
+        "name": "United States"
+      }
+    ]
   }
 
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": "https://nicotine-pouches.org/#website",
     "name": "Nicotine Pouches",
     "alternateName": "Nicotine Pouches UK",
     "url": "https://nicotine-pouches.org",
-    "description": "Find the best nicotine pouches deals in the UK. Compare prices across top brands like ZYN, Velo, and Loop.",
+    "description": "Compare nicotine pouch prices across 10+ UK retailers. 700+ products with live prices, ratings, and stock status.",
     "publisher": {
-      "@type": "Organization",
-      "name": "Nicotine Pouches",
-      "url": "https://nicotine-pouches.org"
+      "@id": "https://nicotine-pouches.org/#organization"
     },
+    "inLanguage": ["en-GB", "en-US"],
     "potentialAction": {
       "@type": "SearchAction",
       "target": {
@@ -120,89 +124,57 @@ export default async function RootLayout({
     }
   }
 
-  const faqSchema = {
+  const brandSchema = {
     "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
+    "@type": "Brand",
+    "@id": "https://nicotine-pouches.org/#brand",
+    "name": "Nicotine Pouches",
+    "alternateName": "nicotine-pouches.org",
+    "url": "https://nicotine-pouches.org",
+    "logo": "https://nicotine-pouches.org/logo.png",
+    "description": "The UK's go-to nicotine pouch comparison site since 2021. Compare prices, read reviews, find the cheapest deals.",
+    "slogan": "Compare. Save. Switch."
+  }
+
+  const sitelinksSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "itemListElement": [
       {
-        "@type": "Question",
-        "name": "What are nicotine pouches UK?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Nicotine pouches UK are smoke-free, tobacco-free alternatives that provide nicotine without the need for smoking or vaping. They come in various flavors and strengths, offering a discreet and convenient way to enjoy nicotine."
-        }
+        "@type": "SiteNavigationElement",
+        "position": 1,
+        "name": "Compare Prices",
+        "url": "https://nicotine-pouches.org/compare"
       },
       {
-        "@type": "Question",
-        "name": "How do I compare nicotine pouch prices in the UK?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Our price comparison service allows you to easily compare prices across all major UK retailers. Simply browse our platform to find the best deals on your favorite brands like VELO, Skruf, and LOOP, ensuring you never overpay for premium products."
-        }
+        "@type": "SiteNavigationElement",
+        "position": 2,
+        "name": "All Brands",
+        "url": "https://nicotine-pouches.org/brands"
       },
       {
-        "@type": "Question",
-        "name": "What brands of nicotine pouches are available in the UK?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Popular brands available in the UK include VELO, Skruf, LOOP, White Fox, and Lynx. Our platform covers all major brands and retailers, from established names to emerging favorites, giving you access to the widest selection of products."
-        }
+        "@type": "SiteNavigationElement",
+        "position": 3,
+        "name": "How to Use",
+        "url": "https://nicotine-pouches.org/how-to-use"
       },
       {
-        "@type": "Question",
-        "name": "Are nicotine pouches legal in the UK?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, nicotine pouches are legal in the UK. They are regulated as consumer products and can be purchased from licensed retailers. Our platform only features products from legitimate, authorized UK retailers."
-        }
+        "@type": "SiteNavigationElement",
+        "position": 4,
+        "name": "Guides",
+        "url": "https://nicotine-pouches.org/guides"
       },
       {
-        "@type": "Question",
-        "name": "What flavors of nicotine pouches can I find?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Nicotine pouches come in a wide variety of flavors including mint, peppermint, fruit flavors, coffee, liquorice, and many more. Popular options include VELO Crispy Peppermint, fruity LOOP varieties, and traditional tobacco-inspired flavors."
-        }
+        "@type": "SiteNavigationElement",
+        "position": 5,
+        "name": "All Vendors",
+        "url": "https://nicotine-pouches.org/vendors"
       },
       {
-        "@type": "Question",
-        "name": "How much can I save by comparing prices?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Our users typically save up to 40% on large orders by comparing prices across retailers. We also help you find exclusive bulk discounts, special offers, and free delivery options on orders over £30, ensuring you get the best value for your money."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Do you offer free delivery on nicotine pouches?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Many retailers we feature offer free delivery on orders above a certain amount, typically £30 or more. Our platform clearly shows delivery options and costs, helping you find the best deals including free shipping offers."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How quickly can I receive my nicotine pouches?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Delivery times vary by retailer, but most offer fast, reliable shipping across the UK. From London to Glasgow, you can expect quick delivery times. Our platform shows estimated delivery times for each retailer to help you choose the best option for your needs."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What strength options are available for nicotine pouches?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Nicotine pouches come in various strengths from low (around 3-4mg) to extra strong (8mg+). You can find slim pouches for discreet use, strong pouches for a powerful hit, and even nicotine-free options for those looking to cut down gradually."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How do I know which nicotine pouch is right for me?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Consider your current nicotine intake, preferred strength, and flavor preferences. Start with lower strengths if you're new to nicotine pouches, and experiment with different flavors. Our platform provides detailed product information to help you make informed choices."
-        }
+        "@type": "SiteNavigationElement",
+        "position": 6,
+        "name": "Blog",
+        "url": "https://nicotine-pouches.org/blog"
       }
     ]
   }
@@ -224,7 +196,18 @@ export default async function RootLayout({
             __html: JSON.stringify(websiteSchema)
           }}
         />
-        {/* FAQPage schema removed from global layout to avoid duplicates with page-level FAQ schemas */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(brandSchema)
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(sitelinksSchema)
+          }}
+        />
         {/* AdSense script removed from global layout — loaded only on product pages & guide posts */}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-9FT722JELW'}`}
