@@ -16,7 +16,6 @@ export const VENDOR_ANALYTICS_CONFIG = {
   EVENT_TYPES: {
     VENDOR_EXPOSURE: 'vendor_exposure',
     VENDOR_CLICK: 'vendor_click',
-    VENDOR_CONVERSION: 'vendor_conversion',
     PACK_SIZE_CHANGE: 'pack_size_change',
     PRICE_SORT: 'price_sort',
     COMPARISON_VIEW: 'comparison_view'

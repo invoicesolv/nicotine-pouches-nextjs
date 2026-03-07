@@ -5,7 +5,6 @@ import { VENDOR_ANALYTICS_CONFIG, getCurrencySymbol, getRegionFromCurrency, isVe
 import { 
   trackVendorExposure as trackGA4VendorExposure,
   trackVendorClick as trackGA4VendorClick,
-  trackVendorConversion as trackGA4VendorConversion,
   trackPackSizeChange as trackGA4PackSizeChange,
   trackPriceSort as trackGA4PriceSort,
   trackComparisonView as trackGA4ComparisonView
@@ -83,7 +82,7 @@ class VendorAnalytics {
   }
 
   // Track vendor click (buy button or vendor link click)
-  trackVendorClick(vendorData: VendorData, productId: string, productName: string, clickType: 'vendor_click' | 'vendor_conversion' = 'vendor_click') {
+  trackVendorClick(vendorData: VendorData, productId: string, productName: string) {
     const eventData = {
       event_category: 'vendor_interaction',
       event_label: `vendor_${vendorData.vendor_id}`,
@@ -94,38 +93,25 @@ class VendorAnalytics {
       price: vendorData.price,
       currency: vendorData.currency,
       pack_size: vendorData.pack_size,
-      interaction_type: clickType,
+      interaction_type: 'vendor_click',
       session_id: this.sessionId
     };
 
     console.log('Vendor Click Tracked:', eventData);
-    
+
     // Track in Google Analytics 4
-    if (clickType === 'vendor_conversion') {
-      trackGA4VendorConversion({
-        vendor_id: vendorData.vendor_id,
-        vendor_name: vendorData.vendor_name,
-        product_id: productId,
-        product_name: productName,
-        price: vendorData.price,
-        currency: vendorData.currency,
-        pack_size: vendorData.pack_size,
-        session_id: this.sessionId
-      });
-    } else {
-      trackGA4VendorClick({
-        vendor_id: vendorData.vendor_id,
-        vendor_name: vendorData.vendor_name,
-        product_id: productId,
-        product_name: productName,
-        price: vendorData.price,
-        currency: vendorData.currency,
-        pack_size: vendorData.pack_size,
-        session_id: this.sessionId
-      });
-    }
-    
-    this.sendToBackend(clickType, eventData);
+    trackGA4VendorClick({
+      vendor_id: vendorData.vendor_id,
+      vendor_name: vendorData.vendor_name,
+      product_id: productId,
+      product_name: productName,
+      price: vendorData.price,
+      currency: vendorData.currency,
+      pack_size: vendorData.pack_size,
+      session_id: this.sessionId
+    });
+
+    this.sendToBackend('vendor_click', eventData);
   }
 
 
@@ -195,7 +181,7 @@ class VendorAnalytics {
       await this.sendToAnalytics(eventType, eventData);
       
       // Send click data to CRM for all vendor interactions and pack changes
-      if (eventType === 'vendor_conversion' || eventType === 'vendor_click' || eventType === 'vendor_exposure' || eventType === 'pack_size_change') {
+      if (eventType === 'vendor_click' || eventType === 'vendor_exposure' || eventType === 'pack_size_change') {
         await this.sendToCRM(eventData);
       }
     } catch (error) {
@@ -340,10 +326,7 @@ export default function VendorAnalyticsComponent({ productId, productName, regio
         const vendorData = extractVendorData(vendorCard);
         if (vendorData) {
           // Determine click type based on element
-          const isBuyButton = target.closest('.buy-now-button, a[href]');
-          const clickType = isBuyButton ? 'vendor_conversion' : 'vendor_click';
-          
-          analyticsRef.current.trackVendorClick(vendorData, productId, productName, clickType);
+          analyticsRef.current.trackVendorClick(vendorData, productId, productName);
         }
       }
     };

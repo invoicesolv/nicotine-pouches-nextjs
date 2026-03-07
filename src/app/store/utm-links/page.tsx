@@ -304,8 +304,9 @@ export default function StoreUTMLinksPage() {
             <div className="flex gap-3">
               <div className="w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0">3</div>
               <div>
-                <strong>Track performance.</strong> View clicks, impressions, and conversions in the
-                Analytics tab of this dashboard. UTM-tagged traffic from your site will show up here automatically.
+                <strong>Track performance.</strong> View clicks and impressions in the
+                Analytics tab of this dashboard. Use UTM parameters in your Google Analytics to track
+                which sales came from nicotine-pouches.org.
               </div>
             </div>
           </div>

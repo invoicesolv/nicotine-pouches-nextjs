@@ -84,13 +84,6 @@ export async function GET(request: NextRequest) {
           .eq('vendor_id', analyticsVendorId)
           .eq('event_type', 'vendor_exposure')
           .gte('timestamp', startDate.toISOString()),
-        // Count conversions
-        supabaseAdmin()
-          .from('vendor_analytics')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', analyticsVendorId)
-          .eq('event_type', 'vendor_conversion')
-          .gte('timestamp', startDate.toISOString()),
       );
     }
 
@@ -102,7 +95,6 @@ export async function GET(request: NextRequest) {
     const lastUpdated = results[3].data?.updated_at || null;
     const totalClicks = analyticsVendorId ? (results[4]?.count || 0) : 0;
     const totalImpressions = analyticsVendorId ? (results[5]?.count || 0) : 0;
-    const totalConversions = analyticsVendorId ? (results[6]?.count || 0) : 0;
 
     const ctr = totalImpressions > 0
       ? parseFloat(((totalClicks / totalImpressions) * 100).toFixed(2))
@@ -121,7 +113,6 @@ export async function GET(request: NextRequest) {
       kpis: {
         totalClicks,
         totalImpressions,
-        totalConversions,
         clickThroughRate: ctr,
         totalProducts,
         inStockProducts,
