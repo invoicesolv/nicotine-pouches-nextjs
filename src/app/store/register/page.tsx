@@ -38,7 +38,7 @@ export default function StoreRegisterPage() {
     setError('');
 
     try {
-      const response = await fetch(`/api/store/auth/invite/${code}`);
+      const response = await fetch(`/api/store/auth/invite/${encodeURIComponent(code)}`);
       const data = await response.json();
 
       if (response.ok && data.valid) {
