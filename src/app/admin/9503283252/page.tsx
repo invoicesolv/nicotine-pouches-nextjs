@@ -732,6 +732,14 @@ export default function AdminDashboard() {
   const [applicationActionLoading, setApplicationActionLoading] = useState<string | null>(null);
   const [mapSearchLoading, setMapSearchLoading] = useState(false);
 
+  // Store Users state
+  const [storeUsers, setStoreUsers] = useState<any[]>([]);
+  const [storeUsersTotal, setStoreUsersTotal] = useState(0);
+  const [storeUsersPage, setStoreUsersPage] = useState(1);
+  const [storeUsersTotalPages, setStoreUsersTotalPages] = useState(1);
+  const [storeUsersLoading, setStoreUsersLoading] = useState(false);
+  const [storeUsersSearch, setStoreUsersSearch] = useState('');
+
   useEffect(() => {
     const key = localStorage.getItem('admin_key');
     if (key !== '9503283252') {
@@ -808,12 +816,41 @@ export default function AdminDashboard() {
     }
   }, [adminKey, activeTab, applicationsPage, applicationsStatusFilter]);
 
+  // Load store users when switching to store-users tab
+  useEffect(() => {
+    if (adminKey && activeTab === 'store-users') {
+      loadStoreUsers();
+    }
+  }, [adminKey, activeTab, storeUsersPage, storeUsersSearch]);
+
   // Load pending count for badge on mount
   useEffect(() => {
     if (adminKey) {
       loadApplicationsPendingCount();
     }
   }, [adminKey]);
+
+  const loadStoreUsers = async () => {
+    setStoreUsersLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: storeUsersPage.toString(),
+        limit: '50',
+      });
+      if (storeUsersSearch) params.append('search', storeUsersSearch);
+      const res = await fetch(`/api/admin/store-users?${params}`);
+      const data = await res.json();
+      if (data.data) {
+        setStoreUsers(data.data);
+        setStoreUsersTotal(data.total || 0);
+        setStoreUsersTotalPages(data.totalPages || 1);
+      }
+    } catch (error) {
+      console.error('Error loading store users:', error);
+    } finally {
+      setStoreUsersLoading(false);
+    }
+  };
 
   const loadApplicationsPendingCount = async () => {
     try {
@@ -2153,6 +2190,22 @@ export default function AdminDashboard() {
                   {applicationsPendingCount > 0 && (
                     <span className="ml-1 px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full leading-none">
                       {applicationsPendingCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => setActiveTab('store-users')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTab === 'store-users'
+                      ? 'bg-slate-700 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Store Users
+                  {storeUsersTotal > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full leading-none">
+                      {storeUsersTotal}
                     </span>
                   )}
                 </button>
@@ -4589,6 +4642,217 @@ export default function AdminDashboard() {
                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'store-users' && (
+              <div className="space-y-4">
+                {/* Search & Stats */}
+                <div className="flex items-center justify-between bg-slate-800/30 rounded-lg px-4 py-2">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500 text-xs">Total Users</span>
+                      <span className="text-white font-semibold">{storeUsersTotal}</span>
+                    </div>
+                    <div className="h-4 w-px bg-slate-700" />
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-500" />
+                      <input
+                        type="text"
+                        value={storeUsersSearch}
+                        onChange={(e) => { setStoreUsersSearch(e.target.value); setStoreUsersPage(1); }}
+                        placeholder="Search by email..."
+                        className="h-7 pl-7 pr-3 bg-slate-900/50 border border-slate-700/50 rounded text-xs text-slate-300 w-48 placeholder:text-slate-600"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          storeUsers.map(u => `${u.vendor?.name || 'Unknown'}\t${u.email}\t${u.vendor?.country || ''}\t${u.role}\t${u.is_active ? 'Active' : 'Inactive'}`).join('\n')
+                        );
+                        toast.success('Copied to clipboard');
+                      }}
+                      className="flex items-center gap-1 h-7 px-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-slate-300 transition-colors"
+                    >
+                      <ClipboardCopy className="h-3 w-3" />
+                      Copy All
+                    </button>
+                  </div>
+                </div>
+
+                {/* Store Users Table */}
+                {storeUsersLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400"></div>
+                  </div>
+                ) : storeUsers.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400">
+                    <Users className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">No store users found</p>
+                  </div>
+                ) : (
+                  <div className="bg-slate-900/30 rounded-lg border border-slate-800/50 overflow-hidden">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-800/50 bg-slate-800/30">
+                          <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Vendor</th>
+                          <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Email</th>
+                          <th className="text-center px-3 py-2 text-xs font-medium text-slate-500 uppercase">Country</th>
+                          <th className="text-center px-3 py-2 text-xs font-medium text-slate-500 uppercase">Role</th>
+                          <th className="text-center px-3 py-2 text-xs font-medium text-slate-500 uppercase">Status</th>
+                          <th className="text-center px-3 py-2 text-xs font-medium text-slate-500 uppercase">Reports</th>
+                          <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Last Login</th>
+                          <th className="text-left px-3 py-2 text-xs font-medium text-slate-500 uppercase">Created</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/30">
+                        {storeUsers.map((user: any) => (
+                          <tr key={user.id} className="hover:bg-slate-800/20 transition-colors">
+                            <td className="px-3 py-2">
+                              <div className="flex items-center gap-2">
+                                {user.vendor?.logo_url ? (
+                                  <img src={user.vendor.logo_url} alt="" className="w-6 h-6 rounded object-contain bg-white" />
+                                ) : (
+                                  <div className="w-6 h-6 bg-slate-700 rounded flex items-center justify-center text-[10px] font-bold text-slate-400">
+                                    {user.vendor?.name?.[0] || '?'}
+                                  </div>
+                                )}
+                                <span className="text-sm text-white font-medium">{user.vendor?.name || 'Unlinked'}</span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2">
+                              <span className="text-sm text-slate-300">{user.email}</span>
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <span className="text-xs px-2 py-0.5 bg-slate-700/50 text-slate-300 rounded uppercase">
+                                {user.vendor?.country || '-'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <span className={`text-xs px-2 py-0.5 rounded ${
+                                user.role === 'super_admin' ? 'bg-purple-500/10 text-purple-400' : 'bg-slate-700/50 text-slate-300'
+                              }`}>
+                                {user.role?.replace('_', ' ')}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              {user.is_active ? (
+                                <CheckCircle className="h-4 w-4 text-emerald-400 mx-auto" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-red-400 mx-auto" />
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <span className={`text-xs px-2 py-0.5 rounded ${
+                                user.report_frequency === 'off'
+                                  ? 'bg-slate-700/50 text-slate-500'
+                                  : 'bg-blue-500/10 text-blue-400'
+                              }`}>
+                                {user.report_frequency}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2">
+                              <span className="text-xs text-slate-400">
+                                {user.last_login
+                                  ? new Date(user.last_login).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                                  : 'Never'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2">
+                              <span className="text-xs text-slate-400">
+                                {new Date(user.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    {/* Pagination */}
+                    {storeUsersTotalPages > 1 && (
+                      <div className="flex justify-between items-center px-3 py-2 border-t border-slate-800/50">
+                        <span className="text-xs text-slate-500">Page {storeUsersPage} of {storeUsersTotalPages}</span>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setStoreUsersPage(p => Math.max(1, p - 1))}
+                            disabled={storeUsersPage === 1}
+                            className="h-6 px-2 text-xs border-slate-700"
+                          >
+                            Prev
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setStoreUsersPage(p => Math.min(storeUsersTotalPages, p + 1))}
+                            disabled={storeUsersPage === storeUsersTotalPages}
+                            className="h-6 px-2 text-xs border-slate-700"
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* API Key Info */}
+                <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-slate-300 mb-2 flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    Apollo / External API
+                  </h3>
+                  <p className="text-xs text-slate-500 mb-3">
+                    Query store vendors and emails from Apollo or any external tool. API key from Axelio &rarr; Settings &rarr; Solvify workspace.
+                  </p>
+                  <div className="bg-slate-900/50 rounded p-3 font-mono text-xs text-slate-300 space-y-1">
+                    <p className="text-slate-500"># Endpoint</p>
+                    <p>GET https://nicotine-pouches.org/api/openapi/stores</p>
+                    <p className="text-slate-500 mt-2"># Auth (nicotine_pouches_api_key from Axelio Solvify workspace)</p>
+                    <p>x-api-key: 155c305b...22ec8</p>
+                    <p className="text-slate-500 mt-2"># Apollo API Key (stored in Axelio)</p>
+                    <p>RRHHDP5d2vXu3V3G6NTtAg</p>
+                    <p className="text-slate-500 mt-2"># Filters</p>
+                    <p>?country=uk              # Filter by country</p>
+                    <p>?has_account=true         # Only vendors with store accounts</p>
+                    <p>?has_account=false        # Vendors without accounts (prospects)</p>
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText('curl -H "x-api-key: 155c305bb159cbc4f74b2977210f58c87b9d010e619d5a9607e68e24d2a22ec8" https://nicotine-pouches.org/api/openapi/stores');
+                        toast.success('cURL command copied');
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs text-slate-300 transition-colors"
+                    >
+                      <ClipboardCopy className="h-3 w-3" />
+                      Copy cURL
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText('155c305bb159cbc4f74b2977210f58c87b9d010e619d5a9607e68e24d2a22ec8');
+                        toast.success('API key copied');
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs text-slate-300 transition-colors"
+                    >
+                      <ClipboardCopy className="h-3 w-3" />
+                      Copy API Key
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText('RRHHDP5d2vXu3V3G6NTtAg');
+                        toast.success('Apollo key copied');
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs text-slate-300 transition-colors"
+                    >
+                      <ClipboardCopy className="h-3 w-3" />
+                      Copy Apollo Key
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>

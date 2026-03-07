@@ -30,6 +30,15 @@ interface VendorListItem {
   accountEmail: string | null;
 }
 
+interface ReportPreferences {
+  report_frequency: 'off' | 'daily' | 'weekly' | 'monthly';
+  include_analytics: boolean;
+  include_products: boolean;
+  include_rankings: boolean;
+  email_override: string | null;
+  last_sent_at: string | null;
+}
+
 export default function StoreSettingsPage() {
   const { user, vendor, logout } = useStoreAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -37,11 +46,22 @@ export default function StoreSettingsPage() {
   const [shippingLoading, setShippingLoading] = useState(true);
   const [vendors, setVendors] = useState<VendorListItem[]>([]);
   const [impersonating, setImpersonating] = useState(false);
+  const [reportPrefs, setReportPrefs] = useState<ReportPreferences>({
+    report_frequency: 'off',
+    include_analytics: true,
+    include_products: true,
+    include_rankings: true,
+    email_override: null,
+    last_sent_at: null,
+  });
+  const [reportSaving, setReportSaving] = useState(false);
+  const [reportSaved, setReportSaved] = useState(false);
 
   const isSuperAdmin = user?.role === 'super_admin';
 
   useEffect(() => {
     fetchShipping();
+    fetchReportPrefs();
     if (isSuperAdmin) fetchVendors();
   }, []);
 
@@ -86,6 +106,39 @@ export default function StoreSettingsPage() {
       alert('Failed to impersonate');
     } finally {
       setImpersonating(false);
+    }
+  };
+
+  const fetchReportPrefs = async () => {
+    try {
+      const res = await fetch('/api/store/reports/preferences', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setReportPrefs(data.preferences);
+      }
+    } catch {}
+  };
+
+  const saveReportPrefs = async (updates: Partial<ReportPreferences>) => {
+    setReportSaving(true);
+    setReportSaved(false);
+    const newPrefs = { ...reportPrefs, ...updates };
+    setReportPrefs(newPrefs);
+    try {
+      const res = await fetch('/api/store/reports/preferences', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPrefs),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setReportPrefs(data.preferences);
+        setReportSaved(true);
+        setTimeout(() => setReportSaved(false), 2000);
+      }
+    } catch {} finally {
+      setReportSaving(false);
     }
   };
 
@@ -294,6 +347,95 @@ export default function StoreSettingsPage() {
               </div>
             ) : (
               <p className="text-gray-500 text-sm">No shipping information available</p>
+            )}
+          </div>
+        </div>
+
+        {/* Report Preferences */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-gray-900">Email Reports</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Get CSV reports delivered to your inbox</p>
+            </div>
+            {reportSaved && (
+              <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">Saved</span>
+            )}
+          </div>
+          <div className="p-6 space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Frequency</label>
+              <div className="grid grid-cols-4 gap-2">
+                {(['off', 'daily', 'weekly', 'monthly'] as const).map((freq) => (
+                  <button
+                    key={freq}
+                    onClick={() => saveReportPrefs({ report_frequency: freq })}
+                    disabled={reportSaving}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                      reportPrefs.report_frequency === freq
+                        ? 'bg-gray-900 text-white border-gray-900'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                    } disabled:opacity-50`}
+                  >
+                    {freq === 'off' ? 'Off' : freq.charAt(0).toUpperCase() + freq.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {reportPrefs.report_frequency !== 'off' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Include in report</label>
+                  <div className="space-y-2">
+                    {[
+                      { key: 'include_analytics' as const, label: 'Analytics (clicks, impressions, CTR)' },
+                      { key: 'include_products' as const, label: 'Product list (prices, stock status)' },
+                      { key: 'include_rankings' as const, label: 'Price rankings vs competitors' },
+                    ].map(({ key, label }) => (
+                      <label key={key} className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={reportPrefs[key]}
+                          onChange={(e) => saveReportPrefs({ [key]: e.target.checked })}
+                          disabled={reportSaving}
+                          className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+                        />
+                        <span className="text-sm text-gray-700">{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Send to (optional override)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      placeholder={user?.email || 'your@email.com'}
+                      value={reportPrefs.email_override || ''}
+                      onChange={(e) => setReportPrefs(prev => ({ ...prev, email_override: e.target.value || null }))}
+                      className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    />
+                    <button
+                      onClick={() => saveReportPrefs({ email_override: reportPrefs.email_override })}
+                      disabled={reportSaving}
+                      className="px-3 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Leave blank to use your account email ({user?.email})
+                  </p>
+                </div>
+
+                {reportPrefs.last_sent_at && (
+                  <p className="text-xs text-gray-500">
+                    Last report sent: {new Date(reportPrefs.last_sent_at).toLocaleString()}
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>

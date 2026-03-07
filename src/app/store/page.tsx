@@ -82,6 +82,36 @@ export default function StoreDashboard() {
           </div>
 
           <div className="flex items-center gap-2">
+            <div className="relative group">
+              <button
+                className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:border-gray-300 bg-white flex items-center gap-1.5"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export
+              </button>
+              <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-10 min-w-[160px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                <a
+                  href={`/api/store/reports/export?type=analytics&days=${days === 0 ? 365 : days}`}
+                  className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  Analytics CSV
+                </a>
+                <a
+                  href="/api/store/reports/export?type=products"
+                  className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  Products CSV
+                </a>
+                <a
+                  href="/api/store/reports/export?type=rankings"
+                  className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  Rankings CSV
+                </a>
+              </div>
+            </div>
             <select
               value={days}
               onChange={(e) => setDays(parseInt(e.target.value))}
