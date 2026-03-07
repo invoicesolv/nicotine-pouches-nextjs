@@ -50,7 +50,8 @@ export default function StoreDashboard() {
   const fetchKPIs = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/store/analytics/overview?days=${days}`, {
+      const daysParam = days === 0 ? 365 : days;
+      const response = await fetch(`/api/store/analytics/overview?days=${daysParam}`, {
         credentials: 'include',
       });
 
@@ -89,6 +90,7 @@ export default function StoreDashboard() {
               <option value={7}>Last 7 days</option>
               <option value={30}>Last 30 days</option>
               <option value={90}>Last 90 days</option>
+              <option value={0}>All time</option>
             </select>
           </div>
         </div>
