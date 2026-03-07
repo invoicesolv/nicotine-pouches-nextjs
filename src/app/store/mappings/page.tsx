@@ -87,29 +87,29 @@ export default function StoreMappingsPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Product Mappings</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-xl font-bold text-gray-900">Product Mappings</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
             See how your products are matched to our master catalog
           </p>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Total Products</p>
-            <p className="text-2xl font-bold text-gray-900">{stats?.totalVendorProducts || 0}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-white rounded-lg border border-gray-200 px-4 py-3.5">
+            <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Total Products</p>
+            <p className="text-xl font-bold text-gray-900">{stats?.totalVendorProducts || 0}</p>
           </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Total Mappings</p>
-            <p className="text-2xl font-bold text-gray-900">{stats?.totalMappings || 0}</p>
+          <div className="bg-white rounded-lg border border-gray-200 px-4 py-3.5">
+            <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Total Mappings</p>
+            <p className="text-xl font-bold text-gray-900">{stats?.totalMappings || 0}</p>
           </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Mapped</p>
-            <p className="text-2xl font-bold text-green-600">{stats?.mapped || 0}</p>
+          <div className="bg-white rounded-lg border border-gray-200 px-4 py-3.5">
+            <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Mapped</p>
+            <p className="text-xl font-bold text-green-600">{stats?.mapped || 0}</p>
           </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Unmapped</p>
-            <p className="text-2xl font-bold text-orange-600">{stats?.unmapped || 0}</p>
+          <div className="bg-white rounded-lg border border-gray-200 px-4 py-3.5">
+            <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Unmapped</p>
+            <p className="text-xl font-bold text-orange-600">{stats?.unmapped || 0}</p>
           </div>
         </div>
 

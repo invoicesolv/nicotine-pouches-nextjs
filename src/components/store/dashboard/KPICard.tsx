@@ -9,35 +9,20 @@ interface KPICardProps {
     value: number;
     isPositive: boolean;
   };
-  color?: 'blue' | 'green' | 'purple' | 'orange' | 'red';
+  action?: {
+    label: string;
+    href: string;
+  };
+  color?: 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'gray';
 }
 
-const colorClasses = {
-  blue: {
-    bg: 'bg-blue-50',
-    icon: 'bg-blue-100 text-blue-600',
-    trend: 'text-blue-600',
-  },
-  green: {
-    bg: 'bg-green-50',
-    icon: 'bg-green-100 text-green-600',
-    trend: 'text-green-600',
-  },
-  purple: {
-    bg: 'bg-purple-50',
-    icon: 'bg-purple-100 text-purple-600',
-    trend: 'text-purple-600',
-  },
-  orange: {
-    bg: 'bg-orange-50',
-    icon: 'bg-orange-100 text-orange-600',
-    trend: 'text-orange-600',
-  },
-  red: {
-    bg: 'bg-red-50',
-    icon: 'bg-red-100 text-red-600',
-    trend: 'text-red-600',
-  },
+const iconColors: Record<string, string> = {
+  blue: 'text-blue-500',
+  green: 'text-green-500',
+  purple: 'text-purple-500',
+  orange: 'text-orange-500',
+  red: 'text-red-500',
+  gray: 'text-gray-400',
 };
 
 export default function KPICard({
@@ -46,40 +31,53 @@ export default function KPICard({
   subtitle,
   icon,
   trend,
+  action,
   color = 'blue',
 }: KPICardProps) {
-  const colors = colorClasses[color];
-
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
-          <p className="text-3xl font-bold text-gray-900">{value}</p>
-          {subtitle && (
-            <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
-          )}
-          {trend && (
-            <div className={`flex items-center gap-1 mt-2 ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-              {trend.isPositive ? (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
-              )}
-              <span className="text-sm font-medium">{Math.abs(trend.value)}%</span>
-            </div>
-          )}
-        </div>
+    <div className="bg-white rounded-lg border border-gray-200 px-4 py-3.5">
+      {/* Label row: icon + title */}
+      <div className="flex items-center gap-1.5 mb-1">
         {icon && (
-          <div className={`p-3 rounded-lg ${colors.icon}`}>
+          <span className={`${iconColors[color]} [&>svg]:w-3.5 [&>svg]:h-3.5`}>
             {icon}
-          </div>
+          </span>
+        )}
+        <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
+          {title}
+        </span>
+      </div>
+
+      {/* Value */}
+      <div className="flex items-baseline gap-2">
+        <span className="text-xl font-bold text-gray-900">{value}</span>
+        {trend && (
+          <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${trend.isPositive ? 'text-green-600' : 'text-red-500'}`}>
+            {trend.isPositive ? (
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+              </svg>
+            ) : (
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            )}
+            {Math.abs(trend.value)}%
+          </span>
         )}
       </div>
+
+      {/* Subtitle */}
+      {subtitle && (
+        <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>
+      )}
+
+      {/* Action link */}
+      {action && (
+        <a href={action.href} className="text-xs text-blue-500 hover:text-blue-700 mt-1.5 inline-block font-medium">
+          + {action.label}
+        </a>
+      )}
     </div>
   );
 }

@@ -96,11 +96,11 @@ export default function StoreSettingsPage() {
 
   return (
     <StoreLayout>
-      <div className="space-y-8 max-w-3xl">
+      <div className="space-y-6 max-w-3xl">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-xl font-bold text-gray-900">Settings</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
             Manage your account and store information
           </p>
         </div>

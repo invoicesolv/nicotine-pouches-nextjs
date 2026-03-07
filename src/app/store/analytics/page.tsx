@@ -29,8 +29,20 @@ interface KPIData {
   lastUpdated: string | null;
 }
 
+interface TrendData {
+  totalClicks: number | null;
+  totalImpressions: number | null;
+  totalConversions: number | null;
+  clickThroughRate: number | null;
+  mappedProducts: number | null;
+  inStockProducts: number | null;
+  totalProducts: number | null;
+  outOfStockProducts: number | null;
+}
+
 export default function StoreAnalyticsPage() {
   const [kpis, setKpis] = useState<KPIData | null>(null);
+  const [trends, setTrends] = useState<TrendData | null>(null);
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +64,7 @@ export default function StoreAnalyticsPage() {
       if (overviewRes.ok) {
         const overviewData = await overviewRes.json();
         setKpis(overviewData.kpis);
+        setTrends(overviewData.trends || null);
       }
 
       if (clicksRes.ok) {
@@ -70,34 +83,30 @@ export default function StoreAnalyticsPage() {
 
   return (
     <StoreLayout>
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-end justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl font-bold text-gray-900">Analytics</h1>
+            <p className="text-sm text-gray-500 mt-0.5">
               Track your store performance and engagement
             </p>
           </div>
 
-          {/* Date Range Selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Period:</span>
-            <select
-              value={days}
-              onChange={(e) => setDays(parseInt(e.target.value))}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value={7}>Last 7 days</option>
-              <option value={30}>Last 30 days</option>
-              <option value={90}>Last 90 days</option>
-              <option value={0}>All time</option>
-            </select>
-          </div>
+          <select
+            value={days}
+            onChange={(e) => setDays(parseInt(e.target.value))}
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900 bg-white"
+          >
+            <option value={7}>Last 7 days</option>
+            <option value={30}>Last 30 days</option>
+            <option value={90}>Last 90 days</option>
+            <option value={0}>All time</option>
+          </select>
         </div>
 
         {/* KPIs */}
-        <KPIGrid data={kpis} loading={loading} />
+        <KPIGrid data={kpis} trends={trends} loading={loading} />
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

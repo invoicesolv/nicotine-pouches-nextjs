@@ -92,11 +92,11 @@ export default function StoreUTMLinksPage() {
 
   return (
     <StoreLayout>
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">UTM Links</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-xl font-bold text-gray-900">UTM Links</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
             Track traffic between your site and nicotine-pouches.org
           </p>
         </div>

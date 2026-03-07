@@ -80,11 +80,11 @@ export default function StoreRankingsPage() {
 
   return (
     <StoreLayout>
-      <div className="space-y-8 max-w-4xl">
+      <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Vendor Rankings</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-xl font-bold text-gray-900">Vendor Rankings</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
             See how you stack up against {data ? data.totalVendors - 1 : ''} other vendors across key metrics
           </p>
         </div>
@@ -102,38 +102,35 @@ export default function StoreRankingsPage() {
         ) : data ? (
           <>
             {/* Overall summary */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="font-semibold text-gray-900 mb-4">Overview</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {(() => {
-                  const ranked = data.rankings.filter(r => r.rank !== null);
-                  const top3 = ranked.filter(r => r.rank! <= 3).length;
-                  const topHalf = ranked.filter(r => r.rank! <= Math.ceil(r.total / 2)).length;
-                  const avgRank = ranked.length > 0
-                    ? (ranked.reduce((sum, r) => sum + r.rank!, 0) / ranked.length).toFixed(1)
-                    : '-';
-                  return (
-                    <>
-                      <div className="text-center p-3 bg-gray-50 rounded-lg">
-                        <div className="text-2xl font-bold text-gray-900">{data.totalVendors}</div>
-                        <div className="text-xs text-gray-500">Total Vendors</div>
-                      </div>
-                      <div className="text-center p-3 bg-green-50 rounded-lg">
-                        <div className="text-2xl font-bold text-green-700">{top3}</div>
-                        <div className="text-xs text-gray-500">Top 3 Rankings</div>
-                      </div>
-                      <div className="text-center p-3 bg-blue-50 rounded-lg">
-                        <div className="text-2xl font-bold text-blue-700">{topHalf}</div>
-                        <div className="text-xs text-gray-500">Top Half</div>
-                      </div>
-                      <div className="text-center p-3 bg-purple-50 rounded-lg">
-                        <div className="text-2xl font-bold text-purple-700">{avgRank}</div>
-                        <div className="text-xs text-gray-500">Avg Rank</div>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {(() => {
+                const ranked = data.rankings.filter(r => r.rank !== null);
+                const top3 = ranked.filter(r => r.rank! <= 3).length;
+                const topHalf = ranked.filter(r => r.rank! <= Math.ceil(r.total / 2)).length;
+                const avgRank = ranked.length > 0
+                  ? (ranked.reduce((sum, r) => sum + r.rank!, 0) / ranked.length).toFixed(1)
+                  : '-';
+                return (
+                  <>
+                    <div className="bg-white rounded-lg border border-gray-200 px-4 py-3.5">
+                      <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Total Vendors</p>
+                      <p className="text-xl font-bold text-gray-900">{data.totalVendors}</p>
+                    </div>
+                    <div className="bg-white rounded-lg border border-gray-200 px-4 py-3.5">
+                      <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Top 3 Rankings</p>
+                      <p className="text-xl font-bold text-green-600">{top3}</p>
+                    </div>
+                    <div className="bg-white rounded-lg border border-gray-200 px-4 py-3.5">
+                      <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Top Half</p>
+                      <p className="text-xl font-bold text-blue-600">{topHalf}</p>
+                    </div>
+                    <div className="bg-white rounded-lg border border-gray-200 px-4 py-3.5">
+                      <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Avg Rank</p>
+                      <p className="text-xl font-bold text-purple-600">{avgRank}</p>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
             {/* Individual rankings */}
