@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticateStoreRequest } from '@/lib/store-auth';
+import { authenticateStoreRequest, AUTH_CACHE_HEADERS } from '@/lib/store-auth';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
@@ -9,12 +9,22 @@ export async function GET(request: NextRequest) {
     if (!authResult) {
       return NextResponse.json(
         { error: 'Not authenticated' },
-        { status: 401 }
+        { status: 401, headers: AUTH_CACHE_HEADERS }
       );
     }
 
-    const { user } = authResult;
+    const { vendor } = authResult;
     const url = new URL(request.url);
+
+    if (!vendor?.realVendorId) {
+      return NextResponse.json(
+        { error: 'No vendor associated with this account' },
+        { status: 400 }
+      );
+    }
+
+    const vendorId = vendor.realVendorId;
+    const isUK = vendor.country === 'uk';
 
     // Pagination params
     const page = parseInt(url.searchParams.get('page') || '1');
@@ -24,35 +34,23 @@ export async function GET(request: NextRequest) {
     // Search param
     const search = url.searchParams.get('search') || '';
 
-    // Determine vendor type
-    const isUK = !!user.vendor_id;
-    const vendorId = isUK ? user.vendor_id : user.us_vendor_id;
-
-    if (!vendorId) {
-      return NextResponse.json(
-        { error: 'No vendor associated with this account' },
-        { status: 400 }
-      );
-    }
-
-    // Build query for vendor_mappings (UK) or us_vendor_mappings (US)
-    const tableName = isUK ? 'vendor_mappings' : 'us_vendor_mappings';
-    const vendorIdColumn = isUK ? 'vendor_id' : 'us_vendor_id';
-    const productJoinTable = isUK ? 'products' : 'us_products';
+    // Correct table names
+    const mappingTable = isUK ? 'vendor_product_mapping' : 'us_vendor_product_mapping';
+    const productTable = isUK ? 'wp_products' : 'us_products';
 
     let query = supabaseAdmin()
-      .from(tableName)
+      .from(mappingTable)
       .select(`
-        *,
-        product:${productJoinTable}(id, name, slug, brand, nicotine_strength)
+        id, vendor_product, product_id, vendor_id, created_at, updated_at,
+        product:${productTable}(id, name, image_url)
       `, { count: 'exact' })
-      .eq(vendorIdColumn, vendorId)
-      .order('created_at', { ascending: false })
+      .eq('vendor_id', vendorId)
+      .order('vendor_product', { ascending: true })
       .range(offset, offset + limit - 1);
 
-    // Apply search filter on vendor_product_name
+    // Apply search filter
     if (search) {
-      query = query.ilike('vendor_product_name', `%${search}%`);
+      query = query.ilike('vendor_product', `%${search}%`);
     }
 
     const { data, error, count } = await query;
@@ -65,25 +63,44 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Transform data to include mapping status
-    const mappings = (data || []).map(mapping => ({
-      id: mapping.id,
-      vendorProductName: mapping.vendor_product_name,
-      vendorProductUrl: mapping.vendor_product_url,
-      masterProduct: mapping.product ? {
-        id: mapping.product.id,
-        name: mapping.product.name,
-        slug: mapping.product.slug,
-        brand: mapping.product.brand,
-        nicotineStrength: mapping.product.nicotine_strength,
+    // Also get total vendor_products count for stats
+    const vpTable = isUK ? 'vendor_products' : 'us_vendor_products_new';
+
+    const [totalVPResult, mappedCountResult] = await Promise.all([
+      supabaseAdmin()
+        .from(vpTable)
+        .select('id', { count: 'exact', head: true })
+        .eq('vendor_id', vendorId),
+      supabaseAdmin()
+        .from(mappingTable)
+        .select('id', { count: 'exact', head: true })
+        .eq('vendor_id', vendorId),
+    ]);
+
+    const totalVendorProducts = totalVPResult.count || 0;
+    const totalMapped = mappedCountResult.count || 0;
+
+    const mappings = (data || []).map((m: any) => ({
+      id: m.id,
+      vendorProduct: m.vendor_product,
+      productId: m.product_id,
+      masterProduct: m.product ? {
+        id: m.product.id,
+        name: m.product.name,
+        imageUrl: m.product.image_url,
       } : null,
-      status: mapping.product ? 'mapped' : 'unmapped',
-      createdAt: mapping.created_at,
-      updatedAt: mapping.updated_at,
+      status: m.product_id ? 'mapped' : 'unmapped',
+      createdAt: m.created_at,
     }));
 
     return NextResponse.json({
       mappings,
+      stats: {
+        totalMappings: count || 0,
+        totalVendorProducts,
+        mapped: totalMapped,
+        unmapped: totalVendorProducts - totalMapped,
+      },
       pagination: {
         total: count || 0,
         page,

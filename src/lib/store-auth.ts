@@ -45,11 +45,12 @@ export interface StoreInvite {
 }
 
 export interface VendorInfo {
-  id: string;  // UUID
+  id: string;  // UUID (pouch_vendors.id)
   name: string;
   country: 'uk' | 'us';
   logo_url?: string;
   website_url?: string;
+  realVendorId: number | null;  // INTEGER (vendors.id) - used for data table queries
 }
 
 // Password utilities
@@ -277,7 +278,7 @@ export async function getVendorInfo(vendorId?: string, usVendorId?: string): Pro
   if (idToUse) {
     const { data, error } = await supabaseAdmin()
       .from('pouch_vendors')
-      .select('id, name, country, logo_url, website_url')
+      .select('id, name, country, logo_url, website_url, vendor_id')
       .eq('id', idToUse)
       .single();
 
@@ -288,6 +289,7 @@ export async function getVendorInfo(vendorId?: string, usVendorId?: string): Pro
         country: (data.country === 'us' ? 'us' : 'uk') as 'uk' | 'us',
         logo_url: data.logo_url,
         website_url: data.website_url,
+        realVendorId: data.vendor_id || null,  // INTEGER vendor_id from vendors table
       };
     }
   }

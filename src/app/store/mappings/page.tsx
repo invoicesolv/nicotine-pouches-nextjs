@@ -6,19 +6,23 @@ import StoreLayout from '@/components/store/StoreLayout';
 interface MasterProduct {
   id: string;
   name: string;
-  slug: string;
-  brand: string;
-  nicotineStrength?: string;
+  imageUrl?: string;
 }
 
 interface Mapping {
   id: string;
-  vendorProductName: string;
-  vendorProductUrl?: string;
+  vendorProduct: string;
+  productId: string | null;
   masterProduct: MasterProduct | null;
   status: 'mapped' | 'unmapped';
   createdAt: string;
-  updatedAt: string;
+}
+
+interface Stats {
+  totalMappings: number;
+  totalVendorProducts: number;
+  mapped: number;
+  unmapped: number;
 }
 
 interface Pagination {
@@ -30,6 +34,7 @@ interface Pagination {
 
 export default function StoreMappingsPage() {
   const [mappings, setMappings] = useState<Mapping[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -54,6 +59,7 @@ export default function StoreMappingsPage() {
       if (response.ok) {
         const data = await response.json();
         setMappings(data.mappings);
+        setStats(data.stats);
         setPagination(data.pagination);
       }
     } catch (error) {
@@ -73,9 +79,6 @@ export default function StoreMappingsPage() {
     fetchMappings();
   };
 
-  const mappedCount = mappings.filter(m => m.status === 'mapped').length;
-  const unmappedCount = mappings.filter(m => m.status === 'unmapped').length;
-
   return (
     <StoreLayout>
       <div className="space-y-6">
@@ -88,18 +91,22 @@ export default function StoreMappingsPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <p className="text-sm text-gray-500">Total Products</p>
+            <p className="text-2xl font-bold text-gray-900">{stats?.totalVendorProducts || 0}</p>
+          </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-sm text-gray-500">Total Mappings</p>
-            <p className="text-2xl font-bold text-gray-900">{pagination?.total || 0}</p>
+            <p className="text-2xl font-bold text-gray-900">{stats?.totalMappings || 0}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Mapped Products</p>
-            <p className="text-2xl font-bold text-green-600">{mappedCount}</p>
+            <p className="text-sm text-gray-500">Mapped</p>
+            <p className="text-2xl font-bold text-green-600">{stats?.mapped || 0}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Unmapped Products</p>
-            <p className="text-2xl font-bold text-orange-600">{unmappedCount}</p>
+            <p className="text-sm text-gray-500">Unmapped</p>
+            <p className="text-2xl font-bold text-orange-600">{stats?.unmapped || 0}</p>
           </div>
         </div>
 
@@ -160,29 +167,22 @@ export default function StoreMappingsPage() {
                       <td className="px-6 py-4">
                         <div className="max-w-md">
                           <p className="font-medium text-gray-900 truncate">
-                            {mapping.vendorProductName}
+                            {mapping.vendorProduct}
                           </p>
-                          {mapping.vendorProductUrl && (
-                            <a
-                              href={mapping.vendorProductUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:underline"
-                            >
-                              View on store
-                            </a>
-                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         {mapping.masterProduct ? (
-                          <div className="max-w-md">
+                          <div className="flex items-center gap-3 max-w-md">
+                            {mapping.masterProduct.imageUrl && (
+                              <img
+                                src={mapping.masterProduct.imageUrl}
+                                alt={mapping.masterProduct.name}
+                                className="w-10 h-10 object-contain rounded"
+                              />
+                            )}
                             <p className="font-medium text-gray-900 truncate">
                               {mapping.masterProduct.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {mapping.masterProduct.brand}
-                              {mapping.masterProduct.nicotineStrength && ` - ${mapping.masterProduct.nicotineStrength}`}
                             </p>
                           </div>
                         ) : (

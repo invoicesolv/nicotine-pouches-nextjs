@@ -8,24 +8,22 @@ interface ChartData {
   date: string;
   clicks: number;
   impressions: number;
-  conversions: number;
 }
 
 interface TopProduct {
-  productId: string;
-  productName: string;
-  productSlug: string;
+  name: string;
   clicks: number;
 }
 
 interface KPIData {
   totalClicks: number;
   totalImpressions: number;
-  totalConversions: number;
   clickThroughRate: number;
-  conversionRate: number;
-  activeProducts: number;
   totalProducts: number;
+  inStockProducts: number;
+  outOfStockProducts: number;
+  mappedProducts: number;
+  unmappedProducts: number;
   lastUpdated: string | null;
 }
 
@@ -168,13 +166,13 @@ export default function StoreAnalyticsPage() {
             ) : (
               <div className="space-y-4">
                 {topProducts.slice(0, 5).map((product, index) => (
-                  <div key={product.productId} className="flex items-center gap-3">
+                  <div key={`${product.name}-${index}`} className="flex items-center gap-3">
                     <span className="text-sm font-medium text-gray-400 w-5">
                       {index + 1}
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">
-                        {product.productName}
+                        {product.name}
                       </p>
                       <p className="text-xs text-gray-500">
                         {product.clicks.toLocaleString()} clicks
@@ -187,7 +185,7 @@ export default function StoreAnalyticsPage() {
           </div>
         </div>
 
-        {/* Metrics Summary */}
+        {/* Daily Breakdown */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Daily Breakdown</h3>
           {loading ? (
@@ -204,7 +202,6 @@ export default function StoreAnalyticsPage() {
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Clicks</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Impressions</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Conversions</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">CTR</th>
                   </tr>
                 </thead>
@@ -227,9 +224,6 @@ export default function StoreAnalyticsPage() {
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-500 text-right">
                           {row.impressions.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-gray-500 text-right">
-                          {row.conversions.toLocaleString()}
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-500 text-right">
                           {ctr}%

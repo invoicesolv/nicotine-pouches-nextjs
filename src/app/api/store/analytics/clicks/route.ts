@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticateStoreRequest } from '@/lib/store-auth';
+import { authenticateStoreRequest, AUTH_CACHE_HEADERS } from '@/lib/store-auth';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
@@ -9,67 +9,77 @@ export async function GET(request: NextRequest) {
     if (!authResult) {
       return NextResponse.json(
         { error: 'Not authenticated' },
-        { status: 401 }
+        { status: 401, headers: AUTH_CACHE_HEADERS }
       );
     }
 
-    const { user } = authResult;
+    const { vendor } = authResult;
     const url = new URL(request.url);
 
-    // Date range params
-    const days = parseInt(url.searchParams.get('days') || '30');
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    // Determine vendor type
-    const isUK = !!user.vendor_id;
-    const vendorId = isUK ? user.vendor_id : user.us_vendor_id;
-
-    if (!vendorId) {
+    if (!vendor?.realVendorId) {
       return NextResponse.json(
         { error: 'No vendor associated with this account' },
         { status: 400 }
       );
     }
 
-    // Get daily analytics
-    const analyticsTable = isUK ? 'vendor_analytics' : 'us_vendor_analytics';
-    const vendorIdColumn = isUK ? 'vendor_id' : 'us_vendor_id';
+    const vendorId = vendor.realVendorId;
 
-    const { data: dailyData, error: dailyError } = await supabaseAdmin()
-      .from(analyticsTable)
-      .select('date, clicks, impressions, conversions')
-      .eq(vendorIdColumn, vendorId)
-      .gte('date', startDate.toISOString().split('T')[0])
-      .order('date', { ascending: true });
+    // Date range params
+    const days = parseInt(url.searchParams.get('days') || '30');
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
 
-    if (dailyError) {
-      console.error('Error fetching daily analytics:', dailyError);
+    // Fetch click events from vendor_analytics
+    const { data: clickEvents, error: clicksError } = await supabaseAdmin()
+      .from('vendor_analytics')
+      .select('timestamp, event_type, product_id, product_name')
+      .eq('vendor_id', vendorId)
+      .in('event_type', ['vendor_click', 'vendor_exposure'])
+      .gte('timestamp', startDate.toISOString())
+      .order('timestamp', { ascending: true })
+      .limit(10000);
+
+    if (clicksError) {
+      console.error('Error fetching analytics:', clicksError);
       return NextResponse.json(
         { error: 'Failed to fetch analytics data' },
         { status: 500 }
       );
     }
 
-    // Fill in missing dates with zeros
-    const dateMap = new Map<string, { clicks: number; impressions: number; conversions: number }>();
+    // Aggregate by date
+    const dateMap = new Map<string, { clicks: number; impressions: number }>();
 
     // Initialize all dates in range with zeros
     for (let d = new Date(startDate); d <= new Date(); d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split('T')[0];
-      dateMap.set(dateStr, { clicks: 0, impressions: 0, conversions: 0 });
+      dateMap.set(dateStr, { clicks: 0, impressions: 0 });
     }
 
-    // Fill in actual data
-    for (const row of dailyData || []) {
-      dateMap.set(row.date, {
-        clicks: row.clicks || 0,
-        impressions: row.impressions || 0,
-        conversions: row.conversions || 0,
-      });
+    // Aggregate events into daily buckets
+    const productClicks = new Map<string, { name: string; clicks: number }>();
+
+    for (const event of clickEvents || []) {
+      const dateStr = new Date(event.timestamp).toISOString().split('T')[0];
+      const day = dateMap.get(dateStr) || { clicks: 0, impressions: 0 };
+
+      if (event.event_type === 'vendor_click') {
+        day.clicks++;
+        // Track per-product clicks
+        if (event.product_name) {
+          const existing = productClicks.get(event.product_name) || { name: event.product_name, clicks: 0 };
+          existing.clicks++;
+          productClicks.set(event.product_name, existing);
+        }
+      } else if (event.event_type === 'vendor_exposure') {
+        day.impressions++;
+      }
+
+      dateMap.set(dateStr, day);
     }
 
-    // Convert to array sorted by date
+    // Convert to sorted array
     const chartData = Array.from(dateMap.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([date, data]) => ({
@@ -77,34 +87,10 @@ export async function GET(request: NextRequest) {
         ...data,
       }));
 
-    // Get top products by clicks if product-level tracking exists
-    const clicksTable = isUK ? 'product_clicks' : 'us_product_clicks';
-    const productTable = isUK ? 'products' : 'us_products';
-
-    let topProducts: any[] = [];
-
-    try {
-      const { data: topProductsData } = await supabaseAdmin()
-        .from(clicksTable)
-        .select(`
-          product_id,
-          count,
-          product:${productTable}(name, slug)
-        `)
-        .eq(vendorIdColumn, vendorId)
-        .gte('created_at', startDate.toISOString())
-        .order('count', { ascending: false })
-        .limit(10);
-
-      topProducts = (topProductsData || []).map(row => ({
-        productId: row.product_id,
-        productName: row.product?.name || 'Unknown',
-        productSlug: row.product?.slug || '',
-        clicks: row.count || 0,
-      }));
-    } catch {
-      // Product-level clicks table may not exist, continue without it
-    }
+    // Top products by clicks
+    const topProducts = Array.from(productClicks.values())
+      .sort((a, b) => b.clicks - a.clicks)
+      .slice(0, 10);
 
     return NextResponse.json({
       period: {

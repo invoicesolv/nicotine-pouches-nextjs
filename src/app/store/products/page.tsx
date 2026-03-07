@@ -4,15 +4,18 @@ import { useState, useEffect, useCallback } from 'react';
 import StoreLayout from '@/components/store/StoreLayout';
 
 interface Product {
-  id: string;
-  product_name: string;
-  product_url: string;
-  image_url?: string;
-  price_1?: string;
-  price_10?: string;
-  price_15?: string;
-  price_30?: string;
-  in_stock: boolean;
+  id: number;
+  vendor_id: number;
+  name: string;
+  brand: string;
+  category: string;
+  price_1pack: string | null;
+  price_3pack: string | null;
+  price_5pack: string | null;
+  price_10pack: string | null;
+  stock_status: string;
+  url: string;
+  created_at: string;
   updated_at: string;
 }
 
@@ -82,6 +85,10 @@ export default function StoreProductsPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const getPrice = (product: Product): string => {
+    return product.price_1pack || product.price_3pack || product.price_5pack || product.price_10pack || '-';
   };
 
   return (
@@ -168,26 +175,21 @@ export default function StoreProductsPage() {
                     <tr key={product.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          {product.image_url ? (
-                            <img
-                              src={product.image_url}
-                              alt={product.product_name}
-                              className="w-12 h-12 object-contain rounded"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
-                              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            </div>
-                          )}
+                          <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
+                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                          </div>
                           <div className="max-w-xs">
                             <p className="font-medium text-gray-900 truncate">
-                              {product.product_name}
+                              {product.name}
                             </p>
-                            {product.product_url && (
+                            {product.brand && (
+                              <p className="text-xs text-gray-500">{product.brand}</p>
+                            )}
+                            {product.url && (
                               <a
-                                href={product.product_url}
+                                href={product.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-xs text-blue-600 hover:underline truncate block"
@@ -200,11 +202,11 @@ export default function StoreProductsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-gray-900 font-medium">
-                          {product.price_1 || product.price_10 || product.price_15 || product.price_30 || '-'}
+                          {getPrice(product)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {product.in_stock ? (
+                        {product.stock_status === 'instock' ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             In Stock
                           </span>
@@ -218,9 +220,9 @@ export default function StoreProductsPage() {
                         {formatDate(product.updated_at)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {product.product_url && (
+                        {product.url && (
                           <a
-                            href={product.product_url}
+                            href={product.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:text-blue-800"

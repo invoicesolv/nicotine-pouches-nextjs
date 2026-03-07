@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticateStoreRequest } from '@/lib/store-auth';
+import { authenticateStoreRequest, AUTH_CACHE_HEADERS } from '@/lib/store-auth';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
@@ -9,12 +9,22 @@ export async function GET(request: NextRequest) {
     if (!authResult) {
       return NextResponse.json(
         { error: 'Not authenticated' },
-        { status: 401 }
+        { status: 401, headers: AUTH_CACHE_HEADERS }
       );
     }
 
-    const { user, vendor } = authResult;
+    const { vendor } = authResult;
     const url = new URL(request.url);
+
+    if (!vendor?.realVendorId) {
+      return NextResponse.json(
+        { error: 'No vendor associated with this account' },
+        { status: 400 }
+      );
+    }
+
+    const vendorId = vendor.realVendorId;
+    const isUK = vendor.country === 'uk';
 
     // Pagination params
     const page = parseInt(url.searchParams.get('page') || '1');
@@ -23,40 +33,28 @@ export async function GET(request: NextRequest) {
 
     // Search/filter params
     const search = url.searchParams.get('search') || '';
-    const inStock = url.searchParams.get('inStock');
+    const stockFilter = url.searchParams.get('inStock');
 
-    // Determine which table to query based on vendor type
-    const isUK = !!user.vendor_id;
-    const vendorId = isUK ? user.vendor_id : user.us_vendor_id;
-
-    if (!vendorId) {
-      return NextResponse.json(
-        { error: 'No vendor associated with this account' },
-        { status: 400 }
-      );
-    }
-
-    // Build query for vendor_products (UK) or us_vendor_products (US)
-    const tableName = isUK ? 'vendor_products' : 'us_vendor_products';
-    const vendorIdColumn = isUK ? 'vendor_id' : 'us_vendor_id';
+    // vendor_products for UK, us_vendor_products_new for US
+    const tableName = isUK ? 'vendor_products' : 'us_vendor_products_new';
 
     let query = supabaseAdmin()
       .from(tableName)
-      .select('*', { count: 'exact' })
-      .eq(vendorIdColumn, vendorId)
-      .order('updated_at', { ascending: false })
+      .select('id, vendor_id, name, brand, category, price_1pack, price_3pack, price_5pack, price_10pack, stock_status, url, created_at, updated_at', { count: 'exact' })
+      .eq('vendor_id', vendorId)
+      .order('name', { ascending: true })
       .range(offset, offset + limit - 1);
 
     // Apply search filter
     if (search) {
-      query = query.ilike('product_name', `%${search}%`);
+      query = query.ilike('name', `%${search}%`);
     }
 
     // Apply stock filter
-    if (inStock === 'true') {
-      query = query.eq('in_stock', true);
-    } else if (inStock === 'false') {
-      query = query.eq('in_stock', false);
+    if (stockFilter === 'true') {
+      query = query.eq('stock_status', 'instock');
+    } else if (stockFilter === 'false') {
+      query = query.neq('stock_status', 'instock');
     }
 
     const { data, error, count } = await query;

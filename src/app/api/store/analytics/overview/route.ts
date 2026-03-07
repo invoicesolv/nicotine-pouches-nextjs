@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticateStoreRequest } from '@/lib/store-auth';
+import { authenticateStoreRequest, AUTH_CACHE_HEADERS } from '@/lib/store-auth';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
@@ -9,86 +9,82 @@ export async function GET(request: NextRequest) {
     if (!authResult) {
       return NextResponse.json(
         { error: 'Not authenticated' },
-        { status: 401 }
+        { status: 401, headers: AUTH_CACHE_HEADERS }
       );
     }
 
-    const { user, vendor } = authResult;
+    const { vendor } = authResult;
     const url = new URL(request.url);
 
-    // Date range (default: last 30 days)
-    const days = parseInt(url.searchParams.get('days') || '30');
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    // Determine vendor type
-    const isUK = !!user.vendor_id;
-    const vendorId = isUK ? user.vendor_id : user.us_vendor_id;
-
-    if (!vendorId) {
+    if (!vendor?.realVendorId) {
       return NextResponse.json(
         { error: 'No vendor associated with this account' },
         { status: 400 }
       );
     }
 
-    // Get analytics from vendor_analytics table
-    const analyticsTable = isUK ? 'vendor_analytics' : 'us_vendor_analytics';
-    const vendorIdColumn = isUK ? 'vendor_id' : 'us_vendor_id';
+    const vendorId = vendor.realVendorId;
+    const isUK = vendor.country === 'uk';
 
-    const { data: analytics, error: analyticsError } = await supabaseAdmin()
-      .from(analyticsTable)
-      .select('*')
-      .eq(vendorIdColumn, vendorId)
-      .gte('date', startDate.toISOString().split('T')[0])
-      .order('date', { ascending: false });
+    // Date range (default: last 30 days)
+    const days = parseInt(url.searchParams.get('days') || '30');
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
 
-    if (analyticsError) {
-      console.error('Error fetching analytics:', analyticsError);
-    }
+    const vpTable = isUK ? 'vendor_products' : 'us_vendor_products_new';
+    const mappingTable = isUK ? 'vendor_product_mapping' : 'us_vendor_product_mapping';
 
-    // Calculate totals from analytics
-    const totals = (analytics || []).reduce(
-      (acc, day) => ({
-        clicks: acc.clicks + (day.clicks || 0),
-        impressions: acc.impressions + (day.impressions || 0),
-        conversions: acc.conversions + (day.conversions || 0),
-      }),
-      { clicks: 0, impressions: 0, conversions: 0 }
-    );
+    // Fetch all counts in parallel
+    const [clicksResult, impressionsResult, totalProductsResult, instockResult, mappedResult, lastProductResult] = await Promise.all([
+      // Count clicks from vendor_analytics
+      supabaseAdmin()
+        .from('vendor_analytics')
+        .select('id', { count: 'exact', head: true })
+        .eq('vendor_id', vendorId)
+        .eq('event_type', 'vendor_click')
+        .gte('timestamp', startDate.toISOString()),
+      // Count impressions
+      supabaseAdmin()
+        .from('vendor_analytics')
+        .select('id', { count: 'exact', head: true })
+        .eq('vendor_id', vendorId)
+        .eq('event_type', 'vendor_exposure')
+        .gte('timestamp', startDate.toISOString()),
+      // Total products
+      supabaseAdmin()
+        .from(vpTable)
+        .select('id', { count: 'exact', head: true })
+        .eq('vendor_id', vendorId),
+      // In-stock products
+      supabaseAdmin()
+        .from(vpTable)
+        .select('id', { count: 'exact', head: true })
+        .eq('vendor_id', vendorId)
+        .eq('stock_status', 'instock'),
+      // Mapped products
+      supabaseAdmin()
+        .from(mappingTable)
+        .select('id', { count: 'exact', head: true })
+        .eq('vendor_id', vendorId),
+      // Last update
+      supabaseAdmin()
+        .from(vpTable)
+        .select('updated_at')
+        .eq('vendor_id', vendorId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single(),
+    ]);
 
-    // Calculate CTR
-    const ctr = totals.impressions > 0
-      ? ((totals.clicks / totals.impressions) * 100).toFixed(2)
-      : '0.00';
+    const totalClicks = clicksResult.count || 0;
+    const totalImpressions = impressionsResult.count || 0;
+    const totalProducts = totalProductsResult.count || 0;
+    const inStockProducts = instockResult.count || 0;
+    const mappedProducts = mappedResult.count || 0;
 
-    // Get active products count
-    const productsTable = isUK ? 'vendor_products' : 'us_vendor_products';
-
-    const { count: activeProductsCount, error: productsError } = await supabaseAdmin()
-      .from(productsTable)
-      .select('*', { count: 'exact', head: true })
-      .eq(vendorIdColumn, vendorId)
-      .eq('in_stock', true);
-
-    if (productsError) {
-      console.error('Error fetching products count:', productsError);
-    }
-
-    // Get total products count
-    const { count: totalProductsCount } = await supabaseAdmin()
-      .from(productsTable)
-      .select('*', { count: 'exact', head: true })
-      .eq(vendorIdColumn, vendorId);
-
-    // Get last update time from vendor_products
-    const { data: lastProduct } = await supabaseAdmin()
-      .from(productsTable)
-      .select('updated_at')
-      .eq(vendorIdColumn, vendorId)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .single();
+    const ctr = totalImpressions > 0
+      ? parseFloat(((totalClicks / totalImpressions) * 100).toFixed(2))
+      : 0;
 
     return NextResponse.json({
       vendor: vendor ? {
@@ -101,16 +97,15 @@ export async function GET(request: NextRequest) {
         endDate: new Date().toISOString().split('T')[0],
       },
       kpis: {
-        totalClicks: totals.clicks,
-        totalImpressions: totals.impressions,
-        totalConversions: totals.conversions,
-        clickThroughRate: parseFloat(ctr),
-        conversionRate: totals.clicks > 0
-          ? parseFloat(((totals.conversions / totals.clicks) * 100).toFixed(2))
-          : 0,
-        activeProducts: activeProductsCount || 0,
-        totalProducts: totalProductsCount || 0,
-        lastUpdated: lastProduct?.updated_at || null,
+        totalClicks,
+        totalImpressions,
+        clickThroughRate: ctr,
+        totalProducts,
+        inStockProducts,
+        outOfStockProducts: totalProducts - inStockProducts,
+        mappedProducts,
+        unmappedProducts: totalProducts - mappedProducts,
+        lastUpdated: lastProductResult.data?.updated_at || null,
       },
     });
   } catch (error: any) {
