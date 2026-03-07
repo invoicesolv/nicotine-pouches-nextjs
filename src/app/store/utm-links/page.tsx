@@ -50,6 +50,37 @@ export default function StoreUTMLinksPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const vendorId = vendor?.realVendorId || 0;
+
+  // Conversion tracking snippet — paste on ALL pages, fires only on thank-you page
+  const conversionSnippet = `<!-- Nicotine Pouches Conversion Tracking -->
+<script>
+(function(){
+  // Step 1: On any page, detect if visitor came from nicotine-pouches.org
+  var p = new URLSearchParams(window.location.search);
+  if (p.get("utm_source") === "nicotine-pouches.org") {
+    document.cookie = "np_ref=1;path=/;max-age=2592000;SameSite=Lax";
+  }
+  // Step 2: On your thank-you / order-confirmation page, add this attribute
+  // to any element: data-np-conversion
+  // Optional: data-np-value="29.99" data-np-order-id="ORD-123"
+  var el = document.querySelector("[data-np-conversion]");
+  if (el && document.cookie.indexOf("np_ref=1") !== -1) {
+    var v = el.getAttribute("data-np-value") || "";
+    var o = el.getAttribute("data-np-order-id") || "";
+    fetch("https://nicotine-pouches.org/api/conversions/track", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({vendor_id: ${vendorId}, order_value: v, order_id: o})
+    });
+    document.cookie = "np_ref=;path=/;max-age=0";
+  }
+})();
+</script>`;
+
+  const thankYouSnippet = `<!-- Add this to your thank-you / order confirmation page -->
+<div data-np-conversion data-np-value="ORDER_TOTAL" data-np-order-id="ORDER_ID" style="display:none"></div>`;
+
   // HTML badge snippet
   const badgeSnippet = `<!-- Nicotine Pouches Price Comparison Badge -->
 <a href="https://nicotine-pouches.org/vendor/${vendorSlug}?utm_source=${encodeURIComponent(vendorDomain.replace(/https?:\/\//, ''))}&utm_medium=website&utm_campaign=vendor-badge"
@@ -283,6 +314,87 @@ export default function StoreUTMLinksPage() {
           </div>
         </div>
 
+        {/* Conversion Tracking */}
+        <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+          <h2 className="font-semibold text-green-900 text-lg mb-3">Conversion tracking</h2>
+          <div className="space-y-3 text-sm text-green-800">
+            <p>
+              Track actual sales that come from nicotine-pouches.org. When a customer clicks through
+              from our site and completes a purchase on yours, the conversion shows up in your Analytics dashboard.
+            </p>
+            <p><strong>Two steps:</strong></p>
+          </div>
+
+          {/* Step 1: Script on all pages */}
+          <div className="mt-4 space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                Step 1: Add this script to all pages (header or footer)
+              </h3>
+              <p className="text-xs text-gray-600 mb-2">
+                This detects visitors from nicotine-pouches.org and remembers them for 30 days.
+                On your thank-you page, it fires the conversion back to us.
+              </p>
+              <div className="relative">
+                <button
+                  onClick={() => copyToClipboard(conversionSnippet, 'conversion-script')}
+                  className="absolute top-2 right-2 text-xs text-green-600 hover:text-green-800 font-medium bg-white px-2 py-1 rounded z-10"
+                >
+                  {copied === 'conversion-script' ? 'Copied!' : 'Copy'}
+                </button>
+                <pre className="bg-gray-900 text-gray-300 rounded-lg p-4 text-xs overflow-x-auto">
+                  {conversionSnippet}
+                </pre>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                Step 2: Add this hidden element to your thank-you / order confirmation page
+              </h3>
+              <p className="text-xs text-gray-600 mb-2">
+                Replace <code className="bg-gray-100 px-1 rounded">ORDER_TOTAL</code> with the order value and <code className="bg-gray-100 px-1 rounded">ORDER_ID</code> with the order ID.
+                Most platforms (Shopify, WooCommerce) let you use template variables here.
+              </p>
+              <div className="relative">
+                <button
+                  onClick={() => copyToClipboard(thankYouSnippet, 'thankyou-snippet')}
+                  className="absolute top-2 right-2 text-xs text-green-600 hover:text-green-800 font-medium bg-white px-2 py-1 rounded z-10"
+                >
+                  {copied === 'thankyou-snippet' ? 'Copied!' : 'Copy'}
+                </button>
+                <pre className="bg-gray-900 text-gray-300 rounded-lg p-4 text-xs overflow-x-auto">
+                  {thankYouSnippet}
+                </pre>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg p-4 border border-green-200">
+              <h4 className="text-sm font-medium text-gray-900 mb-2">Platform examples</h4>
+              <div className="space-y-2 text-xs text-gray-700">
+                <div>
+                  <strong>Shopify:</strong> Go to Settings &gt; Checkout &gt; Additional scripts. Paste both snippets.
+                  Use <code className="bg-gray-100 px-1 rounded">{'{{ total_price | money_without_currency }}'}</code> for value
+                  and <code className="bg-gray-100 px-1 rounded">{'{{ order_number }}'}</code> for order ID.
+                </div>
+                <div>
+                  <strong>WooCommerce:</strong> Add to your theme&apos;s thank-you page template or use a plugin like
+                  &quot;Insert Headers and Footers&quot;. Use WooCommerce template tags for order data.
+                </div>
+                <div>
+                  <strong>Custom site:</strong> Add the script to your global header/footer. On your payment success
+                  callback page, render the hidden div with the order details.
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-green-700">
+              Your vendor ID is <strong>{vendorId}</strong>. This is already baked into the script above.
+              Conversions are deduplicated by order ID so the same order won&apos;t be counted twice.
+            </p>
+          </div>
+        </div>
+
         {/* Setup instructions */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="font-semibold text-gray-900 text-lg mb-4">Setup instructions</h2>
@@ -304,9 +416,8 @@ export default function StoreUTMLinksPage() {
             <div className="flex gap-3">
               <div className="w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0">3</div>
               <div>
-                <strong>Track performance.</strong> View clicks and impressions in the
-                Analytics tab of this dashboard. Use UTM parameters in your Google Analytics to track
-                which sales came from nicotine-pouches.org.
+                <strong>Track conversions.</strong> Install the conversion tracking script above to see
+                actual sales from nicotine-pouches.org in your Analytics dashboard.
               </div>
             </div>
           </div>

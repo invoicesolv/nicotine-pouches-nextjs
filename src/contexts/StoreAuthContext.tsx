@@ -23,6 +23,7 @@ interface VendorInfo {
   country: 'uk' | 'us';
   logo_url?: string;
   website_url?: string;
+  realVendorId?: number | null;
 }
 
 interface StoreAuthContextType {

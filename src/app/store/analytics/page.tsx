@@ -8,6 +8,7 @@ interface ChartData {
   date: string;
   clicks: number;
   impressions: number;
+  conversions: number;
 }
 
 interface TopProduct {
@@ -18,6 +19,7 @@ interface TopProduct {
 interface KPIData {
   totalClicks: number;
   totalImpressions: number;
+  totalConversions: number;
   clickThroughRate: number;
   totalProducts: number;
   inStockProducts: number;
@@ -112,6 +114,10 @@ export default function StoreAnalyticsPage() {
                   <div className="w-3 h-3 bg-blue-600 rounded-sm" />
                   <span className="text-gray-500">Clicks</span>
                 </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-green-500 rounded-sm" />
+                  <span className="text-gray-500">Conversions</span>
+                </div>
               </div>
             </div>
             {loading ? (
@@ -146,6 +152,12 @@ export default function StoreAnalyticsPage() {
                               style={{ height: `${Math.max(clickHeight / impressionHeight * 100, 4)}%` }}
                             />
                           )}
+                          {/* Conversions dot */}
+                          {data.conversions > 0 && (
+                            <div
+                              className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-green-500 rounded-full border border-white"
+                            />
+                          )}
                         </div>
                         {/* Tooltip */}
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
@@ -153,6 +165,7 @@ export default function StoreAnalyticsPage() {
                             <div className="text-gray-400 mb-1">{new Date(data.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}</div>
                             <div>{data.impressions} impressions</div>
                             <div>{data.clicks} clicks</div>
+                            {data.conversions > 0 && <div className="text-green-400">{data.conversions} conversions</div>}
                           </div>
                         </div>
                       </div>
@@ -227,6 +240,7 @@ export default function StoreAnalyticsPage() {
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Impressions</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Clicks</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Conversions</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">CTR</th>
                   </tr>
                 </thead>
@@ -249,6 +263,9 @@ export default function StoreAnalyticsPage() {
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-900 text-right font-medium">
                           {row.clicks.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2 text-sm text-green-600 text-right font-medium">
+                          {row.conversions > 0 ? row.conversions.toLocaleString() : '-'}
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-500 text-right">
                           {ctr}%

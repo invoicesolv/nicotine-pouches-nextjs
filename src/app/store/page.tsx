@@ -8,6 +8,7 @@ import { useStoreAuth } from '@/contexts/StoreAuthContext';
 interface KPIData {
   totalClicks: number;
   totalImpressions: number;
+  totalConversions: number;
   clickThroughRate: number;
   totalProducts: number;
   inStockProducts: number;
