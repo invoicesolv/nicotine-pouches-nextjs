@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import StoreLayout from '@/components/store/StoreLayout';
 
+const generateSlug = (name: string) =>
+  name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').trim();
+
 interface MasterProduct {
   id: string;
   name: string;
@@ -173,7 +176,12 @@ export default function StoreMappingsPage() {
                       </td>
                       <td className="px-6 py-4">
                         {mapping.masterProduct ? (
-                          <div className="flex items-center gap-3 max-w-md">
+                          <a
+                            href={`https://nicotine-pouches.org/product/${generateSlug(mapping.masterProduct.name)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 max-w-md group"
+                          >
                             {mapping.masterProduct.imageUrl && (
                               <img
                                 src={mapping.masterProduct.imageUrl}
@@ -181,10 +189,13 @@ export default function StoreMappingsPage() {
                                 className="w-10 h-10 object-contain rounded"
                               />
                             )}
-                            <p className="font-medium text-gray-900 truncate">
+                            <p className="font-medium text-blue-600 group-hover:text-blue-800 group-hover:underline truncate">
                               {mapping.masterProduct.name}
                             </p>
-                          </div>
+                            <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
                         ) : (
                           <span className="text-gray-400 italic">Not mapped</span>
                         )}
