@@ -751,7 +751,7 @@ const getBlogPost = async (slug: string): Promise<BlogPost | null> => {
       fullContent: post.content,
       date: post.date || post.created_at,
       updated_at: post.updated_at || post.date || post.created_at,
-      author: post.author || 'Nicotine Pouches Team',
+      author: post.author || 'Nicotine Pouches',
       featured_image: post.featured_image,
       featured_image_local: post.featured_image_local || post.featured_image,
       link: post.link,

@@ -31,7 +31,7 @@ export async function GET(
       excerpt: excerpt,
       content: post.content,
       date: post.date || post.created_at,
-      author: 'Nicotine Pouches Team',
+      author: 'Nicotine Pouches',
       featured_image: post.featured_image,
       featured_image_local: post.featured_image_local || post.featured_image,
       status: 'published',

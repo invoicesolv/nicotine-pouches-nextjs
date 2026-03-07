@@ -1,16 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Load environment variables with fallbacks
+// Load environment variables — no hardcoded fallbacks for security
 const getSupabaseConfig = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vyolbmzuezpoqtdgongz.supabase.co'
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5b2xibXp1ZXpwb3F0ZGdvbmd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNjk2ODQsImV4cCI6MjA3Mjk0NTY4NH0.-ZffqZvPjUnHHbVdY68sSKYMH4jmmsTvE69ld1TVBUI'
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5b2xibXp1ZXpwb3F0ZGdvbmd6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM2OTY4NCwiZXhwIjoyMDcyOTQ1Njg0fQ.6hmw_0XGzLCvMQ-OopDg7NMFMC_MYwWO4HnXUTaqV0w'
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  // Only check for required variables in runtime, not during build
-  if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
-    }
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing required Supabase environment variables (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY). Check your .env.local file.')
   }
 
   return { supabaseUrl, supabaseAnonKey, supabaseServiceKey }

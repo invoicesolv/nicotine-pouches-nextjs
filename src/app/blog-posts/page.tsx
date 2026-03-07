@@ -85,7 +85,7 @@ async function getBlogPost(slug: string): Promise<BlogPost | null> {
         og_image: (seo.og_image as string) ?? data.featured_image ?? data.featured_image_local ?? '',
         canonical: getFullUrl(`/${data.slug}`),
         robots: 'index, follow',
-        author: 'Nicotine Pouches Team',
+        author: 'Nicotine Pouches',
         published_time: data.date ?? data.created_at,
         modified_time: data.updated_at ?? data.date ?? '',
         article_section: 'Guides',
@@ -460,7 +460,7 @@ export default async function GuidePost({ params }: { params: Promise<{ slug: st
             fontWeight: '400',
             fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
           }}>
-            by {post.seo_meta?.author || 'Nicotine Pouches Team'} • {formatDate(post.date)}
+            by {post.seo_meta?.author || 'Nicotine Pouches'} • {formatDate(post.date)}
           </div>
         </div>
 

@@ -38,7 +38,7 @@ function mapPostRow(post: BlogPostRow): BlogPost {
     slug: post.slug,
     excerpt: excerptText,
     date: post.date || post.created_at,
-    author: 'Nicotine Pouches Team',
+    author: 'Nicotine Pouches',
     featured_image: post.featured_image,
     featured_image_local: post.featured_image_local || post.featured_image,
     status: 'published',

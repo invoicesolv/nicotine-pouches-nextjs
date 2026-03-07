@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         content,
         excerpt: content.replace(/<[^>]*>/g, '').substring(0, 300) + '...',
         status: 'published',
-        author: 'Nicotine Pouches Team',
+        author: 'Nicotine Pouches',
         published_at: new Date().toISOString(),
         featured_image: featured_image_url,
         featured_image_alt: featured_image_alt || title,

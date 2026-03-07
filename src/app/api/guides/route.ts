@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
       slug: finalSlug,
       excerpt: excerpt.trim(),
       content: content.trim(),
-      author: author || 'Nicotine Pouches Team',
+      author: author || 'Nicotine Pouches',
       status: normalizedStatus,
       meta_description: finalMetaDescription,
       published_at: date ? new Date(date).toISOString() : now,

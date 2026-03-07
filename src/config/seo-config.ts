@@ -21,7 +21,7 @@ export const SEO_CONFIG = {
     description: 'Premium nicotine pouches price comparison service. Find the best deals on nicotine pouches in the UK with our comprehensive price comparison platform.',
     foundingDate: '2021',
     founder: {
-      name: 'Nicotine Pouches Team'
+      name: 'Kevin Negash'
     },
     address: {
       addressCountry: 'GB',

@@ -4,8 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 // Admin API key for authentication
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || process.env.CRAWLER_API_KEY || '';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vyolbmzuezpoqtdgongz.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5b2xibXp1ZXpwb3F0ZGdvbmd6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM2OTY4NCwiZXhwIjoyMDcyOTQ1Njg0fQ.6hmw_0XGzLCvMQ-OopDg7NMFMC_MYwWO4HnXUTaqV0w';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 function authenticateAdmin(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization');
@@ -14,7 +14,7 @@ function authenticateAdmin(request: NextRequest): boolean {
   // Allow if ADMIN_API_KEY matches or use a secret header
   const secretHeader = request.headers.get('x-migration-secret');
 
-  if (secretHeader === 'run-store-portal-migration-2024') {
+  if (process.env.MIGRATION_SECRET && secretHeader === process.env.MIGRATION_SECRET) {
     return true;
   }
 

@@ -66,6 +66,10 @@ export default async function RootLayout({
     "image": "https://nicotine-pouches.org/android-chrome-512x512.png",
     "description": "The UK's largest nicotine pouch price comparison site. Compare 700+ products across 10+ retailers with live prices, reviews, and stock updates.",
     "foundingDate": "2021",
+    "founder": {
+      "@type": "Person",
+      "name": "Kevin Negash"
+    },
     "address": {
       "@type": "PostalAddress",
       "addressCountry": "GB"

@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || process.env.CRAWLER_API_KEY || '';
+
+function authenticateAdmin(request: NextRequest): boolean {
+  const apiKey = request.headers.get('authorization')?.replace('Bearer ', '').trim();
+  if (!ADMIN_API_KEY || !apiKey) return false;
+  return apiKey === ADMIN_API_KEY;
+}
+
 export async function GET(request: NextRequest) {
+  if (!authenticateAdmin(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const { searchParams } = new URL(request.url);
     const region = searchParams.get('region') || 'UK';
@@ -59,6 +70,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!authenticateAdmin(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const body = await request.json();
     const { region = 'UK', ...productData } = body;
@@ -107,6 +121,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  if (!authenticateAdmin(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const body = await request.json();
     const { id, region = 'UK', ...productData } = body;
@@ -146,6 +163,9 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  if (!authenticateAdmin(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

@@ -279,7 +279,7 @@ export default async function RelatedPosts({
                         flexWrap: 'wrap',
                         gap: '8px'
                       }}>
-                        <span>By Nicotine Pouches Team</span>
+                        <span>By Nicotine Pouches</span>
                         <span>{new Date(post.date).toLocaleDateString()}</span>
                       </div>
                     </div>

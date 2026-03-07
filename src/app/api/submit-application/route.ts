@@ -40,8 +40,8 @@ export async function POST(request: NextRequest) {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER || 'kevin@solvify.se',
-        pass: process.env.GMAIL_APP_PASSWORD || 'nfbh haeg dqen lzxw'
+        user: process.env.EMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD
       }
     });
 
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     // Email content
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'kevin@solvify.se',
+      from: process.env.EMAIL_USER,
       to: 'kevin@solvify.se',
       subject: `Job Application: ${position} - ${name}`,
       html: `
