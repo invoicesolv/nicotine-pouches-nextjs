@@ -329,9 +329,15 @@ export async function authenticateStoreRequest(
 export function createSessionCookie(token: string): string {
   const maxAge = SESSION_EXPIRY_HOURS * 60 * 60;
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  return `store_session=${token}; Path=/store; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`;
+  return `store_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`;
 }
 
 export function clearSessionCookie(): string {
-  return 'store_session=; Path=/store; HttpOnly; SameSite=Strict; Max-Age=0';
+  return 'store_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0';
 }
+
+// Cache-control headers for auth endpoints (must never be cached)
+export const AUTH_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, private, must-revalidate',
+  'Pragma': 'no-cache',
+};

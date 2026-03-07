@@ -7,6 +7,7 @@ import {
   createSession,
   getVendorInfo,
   createSessionCookie,
+  AUTH_CACHE_HEADERS,
 } from '@/lib/store-auth';
 
 export async function POST(request: NextRequest) {
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest) {
         permissions: user.permissions,
       },
       vendor,
-    });
+    }, { headers: AUTH_CACHE_HEADERS });
 
     // Set session cookie
     response.headers.set('Set-Cookie', createSessionCookie(sessionResult.token));
@@ -124,7 +125,7 @@ export async function POST(request: NextRequest) {
     console.error('Registration error:', error);
     return NextResponse.json(
       { error: 'An error occurred during registration' },
-      { status: 500 }
+      { status: 500, headers: AUTH_CACHE_HEADERS }
     );
   }
 }

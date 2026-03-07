@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateInviteCode, getVendorInfo } from '@/lib/store-auth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { validateInviteCode, getVendorInfo, AUTH_CACHE_HEADERS } from '@/lib/store-auth';
 
 export async function GET(
   request: NextRequest,
@@ -12,37 +11,16 @@ export async function GET(
     if (!code) {
       return NextResponse.json(
         { error: 'Invite code is required' },
-        { status: 400 }
+        { status: 400, headers: AUTH_CACHE_HEADERS }
       );
-    }
-
-    // Debug: Check if supabase admin is working
-    const admin = supabaseAdmin();
-    if (!admin) {
-      console.error('supabaseAdmin returned null');
-      return NextResponse.json(
-        { error: 'Database configuration error' },
-        { status: 500 }
-      );
-    }
-
-    // Debug: Try a direct query
-    const { data: debugData, error: debugError } = await admin
-      .from('store_invites')
-      .select('*')
-      .eq('invite_code', code)
-      .single();
-
-    if (debugError) {
-      console.error('Direct query error:', debugError.code, debugError.message);
     }
 
     const invite = await validateInviteCode(code);
 
     if (!invite) {
       return NextResponse.json(
-        { error: 'Invalid or expired invite code', debug: { hasDebugData: !!debugData, debugError: debugError?.message } },
-        { status: 404 }
+        { error: 'Invalid or expired invite code' },
+        { status: 404, headers: AUTH_CACHE_HEADERS }
       );
     }
 
@@ -51,18 +29,18 @@ export async function GET(
 
     return NextResponse.json({
       valid: true,
-      email: invite.email, // Pre-filled email if specified
+      email: invite.email,
       vendor: vendor ? {
         name: vendor.name,
         country: vendor.country,
       } : null,
       expiresAt: invite.expires_at,
-    });
+    }, { headers: AUTH_CACHE_HEADERS });
   } catch (error: any) {
     console.error('Error validating invite:', error);
     return NextResponse.json(
-      { error: 'An error occurred', details: error.message },
-      { status: 500 }
+      { error: 'An error occurred' },
+      { status: 500, headers: AUTH_CACHE_HEADERS }
     );
   }
 }
