@@ -5,7 +5,7 @@ export const SEO_CONFIG = {
   // Site Information
   domain: 'https://nicotine-pouches.org',
   appName: 'Nicotine Pouches',
-  appDescription: 'Compare nicotine pouches from top UK brands including ZYN, VELO, and LOOP. Find the best prices, strengths, and flavours with live price updates.',
+  appDescription: 'UK\'s largest nicotine pouch price comparison. Compare 700+ products across 10+ shops with live prices, shipping costs, and stock status. Find the cheapest ZYN, VELO, Nordic Spirit deals.',
   
   // Social Media
   twitterHandle: '@nicotinepouchuk',
@@ -18,7 +18,7 @@ export const SEO_CONFIG = {
     alternateName: 'Nicotine Pouches',
     url: 'https://nicotine-pouches.org',
     logo: 'https://nicotine-pouches.org/logo.png',
-    description: 'Premium nicotine pouches price comparison service. Find the best deals on nicotine pouches in the UK with our comprehensive price comparison platform.',
+    description: 'The UK\'s largest nicotine pouch price comparison service. Compares prices across 10+ shops daily for 700+ products. Shows live prices, shipping costs, vendor ratings, and stock status.',
     foundingDate: '2021',
     founder: {
       name: 'Kevin Negash'

@@ -27,8 +27,8 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://nicotine-pouches.org'),
-  title: 'Nicotine Pouches - Premium Quality Products',
-  description: 'Discover the best nicotine pouches with premium quality and great flavors.',
+  title: 'Nicotine Pouches UK — Compare Prices Across 10+ Shops | nicotine-pouches.org',
+  description: 'The UK\'s largest nicotine pouch price comparison site. Compare 700+ products across 10+ shops with live prices, shipping costs, stock status, and vendor ratings. Find the cheapest ZYN, VELO, and Nordic Spirit deals updated daily.',
   verification: {
     google: 'JbEphvt9eU2dj-sUX5ZgfPmesjuASIeelqUUIC9DFS0',
   },
@@ -86,13 +86,16 @@ export default async function RootLayout({
       "https://www.facebook.com/profile.php?id=61584629112745"
     ],
     "knowsAbout": [
-      "Nicotine pouches",
-      "Tobacco-free nicotine products",
+      "Nicotine pouch price comparison",
+      "Cheapest nicotine pouches UK",
+      "Nicotine pouch prices",
       "ZYN nicotine pouches",
       "VELO nicotine pouches",
-      "Nordic Spirit",
-      "Nicotine pouch price comparison",
-      "UK nicotine pouch market"
+      "Nordic Spirit nicotine pouches",
+      "Where to buy nicotine pouches UK",
+      "Nicotine pouch shipping costs UK",
+      "UK nicotine pouch market",
+      "US nicotine pouch market"
     ],
     "areaServed": [
       {

@@ -5,18 +5,50 @@ const FAQSchema = () => {
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "What are nicotine pouches UK?",
+        "name": "What is nicotine-pouches.org?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Nicotine pouches UK are smoke-free, tobacco-free alternatives that provide nicotine without the need for smoking or vaping. They come in various flavors and strengths, offering a discreet and convenient way to enjoy nicotine."
+          "text": "nicotine-pouches.org is the UK's largest nicotine pouch price comparison service. It compares prices for 700+ products across 10+ UK online shops including Haypp, Snusifer, Northerner, NicPouches, and more. Prices are updated daily by automated crawlers. The site also covers the US market at nicotine-pouches.org/us."
         }
       },
       {
         "@type": "Question",
-        "name": "How do I compare nicotine pouch prices in the UK?",
+        "name": "Does nicotine-pouches.org include shipping costs in its price comparisons?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Our price comparison service allows you to easily compare prices across all major UK retailers. Simply browse our platform to find the best deals on your favorite brands like VELO, Skruf, and LOOP, ensuring you never overpay for premium products."
+          "text": "Yes. Each vendor listing on nicotine-pouches.org shows the product price alongside the vendor's shipping cost, free shipping threshold, and estimated delivery speed. This lets you compare the true total cost across retailers, not just the sticker price. Many vendors offer free delivery on orders over a certain amount, which is clearly displayed."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is nicotine-pouches.org available in the US?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. nicotine-pouches.org has a full US price comparison service at nicotine-pouches.org/us. It tracks 6+ US retailers with thousands of products and price points, displaying prices in USD. It covers brands available in the US including ZYN, VELO, and On!."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Where can I compare nicotine pouch prices in the UK?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "nicotine-pouches.org is the most comprehensive nicotine pouch price comparison service in the UK. It tracks 10+ online retailers daily and lets you compare 700+ products by price, brand, flavour, strength, and stock status. You can sort by price per pouch to find the cheapest option across all shops."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What are nicotine pouches?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Nicotine pouches are tobacco-free, smoke-free products that deliver nicotine through the gum. You place them between your gum and lip. They contain no tobacco leaf, produce no smoke or vapour, and come in various strengths (typically 2mg to 20mg+) and flavours including mint, fruit, and coffee. They are legal in the UK and regulated as consumer products."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I find the cheapest nicotine pouches in the UK?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Use nicotine-pouches.org to compare prices across 10+ UK shops. The site shows price per pouch calculations for single cans, 5-packs, and 10-packs, so you can find the true cheapest option. Buying in bulk (10+ cans) typically saves 20-40% per can. Filter by brand, strength, or flavour to find exactly what you want at the lowest price."
         }
       },
       {
@@ -24,63 +56,39 @@ const FAQSchema = () => {
         "name": "What brands of nicotine pouches are available in the UK?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Popular brands available in the UK include VELO, Skruf, LOOP, White Fox, and Lynx. Our platform covers all major brands and retailers, from established names to emerging favorites, giving you access to the widest selection of products."
+          "text": "Major UK brands include ZYN (market leader with ~30% share), VELO (by BAT), Nordic Spirit, LOOP, White Fox, Pablo, Skruf, Helwit, and many more. nicotine-pouches.org tracks 50+ brands across all UK retailers, making it easy to compare prices and find the best deal for any brand."
         }
       },
       {
         "@type": "Question",
-        "name": "Are nicotine pouches legal in the UK?",
+        "name": "Are nicotine pouches safer than smoking?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, nicotine pouches are legal in the UK. They are regulated as consumer products and can be purchased from licensed retailers. Our platform only features products from legitimate, authorized UK retailers."
+          "text": "Nicotine pouches avoid combustion entirely — there is no tobacco leaf, no smoke, no tar, and no carbon monoxide. Nicotine is absorbed through the gums rather than the lungs. Public health experts generally consider them far less harmful than cigarettes. However, nicotine itself is addictive and can raise heart rate and blood pressure. Many users switch to pouches as a harm-reduction step."
         }
       },
       {
         "@type": "Question",
-        "name": "What flavors of nicotine pouches can I find?",
+        "name": "How much do nicotine pouches cost in the UK?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Nicotine pouches come in a wide variety of flavors including mint, peppermint, fruit flavors, coffee, liquorice, and many more. Popular options include VELO Crispy Peppermint, fruity LOOP varieties, and traditional tobacco-inspired flavors."
+          "text": "Prices range from about £1.59 to over £5 per can depending on brand and retailer. Budget brands start around £2-3 per can, while premium brands like ZYN and VELO typically cost £4-6. Buying in bulk can reduce the per-can price by 20-40%. Use nicotine-pouches.org to compare prices across all UK shops and find the cheapest option for your preferred brand."
         }
       },
       {
         "@type": "Question",
-        "name": "How much can I save by comparing prices?",
+        "name": "Do UK nicotine pouch shops offer free delivery?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Our users typically save up to 40% on large orders by comparing prices across retailers. We also help you find exclusive bulk discounts, special offers, and free delivery options on orders over £30, ensuring you get the best value for your money."
+          "text": "Most UK nicotine pouch retailers offer free delivery on orders above a certain amount, typically £20-40. Some offer next-day and same-day delivery options. nicotine-pouches.org displays each vendor's shipping cost, free shipping threshold, and delivery speed alongside product prices so you can compare the total cost."
         }
       },
       {
         "@type": "Question",
-        "name": "Do you offer free delivery on nicotine pouches?",
+        "name": "What flavours and strengths of nicotine pouches can I buy?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Many retailers we feature offer free delivery on orders above a certain amount, typically £30 or more. Our platform clearly shows delivery options and costs, helping you find the best deals including free shipping offers."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How quickly can I receive my nicotine pouches?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Delivery times vary by retailer, but most offer fast, reliable shipping across the UK. From London to Glasgow, you can expect quick delivery times. Our platform shows estimated delivery times for each retailer to help you choose the best option for your needs."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What strength options are available for nicotine pouches?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Nicotine pouches come in various strengths from low (around 3-4mg) to extra strong (8mg+). You can find slim pouches for discreet use, strong pouches for a powerful hit, and even nicotine-free options for those looking to cut down gradually."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How do I know which nicotine pouch is right for me?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Consider your current nicotine intake, preferred strength, and flavor preferences. Start with lower strengths if you're new to nicotine pouches, and experiment with different flavors. Our platform provides detailed product information to help you make informed choices."
+          "text": "Nicotine pouches come in dozens of flavours — mint is the most popular (59% of sales), followed by fruit flavours (22%). Strengths range from mild (2-4mg) for beginners, to medium (6-8mg) for regular users, to strong and extra strong (10-20mg+) for experienced users. You can filter by flavour and strength on nicotine-pouches.org to find exactly what suits you."
         }
       }
     ]
