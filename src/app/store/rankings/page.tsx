@@ -14,10 +14,25 @@ interface Ranking {
   description: string;
 }
 
+interface ProductRanking {
+  productId: number;
+  productName: string;
+  productImage: string | null;
+  productUrl: string;
+  rank: number;
+  total: number;
+  myPrice: number;
+  myInStock: boolean;
+  bestPrice: number | null;
+  bestVendor: string | null;
+  priceDiff: number | null;
+}
+
 interface RankingsData {
   vendorName: string;
   totalVendors: number;
   rankings: Ranking[];
+  productRankings: ProductRanking[];
 }
 
 function getRankColor(rank: number, total: number) {
@@ -176,6 +191,87 @@ export default function StoreRankingsPage() {
                 );
               })}
             </div>
+
+            {/* Product Rankings */}
+            {data.productRankings && data.productRankings.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                  <h2 className="font-semibold text-gray-900">Product Price Rankings</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Your price position for each product you sell vs other vendors. Lowest price = #1.
+                  </p>
+                </div>
+
+                {/* Summary row */}
+                <div className="px-6 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-6 text-sm">
+                  {(() => {
+                    const pr = data.productRankings;
+                    const first = pr.filter(p => p.rank === 1).length;
+                    const top3 = pr.filter(p => p.rank <= 3).length;
+                    const outOfStock = pr.filter(p => !p.myInStock).length;
+                    return (
+                      <>
+                        <div><span className="font-semibold text-green-700">{first}</span> <span className="text-gray-500">#1 cheapest</span></div>
+                        <div><span className="font-semibold text-blue-700">{top3}</span> <span className="text-gray-500">top 3</span></div>
+                        <div><span className="font-semibold text-gray-700">{pr.length}</span> <span className="text-gray-500">total products</span></div>
+                        {outOfStock > 0 && (
+                          <div><span className="font-semibold text-red-600">{outOfStock}</span> <span className="text-gray-500">out of stock</span></div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+
+                <div className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+                  {data.productRankings.map((pr) => {
+                    const colors = getRankColor(pr.rank, pr.total);
+                    const medal = getMedal(pr.rank);
+                    return (
+                      <div key={pr.productId} className="px-6 py-3 flex items-center gap-4 hover:bg-gray-50">
+                        {/* Image */}
+                        {pr.productImage ? (
+                          <img src={pr.productImage} alt="" className="w-10 h-10 object-contain rounded flex-shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 bg-gray-100 rounded flex-shrink-0" />
+                        )}
+
+                        {/* Product info */}
+                        <div className="flex-1 min-w-0">
+                          <a
+                            href={pr.productUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline truncate block"
+                          >
+                            {pr.productName}
+                          </a>
+                          <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-500">
+                            <span>Your price: <span className="font-semibold text-gray-900">£{pr.myPrice.toFixed(2)}</span></span>
+                            {pr.bestPrice !== null && pr.bestVendor && (
+                              <span>
+                                Best: <span className="font-semibold text-green-700">£{pr.bestPrice.toFixed(2)}</span>
+                                {pr.priceDiff !== null && pr.priceDiff > 0 && (
+                                  <span className="text-red-500 ml-1">(+£{pr.priceDiff.toFixed(2)})</span>
+                                )}
+                              </span>
+                            )}
+                            {!pr.myInStock && (
+                              <span className="text-red-500 font-medium">Out of stock</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Rank badge */}
+                        <div className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${colors.bg} ${colors.text} flex-shrink-0`}>
+                          {medal && <span>{medal}</span>}
+                          {getOrdinal(pr.rank)}/{pr.total}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Tips */}
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">

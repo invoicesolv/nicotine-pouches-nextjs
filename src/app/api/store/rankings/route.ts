@@ -262,10 +262,127 @@ export async function GET(request: NextRequest) {
       buildRanking('Total Clicks', 'totalClicks', 'desc', v => v.toLocaleString(), 'Higher is better. Total clicks in the last 90 days.'),
     ];
 
+    // --- Product-level rankings ---
+    // Get this vendor's mapped products
+    const { data: myMappings } = await supabaseAdmin()
+      .from('vendor_product_mapping')
+      .select('product_id, vendor_product')
+      .eq('vendor_id', myVendorId)
+      .not('product_id', 'is', null);
+
+    let productRankings: any[] = [];
+
+    if (myMappings && myMappings.length > 0) {
+      const productIds = myMappings.map((m: any) => m.product_id);
+
+      // Get product names
+      const { data: products } = await supabaseAdmin()
+        .from('wp_products')
+        .select('id, name, image_url')
+        .in('id', productIds);
+
+      const productMap = new Map((products || []).map((p: any) => [p.id, p]));
+
+      // Get all mappings for these products (all vendors)
+      const { data: allMappingsForProducts } = await supabaseAdmin()
+        .from('vendor_product_mapping')
+        .select('product_id, vendor_id, vendor_product')
+        .in('product_id', productIds);
+
+      // Get vendor_products prices for all vendors that have these mappings
+      const allVendorIds = [...new Set((allMappingsForProducts || []).map((m: any) => m.vendor_id))];
+
+      // Get prices: for each vendor, get their products and match by vendor_product name
+      const { data: allVendorPrices } = await supabaseAdmin()
+        .from('vendor_products')
+        .select('vendor_id, product_name, price, stock_status')
+        .in('vendor_id', allVendorIds)
+        .gt('price', 0)
+        .limit(5000);
+
+      // Build a lookup: vendor_id -> product_name -> { price, stock }
+      const priceLookup = new Map<string, { price: number; stock: string; vendorName: string }>();
+      for (const vp of allVendorPrices || []) {
+        const key = `${vp.vendor_id}::${vp.product_name?.toLowerCase()}`;
+        priceLookup.set(key, {
+          price: parseFloat(vp.price),
+          stock: vp.stock_status,
+          vendorName: '',
+        });
+      }
+
+      // Vendor name lookup
+      const vendorNameMap = new Map((vendorsRes.data || []).map((v: any) => [v.id, v.name]));
+
+      // For each product this vendor is mapped to, rank all vendors by price
+      for (const myMapping of myMappings) {
+        const product = productMap.get(myMapping.product_id);
+        if (!product) continue;
+
+        // Find all vendors mapped to this same product
+        const competitorMappings = (allMappingsForProducts || []).filter(
+          (m: any) => m.product_id === myMapping.product_id
+        );
+
+        // Get prices for each competitor
+        const competitors: { vendorId: number; vendorName: string; price: number; inStock: boolean }[] = [];
+
+        for (const cm of competitorMappings) {
+          const key = `${cm.vendor_id}::${cm.vendor_product?.toLowerCase()}`;
+          const priceInfo = priceLookup.get(key);
+          if (priceInfo && priceInfo.price > 0) {
+            competitors.push({
+              vendorId: cm.vendor_id,
+              vendorName: vendorNameMap.get(cm.vendor_id) || 'Unknown',
+              price: priceInfo.price,
+              inStock: priceInfo.stock === 'in_stock',
+            });
+          }
+        }
+
+        if (competitors.length === 0) continue;
+
+        // Sort by price (lowest first)
+        competitors.sort((a, b) => a.price - b.price);
+
+        const myPosition = competitors.findIndex(c => c.vendorId === myVendorId);
+        const myEntry = competitors[myPosition];
+        const bestEntry = competitors[0];
+
+        if (myPosition === -1 || !myEntry) continue;
+
+        const slug = product.name
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .trim();
+
+        productRankings.push({
+          productId: myMapping.product_id,
+          productName: product.name,
+          productImage: product.image_url,
+          productUrl: `https://nicotine-pouches.org/product/${slug}`,
+          rank: myPosition + 1,
+          total: competitors.length,
+          myPrice: myEntry.price,
+          myInStock: myEntry.inStock,
+          bestPrice: bestEntry.vendorId !== myVendorId ? bestEntry.price : null,
+          bestVendor: bestEntry.vendorId !== myVendorId ? bestEntry.vendorName : null,
+          priceDiff: bestEntry.vendorId !== myVendorId
+            ? parseFloat((myEntry.price - bestEntry.price).toFixed(2))
+            : null,
+        });
+      }
+
+      // Sort: best ranked first, then by name
+      productRankings.sort((a, b) => a.rank - b.rank || a.productName.localeCompare(b.productName));
+    }
+
     return NextResponse.json({
       vendorName: myMetrics.name,
       totalVendors,
       rankings,
+      productRankings,
     });
   } catch (error: any) {
     console.error('Rankings error:', error);
