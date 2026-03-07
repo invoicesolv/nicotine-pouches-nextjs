@@ -206,7 +206,7 @@ export default function StoreProductsPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {product.stock_status === 'instock' ? (
+                        {product.stock_status === 'in_stock' ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             In Stock
                           </span>

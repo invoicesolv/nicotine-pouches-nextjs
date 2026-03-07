@@ -8,6 +8,7 @@ interface ChartData {
   date: string;
   clicks: number;
   impressions: number;
+  conversions: number;
 }
 
 interface TopProduct {
@@ -18,6 +19,7 @@ interface TopProduct {
 interface KPIData {
   totalClicks: number;
   totalImpressions: number;
+  totalConversions: number;
   clickThroughRate: number;
   totalProducts: number;
   inStockProducts: number;
@@ -200,8 +202,9 @@ export default function StoreAnalyticsPage() {
                 <thead>
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Clicks</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Impressions</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Clicks</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Conversions</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">CTR</th>
                   </tr>
                 </thead>
@@ -219,11 +222,14 @@ export default function StoreAnalyticsPage() {
                             day: 'numeric'
                           })}
                         </td>
+                        <td className="px-4 py-2 text-sm text-gray-500 text-right">
+                          {row.impressions.toLocaleString()}
+                        </td>
                         <td className="px-4 py-2 text-sm text-gray-900 text-right font-medium">
                           {row.clicks.toLocaleString()}
                         </td>
-                        <td className="px-4 py-2 text-sm text-gray-500 text-right">
-                          {row.impressions.toLocaleString()}
+                        <td className="px-4 py-2 text-sm text-green-600 text-right font-medium">
+                          {(row.conversions || 0).toLocaleString()}
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-500 text-right">
                           {ctr}%

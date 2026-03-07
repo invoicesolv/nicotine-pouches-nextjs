@@ -51,9 +51,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (stockFilter === 'true') {
-      query = query.eq('stock_status', 'instock');
+      query = query.eq('stock_status', 'in_stock');
     } else if (stockFilter === 'false') {
-      query = query.neq('stock_status', 'instock');
+      query = query.neq('stock_status', 'in_stock');
     }
 
     const { data, error, count } = await query;

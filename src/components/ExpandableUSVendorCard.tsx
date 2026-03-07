@@ -79,8 +79,23 @@ export default function ExpandableUSVendorCard({
 
   const shippingInfo = getShippingInfo();
   const price = getPrice();
-  const productLink = store.link || '#';
+  const rawProductLink = store.link || '#';
   const productName = store.product || store.name || 'Unknown';
+
+  // Append UTM parameters to outgoing vendor links
+  const productLink = (() => {
+    if (rawProductLink === '#') return '#';
+    try {
+      const url = new URL(rawProductLink);
+      url.searchParams.set('utm_source', 'nicotine-pouches.org');
+      url.searchParams.set('utm_medium', 'price-comparison');
+      url.searchParams.set('utm_campaign', 'product-listing');
+      return url.toString();
+    } catch {
+      const sep = rawProductLink.includes('?') ? '&' : '?';
+      return `${rawProductLink}${sep}utm_source=nicotine-pouches.org&utm_medium=price-comparison&utm_campaign=product-listing`;
+    }
+  })();
 
   // Calculate price per pouch (price divided by pack count)
   const calculatePricePerPouch = () => {

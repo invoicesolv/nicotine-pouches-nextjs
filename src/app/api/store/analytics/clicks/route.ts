@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       .from('vendor_analytics')
       .select('timestamp, event_type, product_id, product_name')
       .eq('vendor_id', vendorId)
-      .in('event_type', ['vendor_click', 'vendor_exposure'])
+      .in('event_type', ['vendor_click', 'vendor_exposure', 'vendor_conversion'])
       .gte('timestamp', startDate.toISOString())
       .order('timestamp', { ascending: true })
       .limit(10000);
@@ -50,12 +50,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Aggregate by date
-    const dateMap = new Map<string, { clicks: number; impressions: number }>();
+    const dateMap = new Map<string, { clicks: number; impressions: number; conversions: number }>();
 
     // Initialize all dates in range with zeros
     for (let d = new Date(startDate); d <= new Date(); d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split('T')[0];
-      dateMap.set(dateStr, { clicks: 0, impressions: 0 });
+      dateMap.set(dateStr, { clicks: 0, impressions: 0, conversions: 0 });
     }
 
     // Aggregate events into daily buckets
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 
     for (const event of clickEvents || []) {
       const dateStr = new Date(event.timestamp).toISOString().split('T')[0];
-      const day = dateMap.get(dateStr) || { clicks: 0, impressions: 0 };
+      const day = dateMap.get(dateStr) || { clicks: 0, impressions: 0, conversions: 0 };
 
       if (event.event_type === 'vendor_click') {
         day.clicks++;
@@ -75,6 +75,8 @@ export async function GET(request: NextRequest) {
         }
       } else if (event.event_type === 'vendor_exposure') {
         day.impressions++;
+      } else if (event.event_type === 'vendor_conversion') {
+        day.conversions++;
       }
 
       dateMap.set(dateStr, day);

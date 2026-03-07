@@ -132,8 +132,24 @@ export default function ExpandableVendorCard({
 
   const shippingInfo = getShippingInfo();
   const price = getPrice();
-  const productLink = store.variants?.[0]?.link || store.url || '#';
+  const rawProductLink = store.variants?.[0]?.link || store.url || '#';
   const productName = store.variants?.[0]?.product || store.name || 'Unknown';
+
+  // Append UTM parameters to outgoing vendor links
+  const productLink = (() => {
+    if (rawProductLink === '#') return '#';
+    try {
+      const url = new URL(rawProductLink);
+      url.searchParams.set('utm_source', 'nicotine-pouches.org');
+      url.searchParams.set('utm_medium', 'price-comparison');
+      url.searchParams.set('utm_campaign', 'product-listing');
+      return url.toString();
+    } catch {
+      // If URL parsing fails, append manually
+      const sep = rawProductLink.includes('?') ? '&' : '?';
+      return `${rawProductLink}${sep}utm_source=nicotine-pouches.org&utm_medium=price-comparison&utm_campaign=product-listing`;
+    }
+  })();
 
   // MOBILE LAYOUT - Simple Google Shopping style
   if (isMobile) {
