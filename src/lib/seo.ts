@@ -197,7 +197,7 @@ export function generateProductSEO(inputs: ProductSEOInputs): SEOOutput {
       "@type": "ListItem",
       "position": index + 1,
       "name": item.name,
-      "item": item.url
+      "item": item.url?.startsWith('http') ? item.url : `https://nicotine-pouches.org${item.url?.startsWith('/') ? item.url : `/${item.url}`}`
     }))
   };
 
@@ -240,7 +240,7 @@ export function generateProductSEO(inputs: ProductSEOInputs): SEOOutput {
     }))
   };
 
-  // Generate Product schema
+  // Generate Product schema — must include offers to satisfy Google's Product validation
   const productSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -272,7 +272,17 @@ export function generateProductSEO(inputs: ProductSEOInputs): SEOOutput {
         "name": "Pouches per can",
         "value": pouch_count.toString()
       }
-    ]
+    ],
+    ...(packs.length > 0 ? {
+      "offers": {
+        "@type": "AggregateOffer",
+        "priceCurrency": packs[0].currency,
+        "lowPrice": Math.min(...packs.map(p => p.price)).toString(),
+        "highPrice": Math.max(...packs.map(p => p.price)).toString(),
+        "offerCount": packs.length.toString(),
+        "availability": "https://schema.org/InStock"
+      }
+    } : {})
   };
 
   // Generate AggregateOffer schema for pack pricing

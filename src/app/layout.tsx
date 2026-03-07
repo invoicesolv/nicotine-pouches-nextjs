@@ -224,12 +224,7 @@ export default async function RootLayout({
             __html: JSON.stringify(websiteSchema)
           }}
         />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(faqSchema)
-          }}
-        />
+        {/* FAQPage schema removed from global layout to avoid duplicates with page-level FAQ schemas */}
         {/* AdSense script removed from global layout — loaded only on product pages & guide posts */}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-9FT722JELW'}`}

@@ -10,6 +10,7 @@ import PriceSortFilter from '@/components/PriceSortFilter';
 import ShippingFilter from '@/components/ShippingFilter';
 import ReviewBalls from '@/components/ReviewBalls';
 import VendorAnalytics from '@/components/VendorAnalytics';
+import AdSenseInit from '@/components/AdSenseInit';
 import ProductDetailsCard from '@/components/ProductDetailsCard';
 import FAQSection from '@/components/FAQSection';
 import CookieConsent from '@/components/CookieConsent';
@@ -864,32 +865,42 @@ export default async function USProductPage({ params, searchParams }: USProductP
           />
         )}
         
-        {/* Explicit Product Schema for Security Audit Detection */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Product",
-              "name": product.name || 'Unknown Product',
-              "brand": {
-                "@type": "Brand",
-                "name": product.brand || 'Unknown Brand'
-              },
-              "description": product.short_description || product.description || `Compare ${product.name} prices from top US vendors.`,
-              "image": product.image || '/placeholder-product.jpg',
-              "category": "Nicotine Pouches",
-              "offers": {
-                "@type": "AggregateOffer",
-                "priceCurrency": "USD",
-                "lowPrice": product.stores && product.stores.length > 0 ? Math.min(...product.stores.map(s => parseFloat(s.price.replace(/[£$]/g, '')))) : 0,
-                "highPrice": product.stores && product.stores.length > 0 ? Math.max(...product.stores.map(s => parseFloat(s.price.replace(/[£$]/g, '')))) : 0,
-                "offerCount": product.stores?.length || 0,
-                "availability": "https://schema.org/InStock"
-              }
-            })
-          }}
-        />
+        {/* Product Schema - only render when stores with valid prices exist */}
+        {(() => {
+          const validStores = (product.stores || []).filter((s: any) => {
+            const price = s.price?.replace(/[£$]/g, '');
+            return price && parseFloat(price) > 0;
+          });
+          if (validStores.length === 0) return null;
+          const prices = validStores.map((s: any) => parseFloat(s.price.replace(/[£$]/g, '')));
+          return (
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify({
+                  "@context": "https://schema.org",
+                  "@type": "Product",
+                  "name": product.name || 'Unknown Product',
+                  "brand": {
+                    "@type": "Brand",
+                    "name": product.brand || 'Unknown Brand'
+                  },
+                  "description": product.short_description || product.description || `Compare ${product.name} prices from top US vendors.`,
+                  "image": product.image || '/placeholder-product.jpg',
+                  "category": "Nicotine Pouches",
+                  "offers": {
+                    "@type": "AggregateOffer",
+                    "priceCurrency": "USD",
+                    "lowPrice": Math.min(...prices),
+                    "highPrice": Math.max(...prices),
+                    "offerCount": validStores.length,
+                    "availability": "https://schema.org/InStock"
+                  }
+                })
+              }}
+            />
+          );
+        })()}
         
         {/* Freshness Signals */}
         {product.llmSeoData?.freshness_signals && (
@@ -1441,11 +1452,14 @@ export default async function USProductPage({ params, searchParams }: USProductP
       {/* Filter Coordinator - Disabled due to runtime errors */}
       {/* <FilterCoordinator /> */}
       
+      {/* Initialize AdSense ad units */}
+      <AdSenseInit />
+
       {/* Vendor Analytics Component */}
-      <VendorAnalytics 
-        productId={product.id.toString()} 
-        productName={product.name} 
-        region="US" 
+      <VendorAnalytics
+        productId={product.id.toString()}
+        productName={product.name}
+        region="US"
       />
       
       

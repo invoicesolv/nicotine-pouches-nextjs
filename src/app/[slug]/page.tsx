@@ -1128,6 +1128,12 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
             margin-left: auto;
             margin-right: auto;
           }
+          .article-body iframe {
+            max-width: 100% !important;
+          }
+          .article-body div[style*="position:relative"] {
+            max-width: 100% !important;
+          }
           @media (max-width: 768px) {
             .guide-content-container {
               width: 100%;
@@ -1308,7 +1314,7 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
         {/* Main Content */}
         <div style={{ backgroundColor: '#ffffff', padding: '0 0 60px 0' }}>
           <div className="guide-content-container" style={{ maxWidth: '800px' }}>
-            <div className="article-body">
+            <div className="article-body" style={{ overflow: 'hidden' }}>
               <BlogContentProcessor
                 content={post.fullContent || post.content || ''}
                 title={post.title}

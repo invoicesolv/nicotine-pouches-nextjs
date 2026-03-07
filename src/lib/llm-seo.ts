@@ -163,7 +163,7 @@ export function generateLLMSEO(inputs: LLMSEOInputs): LLMSEOOutput {
         "@type": "ListItem",
         "position": index + 1,
         "name": item.name,
-        "item": item.url
+        "item": item.url?.startsWith('http') ? item.url : `https://nicotine-pouches.org${item.url?.startsWith('/') ? item.url : `/${item.url}`}`
       }))
     },
     {
@@ -178,37 +178,39 @@ export function generateLLMSEO(inputs: LLMSEOInputs): LLMSEOOutput {
         { "@type": "PropertyValue", "name": "strength_mg", "value": strength_mg },
         { "@type": "PropertyValue", "name": "format", "value": format },
         { "@type": "PropertyValue", "name": "pouches_per_can", "value": pouch_count }
-      ]
-    },
-    {
-      "@type": "AggregateOffer",
-      "@id": `${page_url}#aggregate`,
-      "url": page_url,
-      "priceCurrency": packs.length > 0 ? packs[0].currency : "GBP",
-      "offerCount": packs.length,
-      "lowPrice": packs.length > 0 ? Math.min(...packs.map(p => p.price)) : 0,
-      "highPrice": packs.length > 0 ? Math.max(...packs.map(p => p.price)) : 0,
-      "offers": packs.map(pack => ({
-        "@type": "Offer",
-        "@id": pack.offer_id || `${page_url}/offer/${pack.retailer_name.toLowerCase().replace(/\s+/g, '-')}-${pack.pack_size}pk-${new Date().toISOString().split('T')[0]}`,
-        "sku": pack.sku || `${brand.toUpperCase()}-${flavour.replace(/\s+/g, '').toUpperCase()}-${pack.pack_size}PK`,
-        "url": pack.retailer_url,
-        "price": pack.price,
-        "priceCurrency": pack.currency,
-        "itemCondition": "https://schema.org/NewCondition",
-        "availability": pack.in_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-        "seller": {
-          "@type": "Organization",
-          "@id": `${pack.retailer_url}#org`,
-          "name": pack.retailer_name
-        },
-        "additionalProperty": [
-          { "@type": "PropertyValue", "name": "pack_size", "value": pack.pack_size },
-          { "@type": "PropertyValue", "name": "price_per_pouch", "value": pack.price_per_pouch },
-          { "@type": "PropertyValue", "name": "last_seen", "value": pack.last_seen },
-          ...(pack.shipping_note ? [{ "@type": "PropertyValue", "name": "shipping_note", "value": pack.shipping_note }] : [])
-        ]
-      }))
+      ],
+      ...(packs.length > 0 ? {
+        "offers": {
+          "@type": "AggregateOffer",
+          "@id": `${page_url}#aggregate`,
+          "url": page_url,
+          "priceCurrency": packs[0].currency,
+          "offerCount": packs.length,
+          "lowPrice": Math.min(...packs.map(p => p.price)),
+          "highPrice": Math.max(...packs.map(p => p.price)),
+          "offers": packs.map(pack => ({
+            "@type": "Offer",
+            "@id": pack.offer_id || `${page_url}/offer/${pack.retailer_name.toLowerCase().replace(/\s+/g, '-')}-${pack.pack_size}pk-${new Date().toISOString().split('T')[0]}`,
+            "sku": pack.sku || `${brand.toUpperCase()}-${flavour.replace(/\s+/g, '').toUpperCase()}-${pack.pack_size}PK`,
+            "url": pack.retailer_url,
+            "price": pack.price,
+            "priceCurrency": pack.currency,
+            "itemCondition": "https://schema.org/NewCondition",
+            "availability": pack.in_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            "seller": {
+              "@type": "Organization",
+              "@id": `${pack.retailer_url}#org`,
+              "name": pack.retailer_name
+            },
+            "additionalProperty": [
+              { "@type": "PropertyValue", "name": "pack_size", "value": pack.pack_size },
+              { "@type": "PropertyValue", "name": "price_per_pouch", "value": pack.price_per_pouch },
+              { "@type": "PropertyValue", "name": "last_seen", "value": pack.last_seen },
+              ...(pack.shipping_note ? [{ "@type": "PropertyValue", "name": "shipping_note", "value": pack.shipping_note }] : [])
+            ]
+          }))
+        }
+      } : {})
     }
   ];
 

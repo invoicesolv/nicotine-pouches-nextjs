@@ -44,6 +44,7 @@ import ProductHeroActions from '@/components/ProductHeroActions';
 import ProductSectionNav from '@/components/ProductSectionNav';
 import StrengthSelector from '@/components/StrengthSelector';
 import RelatedProductsCarousel from '@/components/RelatedProductsCarousel';
+import AdSenseInit from '@/components/AdSenseInit';
 
 // Helper function to check if a price is valid
 function isValidPrice(price: any): boolean {
@@ -2377,6 +2378,9 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       {/* Filter Coordinator - Disabled due to runtime errors */}
       {/* <FilterCoordinator /> */}
       
+      {/* Initialize AdSense ad units */}
+      <AdSenseInit />
+
       {/* Vendor Analytics Component */}
       <VendorAnalytics 
         productId={product.id.toString()} 

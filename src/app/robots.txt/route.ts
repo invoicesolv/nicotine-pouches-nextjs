@@ -121,7 +121,7 @@ Allow: /
 Sitemap: https://nicotine-pouches.org/sitemap.xml
 
 # LLM/AI Context File
-# See: https://nicotine-pouches.org/llm.txt
+# See: https://nicotine-pouches.org/llms.txt
 
 # Crawl-delay for respectful crawling
 Crawl-delay: 1

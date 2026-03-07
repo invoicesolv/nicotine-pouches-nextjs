@@ -313,7 +313,7 @@ function generateSchema(schemaType: string, data: any): any {
           "@type": "ListItem",
           "position": index + 1,
           "name": item.name,
-          "item": item.url
+          "item": item.url?.startsWith('http') ? item.url : `${SEO_CONFIG.domain}${item.url?.startsWith('/') ? item.url : `/${item.url}`}`
         })) || []
       };
       
@@ -346,7 +346,13 @@ function generateSchema(schemaType: string, data: any): any {
         "@type": "AggregateRating",
         "itemReviewed": {
           "@type": data.itemType || "Product",
-          "name": data.itemName
+          "name": data.itemName,
+          ...(data.image ? { "image": data.image } : {}),
+          ...(data.description ? { "description": data.description } : {}),
+          ...(data.brand ? { "brand": { "@type": "Brand", "name": data.brand } } : {}),
+          ...(data.sku ? { "sku": data.sku } : {}),
+          ...(data.mpn ? { "mpn": data.mpn } : {}),
+          ...(data.offers ? { "offers": data.offers } : {}),
         },
         "ratingValue": data.ratingValue,
         "reviewCount": data.reviewCount,
@@ -365,12 +371,19 @@ function generateSchema(schemaType: string, data: any): any {
 export function generateStandaloneAggregateRating(
   itemType: string,
   itemName: string,
-  aggregateRating: any
+  aggregateRating: any,
+  extraData?: { name?: string; image?: string; description?: string; brand?: string; sku?: string; mpn?: string; offers?: any; aggregateRating?: any }
 ): JSX.Element {
   return renderSchemaTag('aggregateRating', {
     itemType,
     itemName,
-    ...aggregateRating
+    ...aggregateRating,
+    ...(extraData?.image ? { image: extraData.image } : {}),
+    ...(extraData?.description ? { description: extraData.description } : {}),
+    ...(extraData?.brand ? { brand: extraData.brand } : {}),
+    ...(extraData?.sku ? { sku: extraData.sku } : {}),
+    ...(extraData?.mpn ? { mpn: extraData.mpn } : {}),
+    ...(extraData?.offers ? { offers: extraData.offers } : {}),
   });
 }
 

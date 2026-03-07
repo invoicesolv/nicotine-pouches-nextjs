@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     const { data: analyticsData, error: analyticsError } = await supabase()
       .from('vendor_analytics')
       .select('product_id')
-      .gte('created_at', sevenDaysAgo.toISOString())
+      .gte('timestamp', sevenDaysAgo.toISOString())
       .in('event_type', ['vendor_click', 'vendor_exposure']);
 
     // Count clicks per product
