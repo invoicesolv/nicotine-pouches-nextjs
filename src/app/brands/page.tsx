@@ -6,20 +6,25 @@ import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { getBrandLogo, getUSBrandLogo } from '@/lib/brand-logos';
 
+export const revalidate = 3600; // Cache for 1 hour
+
 // Fetch all brands from both UK and US products
 async function getAllBrands() {
   try {
-    // Get UK brands
-    const { data: ukProducts, error: ukError } = await supabase()
-      .from('wp_products')
-      .select('name')
-      .not('name', 'is', null);
+    // Get UK and US brands in parallel
+    const [ukResult, usResult] = await Promise.all([
+      supabase()
+        .from('wp_products')
+        .select('name')
+        .not('name', 'is', null),
+      supabase()
+        .from('us_products')
+        .select('product_title')
+        .not('product_title', 'is', null),
+    ]);
 
-    // Get US brands
-    const { data: usProducts, error: usError } = await supabase()
-      .from('us_products')
-      .select('product_title')
-      .not('product_title', 'is', null);
+    const { data: ukProducts, error: ukError } = ukResult;
+    const { data: usProducts, error: usError } = usResult;
 
     if (ukError || usError) {
       console.error('Error fetching brands:', { ukError, usError });

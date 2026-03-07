@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// Caching handled via Cache-Control headers on the response
 
 interface TrendingProduct {
   id: number;
@@ -35,12 +34,31 @@ export async function GET(request: Request) {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    // Fetch analytics data
-    const { data: analyticsData, error: analyticsError } = await supabase()
-      .from('vendor_analytics')
-      .select('product_id')
-      .gte('timestamp', sevenDaysAgo.toISOString())
-      .in('event_type', ['vendor_click', 'vendor_exposure']);
+    // Fetch analytics, price alerts, and products in parallel
+    const adminClient = supabaseAdmin();
+    const [analyticsResult, alertsResult, productsResult] = await Promise.all([
+      supabase()
+        .from('vendor_analytics')
+        .select('product_id')
+        .gte('timestamp', sevenDaysAgo.toISOString())
+        .in('event_type', ['vendor_click', 'vendor_exposure'])
+        .limit(5000),
+      adminClient
+        .from('price_alerts')
+        .select('product_id')
+        .eq('is_active', true)
+        .limit(5000),
+      supabase()
+        .from(productsTable)
+        .select('id, name, image_url, price, created_at')
+        .not('image_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(60),
+    ]);
+
+    const { data: analyticsData } = analyticsResult;
+    const { data: priceAlerts } = alertsResult;
+    const { data: products, error: productsError } = productsResult;
 
     // Count clicks per product
     const clickCounts = new Map<number, number>();
@@ -50,13 +68,6 @@ export async function GET(request: Request) {
       }
     });
 
-    // Fetch real price alert tracking counts (by product_id) - use admin to bypass RLS
-    const adminClient = supabaseAdmin();
-    const { data: priceAlerts, error: alertsError } = await adminClient
-      .from('price_alerts')
-      .select('product_id')
-      .eq('is_active', true);
-
     const trackingCounts = new Map<number, number>();
     priceAlerts?.forEach((alert: any) => {
       if (alert.product_id) {
@@ -64,15 +75,6 @@ export async function GET(request: Request) {
         trackingCounts.set(alert.product_id, count + 1);
       }
     });
-
-    // Get products with their vendor mappings - only fetch what we need
-    // Max needed: offset 20 + limit 15 = 35 products after dedup, fetch 60 for buffer
-    const { data: products, error: productsError } = await supabase()
-      .from(productsTable)
-      .select('id, name, image_url, price, created_at')
-      .not('image_url', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(60);
 
     if (productsError) throw productsError;
 
@@ -106,24 +108,32 @@ export async function GET(request: Request) {
       storeCounts.set(productId, vendors.size);
     });
 
-    // Get all unique vendor_product names to fetch prices
+    // Get all unique vendor_product names and vendor IDs
     const allVendorProductNames = Array.from(new Set(
       Array.from(productMappings.values()).flat().map(m => m.vendor_product)
     ));
-
-    // Fetch vendor offers (discounts)
     const allVendorIds = Array.from(new Set(
       Array.from(productMappings.values()).flat().map(m => m.vendor_id)
     ));
 
-    const { data: vendorOffers } = await supabase()
-      .from('vendors')
-      .select('id, offer_type, offer_value')
-      .in('id', allVendorIds);
+    // Fetch vendor offers and vendor prices in parallel
+    const [vendorOffersResult, vendorPricesResult] = await Promise.all([
+      supabase()
+        .from('vendors')
+        .select('id, offer_type, offer_value')
+        .in('id', allVendorIds),
+      allVendorProductNames.length > 0
+        ? supabase()
+            .from('vendor_products')
+            .select('name, vendor_id, price_1pack')
+            .in('name', allVendorProductNames)
+            .not('price_1pack', 'is', null)
+        : Promise.resolve({ data: [] }),
+    ]);
 
     // Create vendor discount map
     const vendorDiscounts = new Map<number, number>();
-    vendorOffers?.forEach((v: any) => {
+    vendorOffersResult.data?.forEach((v: any) => {
       if (v.offer_type === 'percentage_discount' && v.offer_value) {
         vendorDiscounts.set(v.id, Number(v.offer_value) / 100);
       }
@@ -132,11 +142,7 @@ export async function GET(request: Request) {
     // Fetch prices from vendor_products (need name + vendor_id to match)
     const lowestPrices = new Map<number, number>();
     if (allVendorProductNames.length > 0) {
-      const { data: vendorPrices } = await supabase()
-        .from('vendor_products')
-        .select('name, vendor_id, price_1pack')
-        .in('name', allVendorProductNames)
-        .not('price_1pack', 'is', null);
+      const vendorPrices = vendorPricesResult.data;
 
       // Create a map of "name|vendor_id" to price (with vendor offers applied)
       const vendorProductPrices = new Map<string, number>();
@@ -254,6 +260,10 @@ export async function GET(request: Request) {
       total,
       section,
       hasMore: offset + limit < total
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      },
     });
 
   } catch (error) {
