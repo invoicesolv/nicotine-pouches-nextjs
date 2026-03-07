@@ -16,15 +16,19 @@ export async function GET(request: NextRequest) {
     const { vendor } = authResult;
     const url = new URL(request.url);
 
-    if (!vendor?.realVendorId) {
+    if (!vendor?.realVendorId && !vendor?.usVendorUuid) {
       return NextResponse.json(
         { error: 'No vendor associated with this account' },
         { status: 400 }
       );
     }
 
-    const vendorId = vendor.realVendorId;
     const isUK = vendor.country === 'uk';
+
+    // UK: integer vendor_id column, US: uuid us_vendor_id column
+    const tableName = isUK ? 'vendor_products' : 'us_vendor_products_new';
+    const vendorIdColumn = isUK ? 'vendor_id' : 'us_vendor_id';
+    const vendorIdValue = isUK ? vendor.realVendorId : vendor.usVendorUuid;
 
     // Pagination params
     const page = parseInt(url.searchParams.get('page') || '1');
@@ -35,22 +39,17 @@ export async function GET(request: NextRequest) {
     const search = url.searchParams.get('search') || '';
     const stockFilter = url.searchParams.get('inStock');
 
-    // vendor_products for UK, us_vendor_products_new for US
-    const tableName = isUK ? 'vendor_products' : 'us_vendor_products_new';
-
     let query = supabaseAdmin()
       .from(tableName)
-      .select('id, vendor_id, name, brand, category, price_1pack, price_3pack, price_5pack, price_10pack, stock_status, url, created_at, updated_at', { count: 'exact' })
-      .eq('vendor_id', vendorId)
+      .select('id, name, brand, price_1pack, price_3pack, price_5pack, price_10pack, stock_status, url, created_at, updated_at', { count: 'exact' })
+      .eq(vendorIdColumn, vendorIdValue)
       .order('name', { ascending: true })
       .range(offset, offset + limit - 1);
 
-    // Apply search filter
     if (search) {
       query = query.ilike('name', `%${search}%`);
     }
 
-    // Apply stock filter
     if (stockFilter === 'true') {
       query = query.eq('stock_status', 'instock');
     } else if (stockFilter === 'false') {

@@ -16,39 +16,36 @@ export async function GET(request: NextRequest) {
     const { vendor } = authResult;
     const url = new URL(request.url);
 
-    if (!vendor?.realVendorId) {
+    if (!vendor?.realVendorId && !vendor?.usVendorUuid) {
       return NextResponse.json(
         { error: 'No vendor associated with this account' },
         { status: 400 }
       );
     }
 
-    const vendorId = vendor.realVendorId;
     const isUK = vendor.country === 'uk';
+
+    // UK: integer vendor_id, US: uuid us_vendor_id
+    const mappingTable = isUK ? 'vendor_product_mapping' : 'us_vendor_product_mapping';
+    const vpTable = isUK ? 'vendor_products' : 'us_vendor_products_new';
+    const vendorIdColumn = isUK ? 'vendor_id' : 'us_vendor_id';
+    const vendorIdValue = isUK ? vendor.realVendorId : vendor.usVendorUuid;
+    const productTable = isUK ? 'wp_products' : 'us_products';
 
     // Pagination params
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
-
-    // Search param
     const search = url.searchParams.get('search') || '';
 
-    // Correct table names
-    const mappingTable = isUK ? 'vendor_product_mapping' : 'us_vendor_product_mapping';
-    const productTable = isUK ? 'wp_products' : 'us_products';
-
+    // Fetch mappings without PostgREST join (no FK exists)
     let query = supabaseAdmin()
       .from(mappingTable)
-      .select(`
-        id, vendor_product, product_id, vendor_id, created_at, updated_at,
-        product:${productTable}(id, name, image_url)
-      `, { count: 'exact' })
-      .eq('vendor_id', vendorId)
+      .select('id, vendor_product, product_id, created_at, updated_at', { count: 'exact' })
+      .eq(vendorIdColumn, vendorIdValue)
       .order('vendor_product', { ascending: true })
       .range(offset, offset + limit - 1);
 
-    // Apply search filter
     if (search) {
       query = query.ilike('vendor_product', `%${search}%`);
     }
@@ -63,35 +60,56 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Also get total vendor_products count for stats
-    const vpTable = isUK ? 'vendor_products' : 'us_vendor_products_new';
+    // Batch-fetch master products for mapped items
+    const productIds = (data || [])
+      .map((m: any) => m.product_id)
+      .filter((id: any) => id != null);
 
+    let productsMap: Record<number, { id: number; name: string; image_url: string | null }> = {};
+
+    if (productIds.length > 0) {
+      const { data: products } = await supabaseAdmin()
+        .from(productTable)
+        .select('id, name, image_url')
+        .in('id', productIds);
+
+      if (products) {
+        for (const p of products) {
+          productsMap[p.id] = p;
+        }
+      }
+    }
+
+    // Get total vendor_products count for stats
     const [totalVPResult, mappedCountResult] = await Promise.all([
       supabaseAdmin()
         .from(vpTable)
         .select('id', { count: 'exact', head: true })
-        .eq('vendor_id', vendorId),
+        .eq(vendorIdColumn, vendorIdValue),
       supabaseAdmin()
         .from(mappingTable)
         .select('id', { count: 'exact', head: true })
-        .eq('vendor_id', vendorId),
+        .eq(vendorIdColumn, vendorIdValue),
     ]);
 
     const totalVendorProducts = totalVPResult.count || 0;
     const totalMapped = mappedCountResult.count || 0;
 
-    const mappings = (data || []).map((m: any) => ({
-      id: m.id,
-      vendorProduct: m.vendor_product,
-      productId: m.product_id,
-      masterProduct: m.product ? {
-        id: m.product.id,
-        name: m.product.name,
-        imageUrl: m.product.image_url,
-      } : null,
-      status: m.product_id ? 'mapped' : 'unmapped',
-      createdAt: m.created_at,
-    }));
+    const mappings = (data || []).map((m: any) => {
+      const product = productsMap[m.product_id];
+      return {
+        id: m.id,
+        vendorProduct: m.vendor_product,
+        productId: m.product_id,
+        masterProduct: product ? {
+          id: product.id,
+          name: product.name,
+          imageUrl: product.image_url,
+        } : null,
+        status: m.product_id ? 'mapped' : 'unmapped',
+        createdAt: m.created_at,
+      };
+    });
 
     return NextResponse.json({
       mappings,

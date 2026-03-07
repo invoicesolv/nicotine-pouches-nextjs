@@ -16,13 +16,14 @@ export async function GET(request: NextRequest) {
     const { vendor } = authResult;
     const url = new URL(request.url);
 
-    if (!vendor?.realVendorId) {
+    if (!vendor?.realVendorId && !vendor?.usVendorUuid) {
       return NextResponse.json(
         { error: 'No vendor associated with this account' },
         { status: 400 }
       );
     }
 
+    // vendor_analytics always uses integer vendor_id
     const vendorId = vendor.realVendorId;
 
     // Date range params

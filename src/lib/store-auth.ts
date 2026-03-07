@@ -50,7 +50,8 @@ export interface VendorInfo {
   country: 'uk' | 'us';
   logo_url?: string;
   website_url?: string;
-  realVendorId: number | null;  // INTEGER (vendors.id) - used for data table queries
+  realVendorId: number | null;  // INTEGER (vendors.id) - used for UK data table queries
+  usVendorUuid: string | null;  // UUID (us_vendors.id) - used for US data table queries
 }
 
 // Password utilities
@@ -278,7 +279,7 @@ export async function getVendorInfo(vendorId?: string, usVendorId?: string): Pro
   if (idToUse) {
     const { data, error } = await supabaseAdmin()
       .from('pouch_vendors')
-      .select('id, name, country, logo_url, website_url, vendor_id')
+      .select('id, name, country, logo_url, website_url, vendor_id, us_vendor_id')
       .eq('id', idToUse)
       .single();
 
@@ -290,6 +291,7 @@ export async function getVendorInfo(vendorId?: string, usVendorId?: string): Pro
         logo_url: data.logo_url,
         website_url: data.website_url,
         realVendorId: data.vendor_id || null,  // INTEGER vendor_id from vendors table
+        usVendorUuid: data.us_vendor_id || null,  // UUID from us_vendors table
       };
     }
   }
