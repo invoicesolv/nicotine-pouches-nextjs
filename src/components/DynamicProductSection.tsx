@@ -203,39 +203,42 @@ export default function DynamicProductSection({
 
   if (loading) {
     return (
-      <div style={{ width: '100%', padding: '24px 0' }}>
-        <div style={{ width: '100%', padding: '0 20px' }}>
+      <div style={{ width: '100%', marginBottom: '32px', minHeight: '320px' }}>
+        {/* Section Header - matches loaded state */}
+        <div style={{ width: '100%', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{
             fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif",
             fontSize: '22px',
             fontWeight: '700',
-            margin: '0 0 16px 0',
+            margin: '0',
             color: '#1f2544',
             letterSpacing: '-0.3px'
           }}>
             {title}
           </h2>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  width: '160px',
-                  height: '260px',
-                  background: '#f0f0f0',
-                  borderRadius: '12px',
-                  animation: 'pulse 1.5s ease-in-out infinite'
-                }}
-              />
-            ))}
-          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '10px' }}>
+          {[...Array(5)].map((_, i) => (
+            <div
+              key={i}
+              style={{
+                width: '160px',
+                minWidth: '160px',
+                flex: '0 0 160px'
+              }}
+            >
+              <div style={{ width: '100%', paddingBottom: '100%', borderRadius: '10px', background: '#e8e8ec' }} />
+              <div style={{ height: '12px', width: '80%', background: '#e8e8ec', borderRadius: '4px', marginTop: '8px' }} />
+              <div style={{ height: '10px', width: '50%', background: '#e8e8ec', borderRadius: '4px', marginTop: '6px' }} />
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ width: '100%', marginBottom: '32px' }}>
+    <div style={{ width: '100%', marginBottom: '32px', minHeight: '320px' }}>
       {/* Section Header */}
       <div style={{ width: '100%', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h2 style={{
