@@ -23,8 +23,8 @@ export default function VendorLogo({ logo, name, size = 50 }: VendorLogoProps) {
       'Buy Nicotine Pouches': '/vendor-logos/NICPOUCHUK.jpg', // Using NICPOUCHUK as placeholder
       'First Line Pods': '/vendor-logos/NICPOUCHUK.jpg', // Using NICPOUCHUK as placeholder
       'Northerner UK': '/vendor-logos/northerner_black_mobile.webp',
-      'Northerner US': '/vendor-logos/northerner_black_mobile.webp', // Use same logo for both
-      'Prilla': '/vendor-logos/NICPOUCHUK.jpg', // Using NICPOUCHUK as placeholder
+      'Northerner US': '/vendor-logos/northerner_black_mobile.webp',
+      'Prilla': '/vendor-logos/Prilla.svg',
       'Nicokick': '/vendor-logos/Nicokick.png',
       'Nicokick (55788)': '/vendor-logos/Nicokick.png',
       'Snus Vikings': '/vendor-logos/Snus-viking.png',

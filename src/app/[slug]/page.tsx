@@ -15,8 +15,37 @@ import { UK_CITIES_GEO_DATA, isCitySlug } from '@/config/uk-cities-data';
 import { SEO_CONFIG, getFullUrl } from '@/config/seo-config';
 import { supabase } from '@/lib/supabase';
 
-// Allow up to 30s for serverless function execution
+// ISR: revalidate every hour, pre-build at deploy
+export const revalidate = 3600;
+export const dynamicParams = true;
 export const maxDuration = 30;
+
+// Pre-generate all blog posts + city pages as static HTML at build time
+export async function generateStaticParams() {
+  // City slugs
+  const citySlugs = [
+    'aberdeen', 'armagh', 'bangor-wales', 'bangor-northern-ireland', 'bath', 'belfast', 'birmingham', 'bradford', 'brighton-and-hove', 'bristol',
+    'cambridge', 'canterbury', 'cardiff', 'carlisle', 'chelmsford', 'chester', 'chichester', 'city-of-london', 'city-of-westminster', 'colchester',
+    'coventry', 'derby', 'derry', 'doncaster', 'dundee', 'dunfermline', 'durham', 'edinburgh', 'ely', 'exeter',
+    'glasgow', 'gloucester', 'hereford', 'inverness', 'kingston-upon-hull', 'lancaster', 'leeds', 'leicester', 'lichfield', 'lincoln',
+    'lisburn', 'liverpool', 'london', 'manchester', 'milton-keynes', 'newcastle', 'newcastle-upon-tyne', 'newport', 'newry', 'norwich', 'nottingham',
+    'oxford', 'perth', 'peterborough', 'plymouth', 'portsmouth', 'preston', 'ripon', 'salford', 'salisbury', 'sheffield',
+    'southampton', 'southend-on-sea', 'st-albans', 'st-asaph', 'st-davids', 'stirling', 'stoke-on-trent', 'sunderland', 'swansea', 'truro',
+    'wakefield', 'wells', 'winchester', 'wolverhampton', 'worcester', 'wrexham', 'york',
+  ];
+
+  // Blog post slugs from DB
+  let blogSlugs: string[] = [];
+  try {
+    const { data } = await supabase()
+      .from('blog_posts')
+      .select('slug')
+      .in('status', ['publish', 'published']);
+    blogSlugs = (data || []).map((p: any) => p.slug);
+  } catch {}
+
+  return [...citySlugs, ...blogSlugs].map((slug) => ({ slug }));
+}
 
 // List of city slugs that should be handled as city pages
 const CITY_SLUGS = [
