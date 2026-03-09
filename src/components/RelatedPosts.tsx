@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { unstable_cache } from 'next/cache';
 import { supabaseAdmin } from '@/lib/supabase';
 
 interface BlogPost {
@@ -79,27 +80,33 @@ export default async function RelatedPosts({
   currentPostTitle,
   limit = 3
 }: RelatedPostsProps) {
-  // Server-side fetch — HTML rendered with actual links for Googlebot
-  let relatedPosts: BlogPost[] = [];
+  // Server-side fetch with caching
+  const getRelatedPostsCached = unstable_cache(
+    async () => {
+      try {
+        const client = supabaseAdmin();
+        if (client) {
+          const { data, error } = await client
+            .from('blog_posts')
+            .select('id, wp_id, title, slug, excerpt, date, featured_image, featured_image_local, seo_meta')
+            .in('status', ['publish', 'published'])
+            .neq('slug', currentPostSlug)
+            .order('date', { ascending: false })
+            .limit(20);
 
-  try {
-    const client = supabaseAdmin();
-    if (client) {
-      const { data, error } = await client
-        .from('blog_posts')
-        .select('id, wp_id, title, slug, excerpt, date, featured_image, featured_image_local, seo_meta')
-        .in('status', ['publish', 'published'])
-        .neq('slug', currentPostSlug)
-        .order('date', { ascending: false })
-        .limit(20);
+          if (!error && data) {
+            return data as BlogPost[];
+          }
+        }
+      } catch {}
+      return [];
+    },
+    [`related-posts-${currentPostSlug}`],
+    { revalidate: 3600 }
+  );
 
-      if (!error && data) {
-        relatedPosts = findRelatedPosts(data as BlogPost[], currentPostTitle, limit);
-      }
-    }
-  } catch {
-    // Non-critical — fail silently
-  }
+  const allPosts = await getRelatedPostsCached();
+  const relatedPosts = findRelatedPosts(allPosts, currentPostTitle, limit);
 
   if (relatedPosts.length === 0) {
     return null;

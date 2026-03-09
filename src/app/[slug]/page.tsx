@@ -1,5 +1,5 @@
-import { cache } from 'react';
 import Image from 'next/image';
+import { unstable_cache } from 'next/cache';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BlogContentProcessor from '@/components/BlogContentProcessor';
@@ -14,9 +14,6 @@ import { getCityAggregateRating } from '@/lib/aggregate-ratings';
 import { UK_CITIES_GEO_DATA, isCitySlug } from '@/config/uk-cities-data';
 import { SEO_CONFIG, getFullUrl } from '@/config/seo-config';
 import { supabase } from '@/lib/supabase';
-
-// Enable ISR with 1 hour cache for better performance
-export const revalidate = 3600;
 
 // Allow up to 30s for serverless function execution
 export const maxDuration = 30;
@@ -729,44 +726,42 @@ interface BlogPost {
   };
 }
 
-const getBlogPost = cache(async (slug: string): Promise<BlogPost | null> => {
-  try {
-    // Query database directly for the blog post
-    const { data: post, error } = await supabase()
-      .from('blog_posts')
-      .select('*')
-      .eq('slug', slug)
-      .in('status', ['publish', 'published'])
-      .single();
+const getBlogPost = (slug: string) => unstable_cache(
+  async (): Promise<BlogPost | null> => {
+    try {
+      const { data: post, error } = await supabase()
+        .from('blog_posts')
+        .select('*')
+        .eq('slug', slug)
+        .in('status', ['publish', 'published'])
+        .single();
 
-    if (error || !post) {
-      console.log(`[slug] Post with slug '${slug}' not found in blog_posts table`);
+      if (error || !post) return null;
+
+      return {
+        wp_id: post.wp_id,
+        title: post.title,
+        slug: post.slug,
+        excerpt: post.excerpt || '',
+        content: post.content,
+        fullContent: post.content,
+        date: post.date || post.created_at,
+        updated_at: post.updated_at || post.date || post.created_at,
+        author: post.author || 'Nicotine Pouches',
+        featured_image: post.featured_image,
+        featured_image_local: post.featured_image_local || post.featured_image,
+        link: post.link,
+        source: 'database',
+        seo_meta: post.seo_meta
+      };
+    } catch (error) {
+      console.error('Error fetching blog post:', error);
       return null;
     }
-
-    console.log(`[slug] Found post: ${post.title}`);
-
-    return {
-      wp_id: post.wp_id,
-      title: post.title,
-      slug: post.slug,
-      excerpt: post.excerpt || '',
-      content: post.content,
-      fullContent: post.content,
-      date: post.date || post.created_at,
-      updated_at: post.updated_at || post.date || post.created_at,
-      author: post.author || 'Nicotine Pouches',
-      featured_image: post.featured_image,
-      featured_image_local: post.featured_image_local || post.featured_image,
-      link: post.link,
-      source: 'database',
-      seo_meta: post.seo_meta
-    };
-  } catch (error) {
-    console.error('Error fetching blog post:', error);
-    return null;
-  }
-});
+  },
+  [`blog-post-${slug}`],
+  { revalidate: 3600 }
+)();
 
 export default async function DynamicPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
