@@ -992,6 +992,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       'NicPouches': '/vendor-logos/NicPouches.svg',
       'SnusBoys': '/vendor-logos/SnusBoys.png',
       'NicPouchesDirect': '/vendor-logos/NicPouchesDirect.png',
+      'Prilla': '/vendor-logos/Prilla.svg',
     };
 
     vendorsResult?.data?.forEach((vendor: any) => {
