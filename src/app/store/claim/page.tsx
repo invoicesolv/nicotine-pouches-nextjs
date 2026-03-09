@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
@@ -20,6 +20,18 @@ interface TokenInfo {
 }
 
 export default function ClaimStorePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    }>
+      <ClaimStoreContent />
+    </Suspense>
+  );
+}
+
+function ClaimStoreContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
