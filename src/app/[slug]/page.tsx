@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -16,6 +17,9 @@ import { supabase } from '@/lib/supabase';
 
 // Enable ISR with 1 hour cache for better performance
 export const revalidate = 3600;
+
+// Allow up to 30s for serverless function execution
+export const maxDuration = 30;
 
 // List of city slugs that should be handled as city pages
 const CITY_SLUGS = [
@@ -725,7 +729,7 @@ interface BlogPost {
   };
 }
 
-const getBlogPost = async (slug: string): Promise<BlogPost | null> => {
+const getBlogPost = cache(async (slug: string): Promise<BlogPost | null> => {
   try {
     // Query database directly for the blog post
     const { data: post, error } = await supabase()
@@ -762,7 +766,7 @@ const getBlogPost = async (slug: string): Promise<BlogPost | null> => {
     console.error('Error fetching blog post:', error);
     return null;
   }
-};
+});
 
 export default async function DynamicPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
