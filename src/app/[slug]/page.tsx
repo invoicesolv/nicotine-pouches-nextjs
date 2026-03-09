@@ -22,29 +22,10 @@ export const maxDuration = 30;
 
 // Pre-generate all blog posts + city pages as static HTML at build time
 export async function generateStaticParams() {
-  // City slugs
-  const citySlugs = [
-    'aberdeen', 'armagh', 'bangor-wales', 'bangor-northern-ireland', 'bath', 'belfast', 'birmingham', 'bradford', 'brighton-and-hove', 'bristol',
-    'cambridge', 'canterbury', 'cardiff', 'carlisle', 'chelmsford', 'chester', 'chichester', 'city-of-london', 'city-of-westminster', 'colchester',
-    'coventry', 'derby', 'derry', 'doncaster', 'dundee', 'dunfermline', 'durham', 'edinburgh', 'ely', 'exeter',
-    'glasgow', 'gloucester', 'hereford', 'inverness', 'kingston-upon-hull', 'lancaster', 'leeds', 'leicester', 'lichfield', 'lincoln',
-    'lisburn', 'liverpool', 'london', 'manchester', 'milton-keynes', 'newcastle', 'newcastle-upon-tyne', 'newport', 'newry', 'norwich', 'nottingham',
-    'oxford', 'perth', 'peterborough', 'plymouth', 'portsmouth', 'preston', 'ripon', 'salford', 'salisbury', 'sheffield',
-    'southampton', 'southend-on-sea', 'st-albans', 'st-asaph', 'st-davids', 'stirling', 'stoke-on-trent', 'sunderland', 'swansea', 'truro',
-    'wakefield', 'wells', 'winchester', 'wolverhampton', 'worcester', 'wrexham', 'york',
-  ];
-
-  // Blog post slugs from DB
-  let blogSlugs: string[] = [];
-  try {
-    const { data } = await supabase()
-      .from('blog_posts')
-      .select('slug')
-      .in('status', ['publish', 'published']);
-    blogSlugs = (data || []).map((p: any) => p.slug);
-  } catch {}
-
-  return [...citySlugs, ...blogSlugs].map((slug) => ({ slug }));
+  // Don't pre-generate pages at build time — use ISR (revalidate = 3600) instead.
+  // Pre-generating 600+ pages overwhelms Supabase connections during build and causes 522 timeouts.
+  // With dynamicParams = true, pages are generated on first request and cached for 1 hour.
+  return [];
 }
 
 // List of city slugs that should be handled as city pages
