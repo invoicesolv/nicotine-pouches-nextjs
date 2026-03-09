@@ -9,7 +9,7 @@ const RATE_LIMITS: Record<string, { limit: number; windowMs: number }> = {
   '/api/price-alert': { limit: 10, windowMs: 60_000 },
   '/api/submit-application': { limit: 5, windowMs: 60_000 },
   '/api/store/apply': { limit: 5, windowMs: 60_000 },
-  '/api/store/auth': { limit: 10, windowMs: 60_000 },
+  '/api/store/auth': { limit: 30, windowMs: 60_000 },
   '/api/stock-notification': { limit: 10, windowMs: 60_000 },
   // Moderate: data-heavy read endpoints
   '/api/products': { limit: 30, windowMs: 60_000 },

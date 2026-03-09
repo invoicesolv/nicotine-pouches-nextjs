@@ -27,9 +27,11 @@ export default function StoreLoginPage() {
     setIsLoading(true);
 
     try {
-      const success = await login(email, password);
-      if (success) {
+      const result = await login(email, password);
+      if (result === true) {
         router.push('/store');
+      } else if (typeof result === 'string') {
+        setError(result);
       } else {
         setError('Invalid email or password');
       }
@@ -74,7 +76,14 @@ export default function StoreLoginPage() {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-              {error}
+              {error.includes('claimed') ? (
+                <>
+                  This store hasn&apos;t been claimed yet.{' '}
+                  <Link href="/store/claim" className="font-medium underline hover:text-red-800">
+                    Claim your store
+                  </Link>
+                </>
+              ) : error}
             </div>
           )}
 
@@ -131,6 +140,12 @@ export default function StoreLoginPage() {
           </div>
 
           <div className="text-center space-y-2">
+            <p className="text-sm text-gray-600">
+              Already listed on our site?{' '}
+              <Link href="/store/claim" className="font-medium text-blue-600 hover:text-blue-500">
+                Claim your store
+              </Link>
+            </p>
             <p className="text-sm text-gray-600">
               Have an invite code?{' '}
               <Link href="/store/register" className="font-medium text-blue-600 hover:text-blue-500">

@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       user: authResult.user,
       vendor: authResult.vendor,
+      isImpersonating: authResult.isImpersonating || false,
     }, { headers: AUTH_CACHE_HEADERS });
   } catch (error: any) {
     console.error('Error getting current user:', error);

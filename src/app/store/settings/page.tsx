@@ -26,7 +26,7 @@ interface VendorListItem {
   name: string;
   country: string;
   logo_url: string | null;
-  hasAccount: boolean;
+  claimed: boolean;
   accountEmail: string | null;
 }
 
@@ -40,7 +40,7 @@ interface ReportPreferences {
 }
 
 export default function StoreSettingsPage() {
-  const { user, vendor, logout } = useStoreAuth();
+  const { user, vendor, logout, switchVendor, isImpersonating, stopImpersonating } = useStoreAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [shipping, setShipping] = useState<ShippingInfo | null>(null);
   const [shippingLoading, setShippingLoading] = useState(true);
@@ -57,13 +57,18 @@ export default function StoreSettingsPage() {
   const [reportSaving, setReportSaving] = useState(false);
   const [reportSaved, setReportSaved] = useState(false);
 
-  const isSuperAdmin = user?.role === 'super_admin';
+  const { isSuperAdmin: isSuperAdminCtx } = useStoreAuth();
+  const isSuperAdmin = isSuperAdminCtx || user?.role === 'super_admin';
 
   useEffect(() => {
     fetchShipping();
     fetchReportPrefs();
-    if (isSuperAdmin) fetchVendors();
   }, []);
+
+  // Fetch vendors when we know user is super admin
+  useEffect(() => {
+    if (isSuperAdmin && vendors.length === 0) fetchVendors();
+  }, [isSuperAdmin]);
 
   const fetchShipping = async () => {
     try {
@@ -89,24 +94,11 @@ export default function StoreSettingsPage() {
 
   const handleImpersonate = async (vendorId: string) => {
     setImpersonating(true);
-    try {
-      const res = await fetch('/api/store/admin/impersonate', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendorId }),
-      });
-      if (res.ok) {
-        window.location.href = '/store';
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Impersonation failed');
-      }
-    } catch {
-      alert('Failed to impersonate');
-    } finally {
-      setImpersonating(false);
+    const success = await switchVendor(vendorId);
+    if (!success) {
+      alert('Failed to switch vendor');
     }
+    setImpersonating(false);
   };
 
   const fetchReportPrefs = async () => {
@@ -173,12 +165,23 @@ export default function StoreSettingsPage() {
               <p className="text-sm text-purple-800 mb-4">
                 View any vendor's store portal as if you were logged in as them.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
-                {vendors.filter(v => v.hasAccount).map((v) => (
+              {isImpersonating && (
+                <button
+                  onClick={() => stopImpersonating()}
+                  className="mb-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-amber-100 border border-amber-300 rounded-lg text-sm font-medium text-amber-800 hover:bg-amber-200 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to my account (Snusifer)
+                </button>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-72 overflow-y-auto">
+                {vendors.map((v) => (
                   <button
                     key={v.id}
                     onClick={() => handleImpersonate(v.id)}
-                    disabled={impersonating}
+                    disabled={impersonating || v.id === vendor?.id}
                     className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-colors ${
                       vendor?.id === v.id
                         ? 'border-purple-400 bg-purple-100'
@@ -192,18 +195,17 @@ export default function StoreSettingsPage() {
                         {v.name[0]}
                       </div>
                     )}
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium text-gray-900 truncate">{v.name}</div>
-                      <div className="text-xs text-gray-500">{v.country === 'us' ? 'US' : 'UK'}{vendor?.id === v.id ? ' — current' : ''}</div>
+                      <div className="text-xs text-gray-500">
+                        {v.country === 'us' ? 'US' : 'UK'}
+                        {vendor?.id === v.id ? ' — current' : ''}
+                        {!v.claimed ? ' — unclaimed' : ''}
+                      </div>
                     </div>
                   </button>
                 ))}
               </div>
-              {vendors.filter(v => !v.hasAccount).length > 0 && (
-                <p className="text-xs text-purple-600 mt-3">
-                  {vendors.filter(v => !v.hasAccount).length} vendors without store accounts
-                </p>
-              )}
             </div>
           </div>
         )}

@@ -3,7 +3,15 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
+interface VendorOption {
+  id: string;
+  name: string;
+  country: string;
+  logo_url: string | null;
+  claimed: boolean;
+}
 
 const navItems = [
   {
@@ -92,32 +100,170 @@ const navItems = [
 
 export default function StoreSidebar() {
   const pathname = usePathname();
-  const { vendor, logout } = useStoreAuth();
+  const { vendor, logout, isSuperAdmin, isImpersonating, switchVendor, stopImpersonating } = useStoreAuth();
   const [expanded, setExpanded] = useState(false);
+  const [showSwitcher, setShowSwitcher] = useState(false);
+  const [vendors, setVendors] = useState<VendorOption[]>([]);
+  const [vendorSearch, setVendorSearch] = useState('');
+  const [switching, setSwitching] = useState(false);
+  const switcherRef = useRef<HTMLDivElement>(null);
+
+  // Fetch vendor list when switcher opens
+  useEffect(() => {
+    if (showSwitcher && vendors.length === 0) {
+      fetch('/api/store/admin/vendors', { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => setVendors(data.vendors || []))
+        .catch(() => {});
+    }
+  }, [showSwitcher, vendors.length]);
+
+  // Close switcher on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) {
+        setShowSwitcher(false);
+        setVendorSearch('');
+      }
+    };
+    if (showSwitcher) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showSwitcher]);
+
+  const handleSwitch = async (vendorId: string) => {
+    setSwitching(true);
+    await switchVendor(vendorId);
+    setSwitching(false);
+    setShowSwitcher(false);
+    setVendorSearch('');
+  };
+
+  const handleStopImpersonating = async () => {
+    setSwitching(true);
+    await stopImpersonating();
+    setSwitching(false);
+  };
+
+  const filteredVendors = vendorSearch
+    ? vendors.filter(v => v.name.toLowerCase().includes(vendorSearch.toLowerCase()))
+    : vendors;
 
   return (
     <aside
       className={`${expanded ? 'w-52' : 'w-[56px]'} bg-white border-r border-gray-200 min-h-screen flex flex-col py-4 flex-shrink-0 transition-all duration-200`}
     >
-      {/* Top: Logo + Expand toggle */}
-      <div className={`flex items-center ${expanded ? 'px-4 gap-3' : 'justify-center'} mb-4`}>
-        <Link href="/store" className="flex-shrink-0">
+      {/* Impersonation banner */}
+      {isImpersonating && (
+        <div className={`${expanded ? 'mx-3 mb-2 px-2 py-1.5' : 'mx-2 mb-2 py-1'} bg-amber-50 border border-amber-200 rounded-lg text-center`}>
+          {expanded ? (
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-amber-700">Viewing as</span>
+              <button
+                onClick={handleStopImpersonating}
+                disabled={switching}
+                className="text-xs font-medium text-amber-800 hover:text-amber-900 underline"
+              >
+                Stop
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleStopImpersonating}
+              disabled={switching}
+              className="w-5 h-5 mx-auto flex items-center justify-center"
+              title="Stop impersonating"
+            >
+              <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Top: Logo + Vendor name (clickable for super admin) */}
+      <div className={`relative flex items-center ${expanded ? 'px-4 gap-3' : 'justify-center'} mb-4`} ref={switcherRef}>
+        <button
+          onClick={() => {
+            if (isSuperAdmin) {
+              setExpanded(true);
+              setShowSwitcher(!showSwitcher);
+            }
+          }}
+          className={`flex-shrink-0 ${isSuperAdmin ? 'cursor-pointer' : ''}`}
+          title={isSuperAdmin ? 'Switch vendor' : vendor?.name}
+        >
           {vendor?.logo_url ? (
             <img
               src={vendor.logo_url}
               alt={vendor.name}
-              className="w-8 h-8 object-contain rounded"
+              className={`w-8 h-8 object-contain rounded ${isSuperAdmin ? 'ring-2 ring-offset-1 ring-blue-400' : ''}`}
             />
           ) : (
-            <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center text-white text-sm font-bold">
+            <div className={`w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center text-white text-sm font-bold ${isSuperAdmin ? 'ring-2 ring-offset-1 ring-blue-400' : ''}`}>
               {vendor?.name?.[0] || 'S'}
             </div>
           )}
-        </Link>
+        </button>
         {expanded && (
-          <span className="text-sm font-semibold text-gray-900 truncate flex-1">
-            {vendor?.name || 'Store'}
-          </span>
+          <button
+            onClick={() => isSuperAdmin && setShowSwitcher(!showSwitcher)}
+            className={`flex-1 min-w-0 text-left ${isSuperAdmin ? 'cursor-pointer' : ''}`}
+          >
+            <span className="text-sm font-semibold text-gray-900 truncate block">
+              {vendor?.name || 'Store'}
+            </span>
+            {isSuperAdmin && (
+              <span className="text-[10px] text-blue-500 font-medium">Switch vendor</span>
+            )}
+          </button>
+        )}
+
+        {/* Vendor switcher dropdown */}
+        {showSwitcher && (
+          <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
+            <div className="p-2 border-b border-gray-100">
+              <input
+                type="text"
+                value={vendorSearch}
+                onChange={e => setVendorSearch(e.target.value)}
+                placeholder="Search vendors..."
+                className="w-full text-sm px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400"
+                autoFocus
+              />
+            </div>
+            <div className="max-h-72 overflow-y-auto">
+              {filteredVendors.map(v => (
+                <button
+                  key={v.id}
+                  onClick={() => handleSwitch(v.id)}
+                  disabled={switching || v.id === vendor?.id}
+                  className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 transition-colors text-sm ${
+                    v.id === vendor?.id ? 'bg-gray-50 text-gray-400' : 'text-gray-700'
+                  }`}
+                >
+                  {v.logo_url ? (
+                    <img src={v.logo_url} alt={v.name} className="w-6 h-6 object-contain rounded" />
+                  ) : (
+                    <div className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center text-[10px] font-bold text-gray-500">
+                      {v.name[0]}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate font-medium">{v.name}</div>
+                    <div className="text-[10px] text-gray-400">
+                      {v.country === 'us' ? 'US' : 'UK'}
+                      {!v.claimed && ' — unclaimed'}
+                    </div>
+                  </div>
+                  {v.id === vendor?.id && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                  )}
+                </button>
+              ))}
+              {filteredVendors.length === 0 && (
+                <div className="px-3 py-4 text-sm text-gray-400 text-center">No vendors found</div>
+              )}
+            </div>
+          </div>
         )}
       </div>
 

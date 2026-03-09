@@ -31,9 +31,13 @@ interface StoreAuthContextType {
   vendor: VendorInfo | null;
   loading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  isImpersonating: boolean;
+  isSuperAdmin: boolean;
+  login: (email: string, password: string) => Promise<boolean | string>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  switchVendor: (vendorId: string) => Promise<boolean>;
+  stopImpersonating: () => Promise<void>;
 }
 
 const StoreAuthContext = createContext<StoreAuthContextType | undefined>(undefined);
@@ -43,6 +47,9 @@ export function StoreAuthProvider({ children }: { children: React.ReactNode }) {
   const [vendor, setVendor] = useState<VendorInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  // Track the real role (before impersonation overrides vendor_id)
+  const [realRole, setRealRole] = useState<string | null>(null);
   const router = useRouter();
 
   const fetchCurrentUser = useCallback(async () => {
@@ -55,10 +62,16 @@ export function StoreAuthProvider({ children }: { children: React.ReactNode }) {
         const data = await response.json();
         setUser(data.user);
         setVendor(data.vendor);
+        setIsImpersonating(data.isImpersonating || false);
+        // Store the real role on first load (super_admin persists even when impersonating)
+        if (!realRole) {
+          setRealRole(data.user.role);
+        }
         setError(null);
       } else {
         setUser(null);
         setVendor(null);
+        setIsImpersonating(false);
       }
     } catch (err) {
       console.error('Error fetching current user:', err);
@@ -67,13 +80,13 @@ export function StoreAuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [realRole]);
 
   useEffect(() => {
     fetchCurrentUser();
   }, [fetchCurrentUser]);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<boolean | string> => {
     setLoading(true);
     setError(null);
 
@@ -92,15 +105,17 @@ export function StoreAuthProvider({ children }: { children: React.ReactNode }) {
       if (response.ok && data.success) {
         setUser(data.user);
         setVendor(data.vendor);
+        setRealRole(data.user.role);
         return true;
       } else {
-        setError(data.error || 'Login failed');
-        return false;
+        const errorMsg = data.error || 'Login failed';
+        setError(errorMsg);
+        return errorMsg;
       }
     } catch (err) {
       console.error('Login error:', err);
       setError('An error occurred during login');
-      return false;
+      return 'An error occurred during login';
     } finally {
       setLoading(false);
     }
@@ -117,7 +132,41 @@ export function StoreAuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setUser(null);
       setVendor(null);
+      setRealRole(null);
+      setIsImpersonating(false);
       router.push('/store/login');
+    }
+  };
+
+  const switchVendor = async (vendorId: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/store/admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ vendorId }),
+      });
+
+      if (response.ok) {
+        // Refresh to pick up new vendor context
+        await fetchCurrentUser();
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  const stopImpersonating = async () => {
+    try {
+      await fetch('/api/store/admin/impersonate', {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      await fetchCurrentUser();
+    } catch (err) {
+      console.error('Stop impersonating error:', err);
     }
   };
 
@@ -132,9 +181,13 @@ export function StoreAuthProvider({ children }: { children: React.ReactNode }) {
         vendor,
         loading,
         error,
+        isImpersonating,
+        isSuperAdmin: realRole === 'super_admin' || user?.role === 'super_admin',
         login,
         logout,
         refreshUser,
+        switchVendor,
+        stopImpersonating,
       }}
     >
       {children}

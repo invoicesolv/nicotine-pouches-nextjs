@@ -14,6 +14,7 @@ export interface StoreUser {
   us_vendor_id: string | null;  // UUID
   role: string;
   is_active: boolean;
+  claimed: boolean;
   last_login: string | null;
   permissions: {
     can_view_analytics: boolean;
@@ -302,13 +303,17 @@ export async function getVendorInfo(vendorId?: string, usVendorId?: string): Pro
 // Auth helper for API routes
 export async function authenticateStoreRequest(
   request: Request
-): Promise<{ user: StoreUser; vendor: VendorInfo | null } | null> {
+): Promise<{ user: StoreUser; vendor: VendorInfo | null; isImpersonating?: boolean } | null> {
   // Get token from cookie or Authorization header
   const cookieHeader = request.headers.get('cookie') || '';
   const cookies = Object.fromEntries(
-    cookieHeader.split('; ').map(c => c.split('='))
+    cookieHeader.split('; ').filter(c => c.includes('=')).map(c => {
+      const idx = c.indexOf('=');
+      return [c.slice(0, idx), c.slice(idx + 1)];
+    })
   );
   const tokenFromCookie = cookies['store_session'];
+  const impersonateVendorId = cookies['store_impersonate'];
 
   const authHeader = request.headers.get('authorization');
   const tokenFromHeader = authHeader?.replace('Bearer ', '');
@@ -322,6 +327,26 @@ export async function authenticateStoreRequest(
   const user = await validateSession(token);
   if (!user || !user.is_active) {
     return null;
+  }
+
+  // Super admin impersonation
+  if (impersonateVendorId && user.role === 'super_admin') {
+    const impersonatedVendor = await getVendorInfo(impersonateVendorId);
+    if (impersonatedVendor) {
+      // Create a shallow copy of user with overridden vendor IDs
+      const impersonatedUser = {
+        ...user,
+        vendor_id: impersonatedVendor.country === 'uk' ? impersonateVendorId : user.vendor_id,
+        us_vendor_id: impersonatedVendor.country === 'us' ? impersonateVendorId : user.us_vendor_id,
+      };
+      // If switching to a UK vendor, clear the US id (and vice versa)
+      if (impersonatedVendor.country === 'uk') {
+        impersonatedUser.us_vendor_id = null;
+      } else {
+        impersonatedUser.vendor_id = null;
+      }
+      return { user: impersonatedUser, vendor: impersonatedVendor, isImpersonating: true };
+    }
   }
 
   const vendor = await getVendorInfo(user.vendor_id || undefined, user.us_vendor_id || undefined);

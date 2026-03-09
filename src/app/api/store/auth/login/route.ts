@@ -38,6 +38,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if account is unclaimed
+    if (user.claimed === false) {
+      return NextResponse.json(
+        { error: 'This store hasn\'t been claimed yet. Visit /store/claim to set up your account.' },
+        { status: 403 }
+      );
+    }
+
     // Verify password
     const isValid = await verifyPassword(password, user.password_hash);
 
