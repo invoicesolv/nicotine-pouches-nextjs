@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import Script from 'next/script'
-import { headers } from 'next/headers'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
@@ -40,16 +39,11 @@ export const viewport = {
   initialScale: 1,
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  // Detect if we're on a US route to set proper lang attribute
-  const headersList = await headers()
-  const pathname = headersList.get('x-pathname') || headersList.get('x-invoke-path') || ''
-  const isUSRoute = pathname.startsWith('/us')
-  const lang = isUSRoute ? 'en-US' : 'en-GB'
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -187,7 +181,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang={lang} suppressHydrationWarning>
+    <html lang="en-GB" suppressHydrationWarning>
       <head />
       <body className={`${inter.className} ${plusJakartaSans.variable}`}>
         {/* JSON-LD Schema scripts - placed in body to keep head small for charset in first 1024 bytes */}
