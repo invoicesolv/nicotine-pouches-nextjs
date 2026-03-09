@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { VENDOR_ANALYTICS_CONFIG, getCurrencySymbol, getRegionFromCurrency, isVendorSyncEnabled } from '@/config/vendor-analytics';
+import { VENDOR_ANALYTICS_CONFIG, getCurrencySymbol, getRegionFromCurrency } from '@/config/vendor-analytics';
 import { 
   trackVendorExposure as trackGA4VendorExposure,
   trackVendorClick as trackGA4VendorClick,
@@ -219,11 +219,9 @@ class VendorAnalytics {
 
   // Send click data to CRM via Next.js API
   private async sendToCRM(eventData: any) {
-    // Check if CRM sync is enabled
-    if (!isVendorSyncEnabled()) {
-      console.log('CRM sync disabled, skipping tracking');
-      return;
-    }
+    // Note: Don't check isVendorSyncEnabled() here — server env vars (CRM_API_URL,
+    // CRM_WORKSPACE_ID, VENDOR_SYNC_ENABLED) are not available on the client side.
+    // The server-side API route handles the enable/disable check.
 
     try {
       // Exact same data structure as WordPress plugin

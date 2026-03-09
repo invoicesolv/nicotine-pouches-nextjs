@@ -23,8 +23,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // vendor_analytics always uses integer vendor_id
+    // vendor_analytics uses integer vendor_id, but US vendors may have null vendor_id
     const vendorId = vendor.realVendorId;
+    const vendorName = vendor.name;
 
     // Date range params
     const days = parseInt(url.searchParams.get('days') || '30');
@@ -32,14 +33,24 @@ export async function GET(request: NextRequest) {
     startDate.setDate(startDate.getDate() - days);
 
     // Fetch click events from vendor_analytics
-    const { data: clickEvents, error: clicksError } = await supabaseAdmin()
+    // Use vendor_id when available, fall back to vendor_name for US vendors without integer ID
+    let query = supabaseAdmin()
       .from('vendor_analytics')
       .select('timestamp, event_type, product_id, product_name')
-      .eq('vendor_id', vendorId)
       .in('event_type', ['vendor_click', 'vendor_exposure', 'vendor_conversion'])
       .gte('timestamp', startDate.toISOString())
       .order('timestamp', { ascending: true })
       .limit(10000);
+
+    if (vendorId) {
+      query = query.eq('vendor_id', vendorId);
+    } else if (vendorName) {
+      query = query.eq('vendor_name', vendorName);
+    } else {
+      return NextResponse.json({ error: 'No vendor identifier available' }, { status: 400 });
+    }
+
+    const { data: clickEvents, error: clicksError } = await query;
 
     if (clicksError) {
       console.error('Error fetching analytics:', clicksError);

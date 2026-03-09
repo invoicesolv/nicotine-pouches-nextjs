@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
     const vendorIdValue = isUK ? vendor.realVendorId : vendor.usVendorUuid;
 
     const analyticsVendorId = vendor.realVendorId;
+    const vendorNameForAnalytics = vendor.name;
 
     // Current period
     const days = parseInt(url.searchParams.get('days') || '30');
@@ -85,53 +86,36 @@ export async function GET(request: NextRequest) {
     let prevImpressions = 0;
     let prevConversions = 0;
 
-    if (analyticsVendorId) {
-      // Current + previous period analytics in parallel
+    // Helper: build analytics query with the right vendor filter
+    const analyticsQuery = (eventType: string, from: Date, to?: Date) => {
+      let q = supabaseAdmin()
+        .from('vendor_analytics')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_type', eventType)
+        .gte('timestamp', from.toISOString());
+
+      if (to) q = q.lt('timestamp', to.toISOString());
+
+      // Use vendor_id when available, fall back to vendor_name
+      if (analyticsVendorId) {
+        q = q.eq('vendor_id', analyticsVendorId);
+      } else if (vendorNameForAnalytics) {
+        q = q.eq('vendor_name', vendorNameForAnalytics);
+      }
+      return q;
+    };
+
+    if (analyticsVendorId || vendorNameForAnalytics) {
       const [
         clicksRes, impressionsRes, conversionsRes,
         prevClicksRes, prevImpressionsRes, prevConversionsRes,
       ] = await Promise.all([
-        // Current period
-        supabaseAdmin()
-          .from('vendor_analytics')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', analyticsVendorId)
-          .eq('event_type', 'vendor_click')
-          .gte('timestamp', startDate.toISOString()),
-        supabaseAdmin()
-          .from('vendor_analytics')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', analyticsVendorId)
-          .eq('event_type', 'vendor_exposure')
-          .gte('timestamp', startDate.toISOString()),
-        supabaseAdmin()
-          .from('vendor_analytics')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', analyticsVendorId)
-          .eq('event_type', 'vendor_conversion')
-          .gte('timestamp', startDate.toISOString()),
-        // Previous period
-        supabaseAdmin()
-          .from('vendor_analytics')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', analyticsVendorId)
-          .eq('event_type', 'vendor_click')
-          .gte('timestamp', prevStartDate.toISOString())
-          .lt('timestamp', prevEndDate.toISOString()),
-        supabaseAdmin()
-          .from('vendor_analytics')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', analyticsVendorId)
-          .eq('event_type', 'vendor_exposure')
-          .gte('timestamp', prevStartDate.toISOString())
-          .lt('timestamp', prevEndDate.toISOString()),
-        supabaseAdmin()
-          .from('vendor_analytics')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', analyticsVendorId)
-          .eq('event_type', 'vendor_conversion')
-          .gte('timestamp', prevStartDate.toISOString())
-          .lt('timestamp', prevEndDate.toISOString()),
+        analyticsQuery('vendor_click', startDate),
+        analyticsQuery('vendor_exposure', startDate),
+        analyticsQuery('vendor_conversion', startDate),
+        analyticsQuery('vendor_click', prevStartDate, prevEndDate),
+        analyticsQuery('vendor_exposure', prevStartDate, prevEndDate),
+        analyticsQuery('vendor_conversion', prevStartDate, prevEndDate),
       ]);
 
       totalClicks = clicksRes.count || 0;
