@@ -408,17 +408,24 @@ export default async function GuidesPage({ searchParams }: PageProps) {
 }
 
 // Generate metadata for SEO
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page || '1', 10));
+  const canonicalUrl = page > 1
+    ? `https://nicotine-pouches.org/guides?page=${page}`
+    : 'https://nicotine-pouches.org/guides';
+  const titleSuffix = page > 1 ? ` - Page ${page}` : '';
+
   return {
-    title: 'Nicotine Pouches Guides - Complete Tutorials & How-To Guides',
+    title: `Nicotine Pouches Guides - Complete Tutorials & How-To Guides${titleSuffix}`,
     description: 'Comprehensive guides to help you understand nicotine pouches, their benefits, and how to use them effectively. Learn everything you need to know about nicotine pouches.',
     keywords: 'nicotine pouches guides, how to use nicotine pouches, nicotine pouches tutorial, nicotine pouches tips, nicotine pouches benefits',
     robots: 'index, follow',
     authors: [{ name: 'Nicotine Pouches Team' }],
     openGraph: {
-      title: 'Nicotine Pouches Guides - Complete Tutorials & How-To Guides',
+      title: `Nicotine Pouches Guides - Complete Tutorials & How-To Guides${titleSuffix}`,
       description: 'Comprehensive guides to help you understand nicotine pouches, their benefits, and how to use them effectively.',
-      url: 'https://nicotine-pouches.org/guides',
+      url: canonicalUrl,
       siteName: 'Nicotine Pouches',
       images: [
         {
@@ -433,18 +440,20 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'Nicotine Pouches Guides - Complete Tutorials & How-To Guides',
+      title: `Nicotine Pouches Guides - Complete Tutorials & How-To Guides${titleSuffix}`,
       description: 'Comprehensive guides to help you understand nicotine pouches, their benefits, and how to use them effectively.',
       images: ['/guides-og-image.jpg'],
       creator: '@nicotinepouches',
       site: '@nicotinepouches',
     },
     alternates: {
-      canonical: 'https://nicotine-pouches.org/guides',
+      canonical: canonicalUrl,
       languages: {
-        'en-GB': 'https://nicotine-pouches.org/guides',
-        'en-US': 'https://nicotine-pouches.org/us/guides',
-        'x-default': 'https://nicotine-pouches.org/guides',
+        'en-GB': canonicalUrl,
+        'en-US': page > 1
+          ? `https://nicotine-pouches.org/us/guides?page=${page}`
+          : 'https://nicotine-pouches.org/us/guides',
+        'x-default': canonicalUrl,
       },
     },
   };

@@ -89,11 +89,14 @@ export default function GuidesGridWithSearch({
     safePush(`/guides?${buildParams({ sort, page: '1' })}`);
   }, [buildParams]);
 
-  // Handle page change via URL
-  const handlePageChange = (page: number) => {
-    safePush(`/guides?${buildParams({ page: page.toString() })}`);
+  // Build href for a given page number
+  const buildPageHref = (page: number) => {
+    const params = buildParams({ page: page.toString() });
+    return `/guides?${params}`;
+  };
 
-    // Scroll to top of posts section
+  // Scroll to posts section after navigation
+  const scrollToPosts = () => {
     const postsSection = document.getElementById('posts-section');
     if (postsSection) {
       postsSection.scrollIntoView({ behavior: 'smooth' });
@@ -387,26 +390,46 @@ export default function GuidesGridWithSearch({
           marginTop: '60px',
           marginBottom: '40px'
         }}>
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="pagination-button"
-            style={{
-              padding: '10px 20px',
-              borderRadius: '25px',
-              border: '2px solid #e5e7eb',
-              backgroundColor: currentPage === 1 ? '#f9fafb' : '#ffffff',
-              fontSize: '14px',
-              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
-              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-              color: currentPage === 1 ? '#9ca3af' : '#666',
-              opacity: currentPage === 1 ? 0.5 : 1,
-              fontWeight: '500',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            Previous
-          </button>
+          {currentPage > 1 ? (
+            <Link
+              href={buildPageHref(currentPage - 1)}
+              onClick={scrollToPosts}
+              className="pagination-button"
+              style={{
+                padding: '10px 20px',
+                borderRadius: '25px',
+                border: '2px solid #e5e7eb',
+                backgroundColor: '#ffffff',
+                fontSize: '14px',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                cursor: 'pointer',
+                color: '#666',
+                fontWeight: '500',
+                transition: 'all 0.2s ease',
+                textDecoration: 'none'
+              }}
+            >
+              Previous
+            </Link>
+          ) : (
+            <span
+              className="pagination-button"
+              style={{
+                padding: '10px 20px',
+                borderRadius: '25px',
+                border: '2px solid #e5e7eb',
+                backgroundColor: '#f9fafb',
+                fontSize: '14px',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                cursor: 'not-allowed',
+                color: '#9ca3af',
+                opacity: 0.5,
+                fontWeight: '500'
+              }}
+            >
+              Previous
+            </span>
+          )}
 
           <div className="pagination-buttons" style={{
             display: 'flex',
@@ -415,8 +438,9 @@ export default function GuidesGridWithSearch({
             {/* First page */}
             {currentPage > 3 && (
               <>
-                <button
-                  onClick={() => handlePageChange(1)}
+                <Link
+                  href={buildPageHref(1)}
+                  onClick={scrollToPosts}
                   className="pagination-button"
                   style={{
                     padding: '10px 15px',
@@ -428,11 +452,12 @@ export default function GuidesGridWithSearch({
                     cursor: 'pointer',
                     color: '#666',
                     fontWeight: '500',
-                    transition: 'all 0.2s ease'
+                    transition: 'all 0.2s ease',
+                    textDecoration: 'none'
                   }}
                 >
                   1
-                </button>
+                </Link>
                 {currentPage > 4 && (
                   <span style={{ padding: '10px 5px', color: '#666' }}>...</span>
                 )}
@@ -445,9 +470,11 @@ export default function GuidesGridWithSearch({
               .map(page => {
                 const isActive = page === currentPage;
                 return (
-                  <button
+                  <Link
                     key={page}
-                    onClick={() => handlePageChange(page)}
+                    href={buildPageHref(page)}
+                    onClick={scrollToPosts}
+                    aria-current={isActive ? 'page' : undefined}
                     className="pagination-button"
                     style={{
                       padding: '10px 15px',
@@ -459,11 +486,12 @@ export default function GuidesGridWithSearch({
                       cursor: 'pointer',
                       color: isActive ? '#ffffff' : '#666',
                       fontWeight: '500',
-                      transition: 'all 0.2s ease'
+                      transition: 'all 0.2s ease',
+                      textDecoration: 'none'
                     }}
                   >
                     {page}
-                  </button>
+                  </Link>
                 );
               })}
 
@@ -473,8 +501,9 @@ export default function GuidesGridWithSearch({
                 {currentPage < totalPages - 3 && (
                   <span style={{ padding: '10px 5px', color: '#666' }}>...</span>
                 )}
-                <button
-                  onClick={() => handlePageChange(totalPages)}
+                <Link
+                  href={buildPageHref(totalPages)}
+                  onClick={scrollToPosts}
                   className="pagination-button"
                   style={{
                     padding: '10px 15px',
@@ -486,35 +515,56 @@ export default function GuidesGridWithSearch({
                     cursor: 'pointer',
                     color: '#666',
                     fontWeight: '500',
-                    transition: 'all 0.2s ease'
+                    transition: 'all 0.2s ease',
+                    textDecoration: 'none'
                   }}
                 >
                   {totalPages}
-                </button>
+                </Link>
               </>
             )}
           </div>
 
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="pagination-button"
-            style={{
-              padding: '10px 20px',
-              borderRadius: '25px',
-              border: '2px solid #e5e7eb',
-              backgroundColor: currentPage === totalPages ? '#f9fafb' : '#ffffff',
-              fontSize: '14px',
-              fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
-              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-              color: currentPage === totalPages ? '#9ca3af' : '#666',
-              opacity: currentPage === totalPages ? 0.5 : 1,
-              fontWeight: '500',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            Next
-          </button>
+          {currentPage < totalPages ? (
+            <Link
+              href={buildPageHref(currentPage + 1)}
+              onClick={scrollToPosts}
+              className="pagination-button"
+              style={{
+                padding: '10px 20px',
+                borderRadius: '25px',
+                border: '2px solid #e5e7eb',
+                backgroundColor: '#ffffff',
+                fontSize: '14px',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                cursor: 'pointer',
+                color: '#666',
+                fontWeight: '500',
+                transition: 'all 0.2s ease',
+                textDecoration: 'none'
+              }}
+            >
+              Next
+            </Link>
+          ) : (
+            <span
+              className="pagination-button"
+              style={{
+                padding: '10px 20px',
+                borderRadius: '25px',
+                border: '2px solid #e5e7eb',
+                backgroundColor: '#f9fafb',
+                fontSize: '14px',
+                fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                cursor: 'not-allowed',
+                color: '#9ca3af',
+                opacity: 0.5,
+                fontWeight: '500'
+              }}
+            >
+              Next
+            </span>
+          )}
         </div>
       )}
 
