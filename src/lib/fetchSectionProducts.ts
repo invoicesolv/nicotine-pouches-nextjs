@@ -12,6 +12,7 @@ export interface SectionProduct {
   trend_score: number;
   strength_group: string;
   created_at?: string;
+  vendor_url?: string;
 }
 
 /**
@@ -265,7 +266,7 @@ async function fetchEURegionSectionProducts(
     const orderCol = section === 'new' ? 'created_at' : 'updated_at';
     const { data: products, error } = await supabase()
       .from(tableName)
-      .select('id, name, de_vendor_id, url, price_1pack, stock_status, image_url, created_at, updated_at')
+      .select(`id, name, ${vendorIdCol}, url, price_1pack, stock_status, image_url, created_at, updated_at`)
       .eq('stock_status', 'in_stock')
       .not('price_1pack', 'is', null)
       .gt('price_1pack', 0)
@@ -323,6 +324,7 @@ async function fetchEURegionSectionProducts(
         trend_score: score,
         strength_group: 'Normal',
         created_at: product.created_at,
+        vendor_url: product.url || '',
       };
     });
 
