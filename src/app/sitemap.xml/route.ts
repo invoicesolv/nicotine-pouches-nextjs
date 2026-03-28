@@ -73,6 +73,7 @@ export async function GET() {
     const staticPages = [
       { url: '/', priority: '1.0', changefreq: 'daily' },
       { url: '/compare', priority: '0.9', changefreq: 'daily' },
+      { url: '/cheapest-nicotine-pouches', priority: '0.9', changefreq: 'daily' },
       { url: '/about-us', priority: '0.7', changefreq: 'monthly' },
       { url: '/contact-us', priority: '0.6', changefreq: 'monthly' },
       { url: '/become-a-member', priority: '0.8', changefreq: 'monthly' },
@@ -92,6 +93,9 @@ export async function GET() {
       { url: '/guides', priority: '0.7', changefreq: 'weekly' },
       { url: '/vendors', priority: '0.6', changefreq: 'monthly' },
       { url: '/brands', priority: '0.8', changefreq: 'weekly' },
+      { url: '/nicotine-pouches-sainsburys', priority: '0.7', changefreq: 'monthly' },
+      { url: '/nicotine-pouches-asda', priority: '0.7', changefreq: 'monthly' },
+      { url: '/nicotine-pouches-boots', priority: '0.7', changefreq: 'monthly' },
       // US pages
       { url: '/us', priority: '0.8', changefreq: 'daily' },
       { url: '/us/about-us', priority: '0.7', changefreq: 'monthly' },
@@ -106,8 +110,42 @@ export async function GET() {
       { url: '/us/careers', priority: '0.6', changefreq: 'monthly' },
       { url: '/us/sustainability', priority: '0.6', changefreq: 'monthly' },
       { url: '/us/nicotine-pouches-api', priority: '0.6', changefreq: 'monthly' },
-      { url: '/us/work-with-us', priority: '0.6', changefreq: 'monthly' }
+      { url: '/us/work-with-us', priority: '0.6', changefreq: 'monthly' },
       // Exclude /us/blog as it redirects to /us
+      // Translated locale pages (DE, IT, ES) with correct translated slugs
+      ...Object.entries({
+        de: {
+          'ueber-uns': '0.7', 'kontakt': '0.6', 'vergleichen': '0.9', 'marken': '0.8',
+          'ratgeber': '0.7', 'anwendung': '0.7', 'haeufig-gestellte-fragen': '0.8',
+          'mitglied-werden': '0.8', 'karriere': '0.6', 'nachhaltigkeit': '0.6',
+          'zusammenarbeit': '0.6', 'sicheres-online-shopping': '0.6', 'warum-nikotinbeutel': '0.7',
+          'agb': '0.5', 'datenschutz': '0.5', 'anbieter': '0.6',
+          'gesetz-ueber-digitale-dienste': '0.5', 'hier-sind-wir': '0.6',
+        },
+        it: {
+          'chi-siamo': '0.7', 'contattaci': '0.6', 'confronta': '0.9', 'marchi': '0.8',
+          'guide': '0.7', 'come-usare': '0.7', 'domande-frequenti': '0.8',
+          'diventa-membro': '0.8', 'carriere': '0.6', 'sostenibilita': '0.6',
+          'lavora-con-noi': '0.6', 'acquisti-online-sicuri': '0.6', 'perche-bustine-nicotina': '0.7',
+          'termini-e-condizioni': '0.5', 'informativa-privacy': '0.5', 'venditori': '0.6',
+          'legge-sui-servizi-digitali': '0.5', 'dove-siamo': '0.6',
+        },
+        es: {
+          'sobre-nosotros': '0.7', 'contacto': '0.6', 'comparar': '0.9', 'marcas': '0.8',
+          'guias': '0.7', 'como-usar': '0.7', 'preguntas-frecuentes': '0.8',
+          'hazte-miembro': '0.8', 'empleo': '0.6', 'sostenibilidad': '0.6',
+          'trabaja-con-nosotros': '0.6', 'compras-online-seguras': '0.6', 'por-que-bolsas-nicotina': '0.7',
+          'terminos-y-condiciones': '0.5', 'politica-privacidad': '0.5', 'vendedores': '0.6',
+          'ley-servicios-digitales': '0.5', 'donde-estamos': '0.6',
+        },
+      }).flatMap(([locale, slugs]) => [
+        { url: `/${locale}`, priority: '0.8', changefreq: 'daily' as const },
+        ...Object.entries(slugs).map(([slug, priority]) => ({
+          url: `/${locale}/${slug}`,
+          priority,
+          changefreq: (parseFloat(priority) >= 0.8 ? 'weekly' : parseFloat(priority) <= 0.5 ? 'yearly' : 'monthly') as string,
+        })),
+      ]),
     ];
 
     staticPages.forEach(page => {
@@ -363,6 +401,68 @@ export async function GET() {
 `;
         }
       });
+    }
+
+    // Add DE vendor product brands from de_vendor_products
+    try {
+      const { data: deProducts } = await supabase()
+        .from('de_vendor_products')
+        .select('name')
+        .not('name', 'is', null)
+        .eq('stock_status', 'in_stock');
+
+      if (deProducts) {
+        const deBrands = Array.from(new Set(deProducts.map((p: any) => p.name?.split(' ')[0]).filter(Boolean)));
+        deBrands.forEach((brand: any) => {
+          const slug = brand.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
+          if (!slug || slug.length < 2) return;
+          const brandUrl = `${baseUrl}/de/marken/${slug}`;
+          if (!addedUrls.has(brandUrl)) {
+            addedUrls.add(brandUrl);
+            sitemap += `  <url>
+    <loc>${brandUrl}</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+`;
+          }
+        });
+        console.log(`Added ${deBrands.length} DE brand pages to sitemap`);
+      }
+    } catch (e) {
+      console.error('Error adding DE brands to sitemap:', e);
+    }
+
+    // Add IT vendor product brands from it_vendor_products
+    try {
+      const { data: itProducts } = await supabase()
+        .from('it_vendor_products')
+        .select('name')
+        .not('name', 'is', null)
+        .eq('stock_status', 'in_stock');
+
+      if (itProducts) {
+        const itBrands = Array.from(new Set(itProducts.map((p: any) => p.name?.split(' ')[0]).filter(Boolean)));
+        itBrands.forEach((brand: any) => {
+          const slug = brand.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
+          if (!slug || slug.length < 2) return;
+          const brandUrl = `${baseUrl}/it/marchi/${slug}`;
+          if (!addedUrls.has(brandUrl)) {
+            addedUrls.add(brandUrl);
+            sitemap += `  <url>
+    <loc>${brandUrl}</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+`;
+          }
+        });
+        console.log(`Added ${itBrands.length} IT brand pages to sitemap`);
+      }
+    } catch (e) {
+      console.error('Error adding IT brands to sitemap:', e);
     }
 
     // Add location pages (UK cities)

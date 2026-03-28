@@ -458,9 +458,193 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if this is a DE or IT region request
+    const isDERegion = region === 'DE';
+    const isITRegion = region === 'IT';
     // Check if this is a US region request (UUID vendor ID or explicit region)
-    const isUSRegion = region === 'US' || (vendorId && typeof vendorId === 'string' && vendorId.includes('-'));
-    console.log(`🔍 Region check: region=${region}, vendorId=${vendorId}, isUSRegion=${isUSRegion}`);
+    const isUSRegion = !isDERegion && !isITRegion && (region === 'US' || (vendorId && typeof vendorId === 'string' && vendorId.includes('-')));
+    console.log(`🔍 Region check: region=${region}, vendorId=${vendorId}, isUSRegion=${isUSRegion}, isDERegion=${isDERegion}`);
+
+    // Handle DE region - same logic as US but with de_ tables
+    if (isDERegion) {
+      console.log('🇩🇪 Processing DE region request with vendorId:', vendorId);
+      const deVendorId = vendorId;
+
+      usMappingsCache.clear();
+
+      const results = {
+        success: 0, failed: 0, updated: 0, created: 0,
+        errors: [] as Array<{ product: string; error: string }>,
+        price_drops: [] as Array<{ productName: string; product_name: string; oldPrice: string; newPrice: string; url: string }>
+      };
+
+      // Get DE mappings (reuse US mapping cache with 'de-' prefix)
+      const deMappingsCacheKey = `de-${deVendorId}`;
+      if (!usMappingsCache.has(deMappingsCacheKey)) {
+        const { data: mappings } = await supabaseAdmin()
+          .from('de_vendor_product_mapping')
+          .select('vendor_product, product_id')
+          .eq('de_vendor_id', deVendorId);
+        if (mappings) usMappingsCache.set(deMappingsCacheKey, mappings);
+      }
+      const deMappings = usMappingsCache.get(deMappingsCacheKey) || [];
+
+      for (const product of products) {
+        try {
+          const productName = product.productName || product['Product Name'];
+          const rawUrl = product.url || product.URL;
+          const url = rawUrl && typeof rawUrl === 'string' ? rawUrl.trim() : null;
+
+          const price1Pack = parsePrice(product.price1Pack || product['1-pack']);
+          const price5Pack = parsePrice(product.price5Pack || product['5-pack']);
+          const price10Pack = parsePrice(product.price10Pack || product['10-pack']);
+          const price15Pack = parsePrice(product.price15Pack || product['15-pack']);
+          const price20Pack = parsePrice(product.price20Pack || product['20-pack']);
+          const price30Pack = parsePrice(product.price30Pack || product['30-pack']);
+          const price50Pack = parsePrice(product.price50Pack || product['50-pack']);
+          const price100Pack = parsePrice(product.price100Pack || product['100-pack']);
+
+          if (!productName) {
+            results.failed++;
+            results.errors.push({ product: 'Unknown', error: 'Product name is required' });
+            continue;
+          }
+
+          // Find mapping match
+          const normalizedName = productName.trim().toLowerCase();
+          const match = deMappings.find((m: any) =>
+            m.vendor_product && m.vendor_product.trim().toLowerCase() === normalizedName
+          ) || deMappings.find((m: any) => {
+            if (!m.vendor_product) return false;
+            const norm = (s: string) => s.toLowerCase().replace(/\d+mg/g, '').replace(/\s+/g, ' ').trim();
+            return norm(m.vendor_product) === norm(productName);
+          });
+
+          if (match) {
+            const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
+            if (price1Pack !== null) updateData.price_1pack = parseFloat(price1Pack);
+            if (price5Pack !== null) updateData.price_5pack = parseFloat(price5Pack);
+            if (price10Pack !== null) updateData.price_10pack = parseFloat(price10Pack);
+            if (price15Pack !== null) updateData.price_15pack = parseFloat(price15Pack);
+            if (price20Pack !== null) updateData.price_20pack = parseFloat(price20Pack);
+            if (price30Pack !== null) updateData.price_30pack = parseFloat(price30Pack);
+            if (price50Pack !== null) updateData.price_50pack = parseFloat(price50Pack);
+            if (price100Pack !== null) updateData.price_100pack = parseFloat(price100Pack);
+            if (url) updateData.url = url;
+
+            const rawPrices = [product['1-pack'], product['5-pack'], product['10-pack']].filter(Boolean);
+            const allOOS = rawPrices.length > 0 && rawPrices.every((p: string) =>
+              ['out of stock', 'sold out', 'n/a'].includes(p.toString().trim().toLowerCase())
+            );
+            updateData.stock_status = allOOS ? 'out_of_stock' : 'in_stock';
+
+            if (product.imageUrl) updateData.image_url = product.imageUrl;
+
+            const { error: updateError } = await supabaseAdmin()
+              .from('de_vendor_products')
+              .update(updateData)
+              .eq('de_vendor_id', deVendorId)
+              .eq('name', match.vendor_product);
+
+            if (updateError) {
+              results.failed++;
+              results.errors.push({ product: productName, error: updateError.message });
+            } else {
+              results.success++;
+              results.updated++;
+            }
+          } else {
+            results.failed++;
+            results.errors.push({ product: productName, error: 'Product not found in de_vendor_product_mapping' });
+          }
+        } catch (error: any) {
+          results.failed++;
+          results.errors.push({ product: product.productName || 'Unknown', error: error.message });
+        }
+      }
+
+      return NextResponse.json({
+        success: true, vendorId: deVendorId, region: 'DE',
+        summary: { total: products.length, success: results.success, failed: results.failed, updated: results.updated, created: results.created },
+        errors: results.errors.length > 0 ? results.errors : undefined
+      });
+    }
+
+    // Handle IT region - same logic as DE but with it_ tables
+    if (isITRegion) {
+      console.log('🇮🇹 Processing IT region request with vendorId:', vendorId);
+      const itVendorId = vendorId;
+      usMappingsCache.clear();
+
+      const results = {
+        success: 0, failed: 0, updated: 0, created: 0,
+        errors: [] as Array<{ product: string; error: string }>,
+      };
+
+      const itMappingsCacheKey = `it-${itVendorId}`;
+      if (!usMappingsCache.has(itMappingsCacheKey)) {
+        const { data: mappings } = await supabaseAdmin()
+          .from('it_vendor_product_mapping')
+          .select('vendor_product, product_id')
+          .eq('it_vendor_id', itVendorId);
+        if (mappings) usMappingsCache.set(itMappingsCacheKey, mappings);
+      }
+      const itMappings = usMappingsCache.get(itMappingsCacheKey) || [];
+
+      for (const product of products) {
+        try {
+          const productName = product.productName || product['Product Name'];
+          const rawUrl = product.url || product.URL;
+          const url = rawUrl && typeof rawUrl === 'string' ? rawUrl.trim() : null;
+          const price1Pack = parsePrice(product.price1Pack || product['1-pack']);
+          const price5Pack = parsePrice(product.price5Pack || product['5-pack']);
+          const price10Pack = parsePrice(product.price10Pack || product['10-pack']);
+          const price30Pack = parsePrice(product.price30Pack || product['30-pack']);
+          const price50Pack = parsePrice(product.price50Pack || product['50-pack']);
+
+          if (!productName) { results.failed++; results.errors.push({ product: 'Unknown', error: 'Product name is required' }); continue; }
+
+          const normalizedName = productName.trim().toLowerCase();
+          const match = itMappings.find((m: any) => m.vendor_product && m.vendor_product.trim().toLowerCase() === normalizedName)
+            || itMappings.find((m: any) => {
+              if (!m.vendor_product) return false;
+              const norm = (s: string) => s.toLowerCase().replace(/\d+mg/g, '').replace(/\s+/g, ' ').trim();
+              return norm(m.vendor_product) === norm(productName);
+            });
+
+          if (match) {
+            const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
+            if (price1Pack !== null) updateData.price_1pack = parseFloat(price1Pack);
+            if (price5Pack !== null) updateData.price_5pack = parseFloat(price5Pack);
+            if (price10Pack !== null) updateData.price_10pack = parseFloat(price10Pack);
+            if (price30Pack !== null) updateData.price_30pack = parseFloat(price30Pack);
+            if (price50Pack !== null) updateData.price_50pack = parseFloat(price50Pack);
+            if (url) updateData.url = url;
+            if (product.imageUrl) updateData.image_url = product.imageUrl;
+
+            const rawPrices = [product['1-pack'], product['5-pack'], product['10-pack']].filter(Boolean);
+            const allOOS = rawPrices.length > 0 && rawPrices.every((p: string) =>
+              ['out of stock', 'sold out', 'n/a'].includes(p.toString().trim().toLowerCase()));
+            updateData.stock_status = allOOS ? 'out_of_stock' : 'in_stock';
+
+            const { error: updateError } = await supabaseAdmin()
+              .from('it_vendor_products').update(updateData).eq('it_vendor_id', itVendorId).eq('name', match.vendor_product);
+
+            if (updateError) { results.failed++; results.errors.push({ product: productName, error: updateError.message }); }
+            else { results.success++; results.updated++; }
+          } else {
+            results.failed++;
+            results.errors.push({ product: productName, error: 'Product not found in it_vendor_product_mapping' });
+          }
+        } catch (error: any) { results.failed++; results.errors.push({ product: product.productName || 'Unknown', error: error.message }); }
+      }
+
+      return NextResponse.json({
+        success: true, vendorId: itVendorId, region: 'IT',
+        summary: { total: products.length, success: results.success, failed: results.failed, updated: results.updated, created: results.created },
+        errors: results.errors.length > 0 ? results.errors : undefined
+      });
+    }
 
     // Handle US region - update us_vendor_products_new table with mapping support
     if (isUSRegion) {
@@ -888,7 +1072,7 @@ export async function POST(request: NextRequest) {
           // Fetch current prices and stock status BEFORE updating to detect price drops and stock changes
           const { data: currentProduct } = await supabaseAdmin()
             .from('vendor_products')
-            .select('id, name, url, price_1pack, price_5pack, price_10pack, price_15pack, price_30pack, stock_status')
+            .select('id, name, url, price_1pack, price_3pack, price_5pack, price_10pack, price_15pack, price_20pack, price_25pack, price_30pack, price_50pack, price_100pack, stock_status')
             .eq('vendor_id', finalVendorId)
             .eq('name', mappedProductName)
             .limit(1)
@@ -937,6 +1121,28 @@ export async function POST(request: NextRequest) {
               }
             } catch (triggerError) {
               console.error(`❌ Error triggering back-in-stock notification:`, triggerError);
+            }
+          }
+
+          // Save previous prices if any price actually changed
+          if (currentProduct) {
+            const packKeys = ['price_1pack', 'price_3pack', 'price_5pack', 'price_10pack', 'price_15pack', 'price_20pack', 'price_25pack', 'price_30pack', 'price_50pack', 'price_100pack'];
+            const anyPriceChanged = packKeys.some(key => {
+              if (updateData[key] === undefined) return false;
+              const oldVal = parseFloat(currentProduct[key]);
+              const newVal = parseFloat(updateData[key]);
+              return !isNaN(oldVal) && !isNaN(newVal) && oldVal !== newVal;
+            });
+            if (anyPriceChanged) {
+              const prevPrices: Record<string, any> = {};
+              for (const key of packKeys) {
+                if (currentProduct[key] !== null && currentProduct[key] !== undefined) {
+                  prevPrices[key] = currentProduct[key];
+                }
+              }
+              updateData.previous_prices = prevPrices;
+              updateData.price_changed_at = new Date().toISOString();
+              console.log(`📊 Price change recorded for "${mappedProductName}"`);
             }
           }
 

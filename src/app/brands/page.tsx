@@ -5,6 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { getBrandLogo, getUSBrandLogo } from '@/lib/brand-logos';
+import { generateBreadcrumbSchema } from '@/lib/seo-core';
+import { generateBreadcrumbData } from '@/lib/seo-templates';
 
 export const revalidate = 3600; // Cache for 1 hour
 
@@ -78,7 +80,33 @@ export const metadata: Metadata = {
 export default async function BrandsPage() {
   const brands = await getAllBrands();
 
+  const breadcrumbs = generateBreadcrumbData('default', {}, [
+    { name: 'Brands', url: '/brands' },
+    { name: 'All Brands', url: '/brands' }
+  ]);
+
+  // ItemList schema to tell Google this is a listing, not product pages
+  const itemListSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Nicotine Pouch Brands",
+    "description": "All nicotine pouch brands available for comparison",
+    "numberOfItems": brands.length,
+    "itemListElement": brands.slice(0, 50).map((brand: any, index: number) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "name": brand.name,
+      "url": `https://nicotine-pouches.org/brand/${brand.slug}`
+    }))
+  };
+
   return (
+    <>
+    {generateBreadcrumbSchema(breadcrumbs)}
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
+    />
     <div id="boxed-wrapper">
       <div id="wrapper" className="fusion-wrapper">
         <Header />
@@ -225,5 +253,6 @@ export default async function BrandsPage() {
         <Footer />
       </div>
     </div>
+    </>
   );
 }
