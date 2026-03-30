@@ -148,7 +148,7 @@ export default function DynamicProductSection({
                   store_count: product.store_count
                 }} />
 
-                <Link href={isExternal ? `${localePrefix}/vergleichen?brand=${encodeURIComponent(product.brand)}` : productHref} style={{
+                <Link href={isExternal ? productHref : productHref} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined} style={{
                   position: 'relative',
                   zIndex: 1,
                   textDecoration: 'none',

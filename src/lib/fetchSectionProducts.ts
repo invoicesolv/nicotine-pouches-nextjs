@@ -269,6 +269,8 @@ async function fetchEURegionSectionProducts(
       .select(`id, name, ${vendorIdCol}, url, price_1pack, stock_status, image_url, created_at, updated_at`)
       .eq('stock_status', 'in_stock')
       .not('price_1pack', 'is', null)
+      .not('image_url', 'is', null)
+      .neq('image_url', '')
       .gt('price_1pack', 0)
       .order(orderCol, { ascending: false })
       .limit(200);
