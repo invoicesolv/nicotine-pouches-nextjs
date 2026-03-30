@@ -27,6 +27,10 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'cdn.shopify.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'images.unsplash.com',
       },
     ],
@@ -40,6 +44,7 @@ const nextConfig = {
   generateEtags: true,
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-tabs', 'framer-motion'],
+    optimizeCss: true,
   },
   // Target modern browsers only - no legacy polyfills
   transpilePackages: [],
@@ -134,6 +139,27 @@ const nextConfig = {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
           },
+        ],
+      },
+      {
+        // Content-Language for German locale
+        source: '/de/:path*',
+        headers: [
+          { key: 'Content-Language', value: 'de' },
+        ],
+      },
+      {
+        // Content-Language for Italian locale
+        source: '/it/:path*',
+        headers: [
+          { key: 'Content-Language', value: 'it' },
+        ],
+      },
+      {
+        // Content-Language for Spanish locale
+        source: '/es/:path*',
+        headers: [
+          { key: 'Content-Language', value: 'es' },
         ],
       },
       {
