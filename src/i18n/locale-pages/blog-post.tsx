@@ -80,20 +80,35 @@ export async function BlogPostLocalePage({
             </div>
           </div>
 
-          <article style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 20px 80px' }}>
-            {post.featured_image && (
-              <div style={{ position: 'relative', width: '100%', height: '400px', borderRadius: '12px', overflow: 'hidden', marginBottom: '32px' }}>
-                <Image src={post.featured_image} alt={post.title || ''} fill style={{ objectFit: 'cover' }} priority />
+          {/* Hero with title over image */}
+          {post.featured_image && (
+            <div style={{ position: 'relative', width: '100%', height: '480px', overflow: 'hidden' }}>
+              <Image src={post.featured_image} alt={post.title || ''} fill style={{ objectFit: 'cover' }} priority />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%)' }} />
+              <div style={{ position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '800px', padding: '0 20px' }}>
+                <h1 style={{ fontSize: '38px', fontWeight: '900', color: '#ffffff', margin: '0 0 12px', lineHeight: '1.15', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", letterSpacing: '-0.03em', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+                  {post.title}
+                </h1>
+                <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+                  {dateStr}
+                </div>
               </div>
-            )}
-
-            <h1 style={{ fontSize: '38px', fontWeight: '900', color: '#0B051D', margin: '0 0 16px', lineHeight: '1.15', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", letterSpacing: '-0.03em' }}>
-              {post.title}
-            </h1>
-
-            <div style={{ fontSize: '14px', color: '#999', marginBottom: '32px', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-              {dateStr}
             </div>
+          )}
+
+          {/* Fallback if no image */}
+          {!post.featured_image && (
+            <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 20px 0' }}>
+              <h1 style={{ fontSize: '38px', fontWeight: '900', color: '#0B051D', margin: '0 0 12px', lineHeight: '1.15', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", letterSpacing: '-0.03em' }}>
+                {post.title}
+              </h1>
+              <div style={{ fontSize: '14px', color: '#999', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+                {dateStr}
+              </div>
+            </div>
+          )}
+
+          <article style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 20px 80px' }}>
 
             <div style={{ fontSize: '17px', lineHeight: '1.8', color: '#333', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
               <BlogContentProcessor content={post.content || ''} />
