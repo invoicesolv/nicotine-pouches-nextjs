@@ -68,11 +68,8 @@ export default function DynamicProductSection({
       }}>
         {products.map((product, index) => {
           const slug = generateSlug(product.name);
-          const isEULocale = currentLanguage === 'de' || currentLanguage === 'it' || currentLanguage === 'es';
-          const productHref = isEULocale && (product as any).vendor_url
-            ? (product as any).vendor_url
-            : `${localePrefix}/product/${slug}`;
-          const isExternal = isEULocale && (product as any).vendor_url;
+          const productHref = `${localePrefix}/product/${slug}`;
+          const isExternal = false;
           const isNew = product.created_at && (now - new Date(product.created_at).getTime()) < 30 * 24 * 60 * 60 * 1000;
 
           return (
