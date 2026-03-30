@@ -326,9 +326,9 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       if (!price || price === '' || price === null || price === undefined) return null;
       const priceStr = price.toString().trim();
       if (priceStr === '' || priceStr === 'N/A' || priceStr.toLowerCase() === 'out of stock') return null;
-      if (priceStr.includes('£')) {
+      if (priceStr.includes('€')) {
         // Extract number from £X.XX format and reformat
-        const numStr = priceStr.replace('£', '');
+        const numStr = priceStr.replace('€', '');
         const num = parseFloat(numStr);
         if (isNaN(num) || num <= 0) return null;
         return `£${num.toFixed(2)}`;
@@ -354,7 +354,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
           rating: vendor.rating || 4.5,
           trustpilot_score: vendor.trustpilot_score || null,
           review_count: vendor.review_count || 0,
-          shipping_info: vendor.shipping_info || 'Standard shipping',
+          shipping_info: vendor.shipping_info || 'Envío estándar',
           shipping_cost: typeof vendor.shipping_cost === 'string' ? parseFloat(vendor.shipping_cost) || 0 : (vendor.shipping_cost || 0),
           free_shipping_threshold: typeof vendor.free_shipping_threshold === 'string' ? parseFloat(vendor.free_shipping_threshold) || 0 : (vendor.free_shipping_threshold || 0),
           delivery_speed: vendor.delivery_speed || null,
@@ -621,7 +621,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         nicotine_free_option: false,
         retailer_name: store.name,
         retailer_url: store.variants?.[0]?.link || store.url || '#',
-        shipping_note: store.shipping_info || 'Standard shipping',
+        shipping_note: store.shipping_info || 'Envío estándar',
         last_seen: new Date().toISOString(),
         currency: 'GBP',
         rating_value: store.rating || 4.5,
@@ -635,9 +635,9 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       packs: stores.length > 0 ? [
         { 
           pack_size: 1, 
-          price: parseFloat(stores[0]?.variants?.[0]?.prices?.['1pack']?.replace('£', '') || stores[0]?.prices?.['1pack']?.replace('£', '') || '0'), 
+          price: parseFloat(stores[0]?.variants?.[0]?.prices?.['1pack']?.replace('€', '') || stores[0]?.prices?.['1pack']?.replace('€', '') || '0'), 
           currency: 'GBP',
-          price_per_pouch: parseFloat(stores[0]?.variants?.[0]?.prices?.['1pack']?.replace('£', '') || stores[0]?.prices?.['1pack']?.replace('£', '') || '0'),
+          price_per_pouch: parseFloat(stores[0]?.variants?.[0]?.prices?.['1pack']?.replace('€', '') || stores[0]?.prices?.['1pack']?.replace('€', '') || '0'),
           retailer_name: stores[0]?.name || 'Unknown',
           retailer_url: stores[0]?.variants?.[0]?.link || stores[0]?.url || '',
           in_stock: stores[0]?.in_stock || false,
@@ -646,9 +646,9 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         },
         { 
           pack_size: 5, 
-          price: parseFloat(stores[0]?.variants?.[0]?.prices?.['5pack']?.replace('£', '') || stores[0]?.prices?.['5pack']?.replace('£', '') || '0'), 
+          price: parseFloat(stores[0]?.variants?.[0]?.prices?.['5pack']?.replace('€', '') || stores[0]?.prices?.['5pack']?.replace('€', '') || '0'), 
           currency: 'GBP',
-          price_per_pouch: parseFloat(stores[0]?.variants?.[0]?.prices?.['5pack']?.replace('£', '') || stores[0]?.prices?.['5pack']?.replace('£', '') || '0') / 5,
+          price_per_pouch: parseFloat(stores[0]?.variants?.[0]?.prices?.['5pack']?.replace('€', '') || stores[0]?.prices?.['5pack']?.replace('€', '') || '0') / 5,
           retailer_name: stores[0]?.name || 'Unknown',
           retailer_url: stores[0]?.variants?.[0]?.link || stores[0]?.url || '',
           in_stock: stores[0]?.in_stock || false,
@@ -657,9 +657,9 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         },
         { 
           pack_size: 10, 
-          price: parseFloat(stores[0]?.variants?.[0]?.prices?.['10pack']?.replace('£', '') || stores[0]?.prices?.['10pack']?.replace('£', '') || '0'), 
+          price: parseFloat(stores[0]?.variants?.[0]?.prices?.['10pack']?.replace('€', '') || stores[0]?.prices?.['10pack']?.replace('€', '') || '0'), 
           currency: 'GBP',
-          price_per_pouch: parseFloat(stores[0]?.variants?.[0]?.prices?.['10pack']?.replace('£', '') || stores[0]?.prices?.['10pack']?.replace('£', '') || '0') / 10,
+          price_per_pouch: parseFloat(stores[0]?.variants?.[0]?.prices?.['10pack']?.replace('€', '') || stores[0]?.prices?.['10pack']?.replace('€', '') || '0') / 10,
           retailer_name: stores[0]?.name || 'Unknown',
           retailer_url: stores[0]?.variants?.[0]?.link || stores[0]?.url || '',
           in_stock: stores[0]?.in_stock || false,
@@ -668,9 +668,9 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         },
         { 
           pack_size: 20, 
-          price: parseFloat(stores[0]?.variants?.[0]?.prices?.['20pack']?.replace('£', '') || stores[0]?.prices?.['20pack']?.replace('£', '') || '0'), 
+          price: parseFloat(stores[0]?.variants?.[0]?.prices?.['20pack']?.replace('€', '') || stores[0]?.prices?.['20pack']?.replace('€', '') || '0'), 
           currency: 'GBP',
-          price_per_pouch: parseFloat(stores[0]?.variants?.[0]?.prices?.['20pack']?.replace('£', '') || stores[0]?.prices?.['20pack']?.replace('£', '') || '0') / 20,
+          price_per_pouch: parseFloat(stores[0]?.variants?.[0]?.prices?.['20pack']?.replace('€', '') || stores[0]?.prices?.['20pack']?.replace('€', '') || '0') / 20,
           retailer_name: stores[0]?.name || 'Unknown',
           retailer_url: stores[0]?.variants?.[0]?.link || stores[0]?.url || '',
           in_stock: stores[0]?.in_stock || false,
@@ -684,15 +684,15 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         alt: product.name || 'Unknown Product'
       },
       page_url: product.page_url || `https://nicotine-pouches.org/product/${slug}`,
-      site_name: 'Nicotine Pouches UK',
+      site_name: 'Bolsas de Nicotina ES',
       publisher: {
-        name: 'Nicotine Pouches UK',
+        name: 'Bolsas de Nicotina ES',
         logo: '/logo.png',
         url: 'https://nicotine-pouches.org'
       },
       breadcrumbs: [
-        { name: 'Home', url: '/' },
-        { name: 'Products', url: '/products' },
+        { name: 'Inicio', url: '/es' },
+        { name: 'Productos', url: '/es/comparar' },
         { name: product.name || 'Unknown Product', url: product.page_url || `https://nicotine-pouches.org/product/${slug}` }
       ],
       hreflang: generateSafeHreflang(generateProductHreflang(slug, false, false)),
@@ -731,11 +731,11 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
           const variant = store.variants[0]; // Use first variant
           const packPriceKey = `${packSizeNumber}pack`;
           const priceStr = variant.prices?.[packPriceKey] || variant.price || '£0';
-          actualPrice = parseFloat(priceStr.replace('£', '') || '0');
+          actualPrice = parseFloat(priceStr.replace('€', '') || '0');
           retailerUrl = variant.link || store.url || '';
         } else {
           // Fallback to store.price if no variants
-          actualPrice = parseFloat(store.price?.replace('£', '') || '0');
+          actualPrice = parseFloat(store.price?.replace('€', '') || '0');
           retailerUrl = store.url || '';
         }
         
@@ -761,15 +761,15 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         alt: product.name || 'Unknown Product'
       },
       page_url: product.page_url || `https://nicotine-pouches.org/product/${slug}`,
-      site_name: 'Nicotine Pouches UK',
+      site_name: 'Bolsas de Nicotina ES',
       publisher: {
-        name: 'Nicotine Pouches UK',
+        name: 'Bolsas de Nicotina ES',
         logo: '/logo.png',
         url: 'https://nicotine-pouches.org'
       },
       breadcrumbs: [
-        { name: 'Home', url: '/' },
-        { name: 'Products', url: '/products' },
+        { name: 'Inicio', url: '/es' },
+        { name: 'Productos', url: '/es/comparar' },
         { name: product.name || 'Unknown Product', url: product.page_url || `https://nicotine-pouches.org/product/${slug}` }
       ],
       hreflang: generateSafeHreflang(generateProductHreflang(slug, false, false)),
@@ -818,7 +818,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       headline: product.headline || '',
       image: product.image_url || '/placeholder-product.jpg',
       rating: 0, // Default rating since wp_products doesn't have rating
-      description: product.content || 'No description available',
+      description: product.content || 'Sin descripción disponible',
       description_short: product.description_short || '',
       description_long: product.description_long || '',
       brand: brand,
@@ -856,8 +856,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   
   if (!product) {
     return {
-      title: 'Product Not Found',
-      description: 'The requested product could not be found.'
+      title: 'Producto no encontrado',
+      description: 'El producto solicitado no se ha encontrado.'
     };
   }
 
@@ -1177,7 +1177,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               // Determine currency from price string or default to GBP
               const priceCurrency = priceStr.includes('$') ? 'USD' : 
                                    priceStr.includes('€') ? 'EUR' : 
-                                   priceStr.includes('£') ? 'GBP' : 'GBP';
+                                   priceStr.includes('€') ? 'GBP' : 'GBP';
               
               // Extract pack size number for description
               const packSizeNumber = packSize.replace('pack', '');
@@ -1263,7 +1263,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               // Determine currency from price string or default to GBP
               const priceCurrency = store.price?.includes('$') ? 'USD' : 
                                    store.price?.includes('€') ? 'EUR' : 
-                                   store.price?.includes('£') ? 'GBP' : 'GBP';
+                                   store.price?.includes('€') ? 'GBP' : 'GBP';
               
               // Determine availability
               const availability = store.stock_status === 'out_of_stock' || 
