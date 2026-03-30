@@ -465,6 +465,37 @@ export async function GET() {
       console.error('Error adding IT brands to sitemap:', e);
     }
 
+    // Add ES vendor product brands from es_vendor_products
+    try {
+      const { data: esProducts } = await supabase()
+        .from('es_vendor_products')
+        .select('name')
+        .not('name', 'is', null)
+        .eq('stock_status', 'in_stock');
+
+      if (esProducts) {
+        const esBrands = Array.from(new Set(esProducts.map((p: any) => p.name?.split(' ')[0]).filter(Boolean)));
+        esBrands.forEach((brand: any) => {
+          const slug = brand.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
+          if (!slug || slug.length < 2) return;
+          const brandUrl = `${baseUrl}/es/marcas/${slug}`;
+          if (!addedUrls.has(brandUrl)) {
+            addedUrls.add(brandUrl);
+            sitemap += `  <url>
+    <loc>${brandUrl}</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+`;
+          }
+        });
+        console.log(`Added ${esBrands.length} ES brand pages to sitemap`);
+      }
+    } catch (e) {
+      console.error('Error adding ES brands to sitemap:', e);
+    }
+
     // Add location pages (UK cities)
     const ukCities = [
       'aberdeen', 'armagh', 'bangor-wales', 'bangor-northern-ireland', 'bath', 'belfast', 'birmingham', 'bradford', 'brighton-and-hove', 'bristol',

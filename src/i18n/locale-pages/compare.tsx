@@ -13,8 +13,8 @@ import type { TranslatedLocale } from '@/i18n/config';
 
 async function getTopBrandsAndCount(locale?: string) {
   try {
-    if (locale === 'de' || locale === 'it') {
-      const tableName = locale === 'it' ? 'it_vendor_products' : 'de_vendor_products';
+    if (locale === 'de' || locale === 'it' || locale === 'es') {
+      const tableName = locale === 'es' ? 'es_vendor_products' : locale === 'it' ? 'it_vendor_products' : 'de_vendor_products';
       const { data: products } = await supabase()
         .from(tableName)
         .select('name')

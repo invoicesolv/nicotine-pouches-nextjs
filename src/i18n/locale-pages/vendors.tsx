@@ -9,7 +9,7 @@ import type { TranslatedLocale } from '@/i18n/config';
 
 async function getVendors(locale?: string) {
   try {
-    const tableName = locale === 'de' ? 'de_vendors' : locale === 'it' ? 'it_vendors' : locale === 'us' ? 'us_vendors' : 'vendors';
+    const tableName = locale === 'de' ? 'de_vendors' : locale === 'it' ? 'it_vendors' : locale === 'es' ? 'es_vendors' : locale === 'us' ? 'us_vendors' : 'vendors';
     let query = supabase().from(tableName).select('*').order('name');
     // Only UK vendors table has is_active column
     if (tableName === 'vendors') {

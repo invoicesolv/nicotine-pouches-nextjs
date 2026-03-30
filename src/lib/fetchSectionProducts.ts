@@ -28,7 +28,7 @@ export async function fetchSectionProducts(
 ): Promise<SectionProduct[]> {
   try {
     // For DE locale, use de_vendor_products directly (no canonical products table)
-    if (locale === 'de' || locale === 'it') {
+    if (locale === 'de' || locale === 'it' || locale === 'es') {
       return fetchEURegionSectionProducts(section, limit, offset, currencySymbol, locale);
     }
 
@@ -260,8 +260,8 @@ async function fetchEURegionSectionProducts(
   locale: string = 'de'
 ): Promise<SectionProduct[]> {
   try {
-    const tableName = locale === 'it' ? 'it_vendor_products' : 'de_vendor_products';
-    const vendorIdCol = locale === 'it' ? 'it_vendor_id' : 'de_vendor_id';
+    const tableName = locale === 'es' ? 'es_vendor_products' : locale === 'it' ? 'it_vendor_products' : 'de_vendor_products';
+    const vendorIdCol = locale === 'es' ? 'es_vendor_id' : locale === 'it' ? 'it_vendor_id' : 'de_vendor_id';
     // Fetch vendor products with prices, ordered by updated_at
     const orderCol = section === 'new' ? 'created_at' : 'updated_at';
     const { data: products, error } = await supabase()

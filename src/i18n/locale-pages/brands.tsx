@@ -10,7 +10,7 @@ import type { TranslatedLocale } from '@/i18n/config';
 
 async function getAllBrands(locale?: string) {
   try {
-    const tableName = locale === 'de' ? 'de_vendor_products' : locale === 'it' ? 'it_vendor_products' : 'wp_products';
+    const tableName = locale === 'de' ? 'de_vendor_products' : locale === 'it' ? 'it_vendor_products' : locale === 'es' ? 'es_vendor_products' : 'wp_products';
     const { data: products, error } = await supabase()
       .from(tableName)
       .select('name')

@@ -458,12 +458,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if this is a DE or IT region request
+    // Check if this is a DE, IT, or ES region request
     const isDERegion = region === 'DE';
     const isITRegion = region === 'IT';
+    const isESRegion = region === 'ES';
     // Check if this is a US region request (UUID vendor ID or explicit region)
-    const isUSRegion = !isDERegion && !isITRegion && (region === 'US' || (vendorId && typeof vendorId === 'string' && vendorId.includes('-')));
-    console.log(`🔍 Region check: region=${region}, vendorId=${vendorId}, isUSRegion=${isUSRegion}, isDERegion=${isDERegion}`);
+    const isUSRegion = !isDERegion && !isITRegion && !isESRegion && (region === 'US' || (vendorId && typeof vendorId === 'string' && vendorId.includes('-')));
+    console.log(`🔍 Region check: region=${region}, vendorId=${vendorId}, isUSRegion=${isUSRegion}, isDERegion=${isDERegion}, isESRegion=${isESRegion}`);
 
     // Handle DE region - same logic as US but with de_ tables
     if (isDERegion) {
@@ -641,6 +642,82 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true, vendorId: itVendorId, region: 'IT',
+        summary: { total: products.length, success: results.success, failed: results.failed, updated: results.updated, created: results.created },
+        errors: results.errors.length > 0 ? results.errors : undefined
+      });
+    }
+
+    // Handle ES region - same logic as IT but with es_ tables
+    if (isESRegion) {
+      console.log('🇪🇸 Processing ES region request with vendorId:', vendorId);
+      const esVendorId = vendorId;
+      usMappingsCache.clear();
+
+      const results = {
+        success: 0, failed: 0, updated: 0, created: 0,
+        errors: [] as Array<{ product: string; error: string }>,
+      };
+
+      const esMappingsCacheKey = `es-${esVendorId}`;
+      if (!usMappingsCache.has(esMappingsCacheKey)) {
+        const { data: mappings } = await supabaseAdmin()
+          .from('es_vendor_product_mapping')
+          .select('vendor_product, product_id')
+          .eq('es_vendor_id', esVendorId);
+        if (mappings) usMappingsCache.set(esMappingsCacheKey, mappings);
+      }
+      const esMappings = usMappingsCache.get(esMappingsCacheKey) || [];
+
+      for (const product of products) {
+        try {
+          const productName = product.productName || product['Product Name'];
+          const rawUrl = product.url || product.URL;
+          const url = rawUrl && typeof rawUrl === 'string' ? rawUrl.trim() : null;
+          const price1Pack = parsePrice(product.price1Pack || product['1-pack']);
+          const price5Pack = parsePrice(product.price5Pack || product['5-pack']);
+          const price10Pack = parsePrice(product.price10Pack || product['10-pack']);
+          const price30Pack = parsePrice(product.price30Pack || product['30-pack']);
+          const price50Pack = parsePrice(product.price50Pack || product['50-pack']);
+
+          if (!productName) { results.failed++; results.errors.push({ product: 'Unknown', error: 'Product name is required' }); continue; }
+
+          const normalizedName = productName.trim().toLowerCase();
+          const match = esMappings.find((m: any) => m.vendor_product && m.vendor_product.trim().toLowerCase() === normalizedName)
+            || esMappings.find((m: any) => {
+              if (!m.vendor_product) return false;
+              const norm = (s: string) => s.toLowerCase().replace(/\d+mg/g, '').replace(/\s+/g, ' ').trim();
+              return norm(m.vendor_product) === norm(productName);
+            });
+
+          if (match) {
+            const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
+            if (price1Pack !== null) updateData.price_1pack = parseFloat(price1Pack);
+            if (price5Pack !== null) updateData.price_5pack = parseFloat(price5Pack);
+            if (price10Pack !== null) updateData.price_10pack = parseFloat(price10Pack);
+            if (price30Pack !== null) updateData.price_30pack = parseFloat(price30Pack);
+            if (price50Pack !== null) updateData.price_50pack = parseFloat(price50Pack);
+            if (url) updateData.url = url;
+            if (product.imageUrl) updateData.image_url = product.imageUrl;
+
+            const rawPrices = [product['1-pack'], product['5-pack'], product['10-pack']].filter(Boolean);
+            const allOOS = rawPrices.length > 0 && rawPrices.every((p: string) =>
+              ['out of stock', 'sold out', 'n/a'].includes(p.toString().trim().toLowerCase()));
+            updateData.stock_status = allOOS ? 'out_of_stock' : 'in_stock';
+
+            const { error: updateError } = await supabaseAdmin()
+              .from('es_vendor_products').update(updateData).eq('es_vendor_id', esVendorId).eq('name', match.vendor_product);
+
+            if (updateError) { results.failed++; results.errors.push({ product: productName, error: updateError.message }); }
+            else { results.success++; results.updated++; }
+          } else {
+            results.failed++;
+            results.errors.push({ product: productName, error: 'Product not found in es_vendor_product_mapping' });
+          }
+        } catch (error: any) { results.failed++; results.errors.push({ product: product.productName || 'Unknown', error: error.message }); }
+      }
+
+      return NextResponse.json({
+        success: true, vendorId: esVendorId, region: 'ES',
         summary: { total: products.length, success: results.success, failed: results.failed, updated: results.updated, created: results.created },
         errors: results.errors.length > 0 ? results.errors : undefined
       });
