@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { Suspense } from 'react';
 import { unstable_cache } from 'next/cache';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -635,6 +636,9 @@ async function generateCityMetadata(slug: string): Promise<Metadata> {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
 
+  // Locale slugs handled by [locale] route
+  if (['de', 'it', 'es'].includes(slug)) return {};
+
   // Check if this is a city slug first
   if (CITY_SLUGS.includes(slug)) {
     return generateCityMetadata(slug);
@@ -736,12 +740,34 @@ interface BlogPost {
   };
 }
 
+// Check if a slug exists in a locale blog table and redirect
+async function checkLocaleBlogRedirect(slug: string): Promise<string | null> {
+  const localeTables = [
+    { table: 'blog_posts_de', locale: 'de', guidesSlug: 'ratgeber' },
+    { table: 'blog_posts_it', locale: 'it', guidesSlug: 'guide' },
+    { table: 'blog_posts_es', locale: 'es', guidesSlug: 'guias' },
+  ];
+  for (const { table, locale, guidesSlug } of localeTables) {
+    try {
+      const { data } = await supabase()
+        .from(table)
+        .select('slug')
+        .eq('slug', slug)
+        .eq('status', 'publish')
+        .limit(1)
+        .single();
+      if (data) return `/${locale}/${guidesSlug}/${slug}`;
+    } catch {}
+  }
+  return null;
+}
+
 const getBlogPost = (slug: string) => unstable_cache(
   async (): Promise<BlogPost | null> => {
     try {
       const { data: post, error } = await supabase()
         .from('blog_posts')
-        .select('*')
+        .select('wp_id, title, slug, excerpt, content, date, created_at, updated_at, author, featured_image, featured_image_local, link, seo_meta')
         .eq('slug', slug)
         .in('status', ['publish', 'published'])
         .single();
@@ -776,6 +802,12 @@ const getBlogPost = (slug: string) => unstable_cache(
 export default async function DynamicPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
+  // Locale slugs are handled by [locale]/layout.tsx — prevent conflict
+  if (['de', 'it', 'es'].includes(slug)) {
+    const { notFound } = await import('next/navigation');
+    notFound();
+  }
+
   // Cities render here; blog posts (old + generated) fall through and render at root below
   // Check if this is a city slug
   if (CITY_SLUGS.includes(slug)) {
@@ -794,66 +826,23 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
       });
 
       return (
-        <>
-          {/* LocalBusiness Schema */}
-          {renderSchemaTag('localBusiness', {
-            businessName: `${SEO_CONFIG.appName} - ${geoData.name}`,
-            cityName: geoData.name,
-            region: geoData.region,
-            description: `Find the best nicotine pouches in ${geoData.name}, ${geoData.region}. Compare prices from top UK brands including ZYN, VELO, and Nordic Spirit. Local availability and delivery options.`,
-            url: getFullUrl(`/${slug}`),
-            geo: geoData.geo,
-            telephone: geoData.telephone,
-            aggregateRating: aggregateRating?.aggregateRating,
-            openingHours: "Mo-Su 00:00-23:59"
-          })}
-
-          {/* Breadcrumb Schema */}
-          {generateBreadcrumbSchema(breadcrumbs)}
-
-          {/* City Page Styles - Match Homepage */}
-          <style dangerouslySetInnerHTML={{
-            __html: `
-              @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
-              .city-page-wrapper {
-                font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-              }
-              .city-page-wrapper * {
-                font-family: inherit;
-              }
-              .city-page-wrapper h1,
-              .city-page-wrapper h2,
-              .city-page-wrapper h3,
-              .city-page-wrapper h4,
-              .city-page-wrapper p,
-              .city-page-wrapper span,
-              .city-page-wrapper div {
-                font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-              }
-              @media (max-width: 768px) {
-                .city-hero-section {
-                  min-height: 50vh !important;
-                  padding: 60px 16px !important;
-                }
-                .city-hero-section h1 {
-                  font-size: 2rem !important;
-                }
-                .city-info-grid {
-                  grid-template-columns: 1fr !important;
-                  gap: 30px !important;
-                }
-                .city-stats-row {
-                  gap: 30px !important;
-                }
-                .city-stats-row > div {
-                  min-width: 80px;
-                }
-              }
-            `
-          }} />
-
           <div className="city-page-wrapper" style={{ backgroundColor: '#ffffff', minHeight: '100vh', fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" }}>
+            {/* LocalBusiness Schema */}
+            {renderSchemaTag('localBusiness', {
+              businessName: `${SEO_CONFIG.appName} - ${geoData.name}`,
+              cityName: geoData.name,
+              region: geoData.region,
+              description: `Find the best nicotine pouches in ${geoData.name}, ${geoData.region}. Compare prices from top UK brands including ZYN, VELO, and Nordic Spirit. Local availability and delivery options.`,
+              url: getFullUrl(`/${slug}`),
+              geo: geoData.geo,
+              telephone: geoData.telephone,
+              aggregateRating: aggregateRating?.aggregateRating,
+              openingHours: "Mo-Su 00:00-23:59"
+            })}
+
+            {/* Breadcrumb Schema */}
+            {generateBreadcrumbSchema(breadcrumbs)}
+
             <Header />
         
             {/* Hero Section with Dark Background */}
@@ -1066,7 +1055,6 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
       <Footer />
       <CookieConsent />
     </div>
-    </>
   );
     }
   }
@@ -1076,13 +1064,20 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
   console.log(`[slug] Post found:`, post ? post.title : 'null');
 
   if (!post) {
+    // Check if this slug exists in a locale blog table (DE/IT/ES) and redirect
+    const localeRedirect = await checkLocaleBlogRedirect(slug);
+    if (localeRedirect) {
+      const { redirect } = await import('next/navigation');
+      redirect(localeRedirect);
+    }
+
     return (
       <div style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
         <Header />
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
           minHeight: '50vh',
           fontSize: '18px',
           color: '#666',
@@ -1107,67 +1102,19 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
     : [post.title];
 
   return (
-    <>
-      {/* Article JSON-LD */}
-      {renderSchemaTag('article', {
-        title: post.seo_meta?.title || post.title,
-        description: (post.seo_meta?.description || post.excerpt || '').replace(/<[^>]*>/g, '').substring(0, 160),
-        image: articleImageUrl,
-        author: { name: post.author },
-        datePublished: post.date,
-        dateModified: post.updated_at || post.date,
-        url: canonicalUrl,
-        keywords: articleKeywords,
-        speakableSections: ['.article-body'],
-      })}
-
-      <style dangerouslySetInnerHTML={{
-        __html: `
-          @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
-          .guide-page-wrapper {
-            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-          }
-          .guide-page-wrapper * {
-            font-family: inherit;
-          }
-          .guide-content-container {
-            width: calc(100% - 80px);
-            max-width: 1400px;
-            margin-left: auto;
-            margin-right: auto;
-          }
-          .article-body iframe {
-            max-width: 100% !important;
-          }
-          .article-body div[style*="position:relative"] {
-            max-width: 100% !important;
-          }
-          @media (max-width: 768px) {
-            .guide-content-container {
-              width: 100%;
-              padding: 0 16px;
-            }
-            .guide-hero-grid {
-              grid-template-columns: 1fr !important;
-              gap: 24px !important;
-            }
-            .guide-featured-image {
-              max-width: 100% !important;
-            }
-            .guide-title {
-              font-size: 1.75rem !important;
-            }
-            .guide-meta-row {
-              flex-direction: column !important;
-              align-items: flex-start !important;
-              gap: 12px !important;
-            }
-          }
-        `
-      }} />
-
       <div className="guide-page-wrapper" style={{ backgroundColor: '#ffffff', minHeight: '100vh', fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" }}>
+        {/* Article JSON-LD */}
+        {renderSchemaTag('article', {
+          title: post.seo_meta?.title || post.title,
+          description: (post.seo_meta?.description || post.excerpt || '').replace(/<[^>]*>/g, '').substring(0, 160),
+          image: articleImageUrl,
+          author: { name: post.author },
+          datePublished: post.date,
+          dateModified: post.updated_at || post.date,
+          url: canonicalUrl,
+          keywords: articleKeywords,
+          speakableSections: ['.article-body'],
+        })}
         <Header />
 
         {/* Breadcrumb - Modern Style */}
@@ -1267,6 +1214,19 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
                       day: 'numeric'
                     })}
                   </div>
+                  {post.updated_at && post.updated_at !== post.date && (
+                    <div style={{
+                      fontSize: '13px',
+                      color: '#9ca3af',
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+                    }}>
+                      Last updated: {new Date(post.updated_at).toLocaleDateString('en-GB', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1308,6 +1268,7 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
                   alt={post.title}
                   width={800}
                   height={450}
+                  priority
                   style={{
                     width: '100%',
                     height: 'auto',
@@ -1333,19 +1294,20 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
           </div>
         </div>
 
-        {/* Related Posts */}
-        <div style={{ backgroundColor: '#f8fafc', padding: '64px 0' }}>
-          <div className="guide-content-container">
-            <RelatedPosts
-              currentPostSlug={slug}
-              currentPostTitle={post.title}
-            />
+        {/* Related Posts - Suspense allows server to stream initial HTML before this loads */}
+        <Suspense fallback={<div style={{ backgroundColor: '#f8fafc', padding: '64px 0', minHeight: '200px' }} />}>
+          <div style={{ backgroundColor: '#f8fafc', padding: '64px 0' }}>
+            <div className="guide-content-container">
+              <RelatedPosts
+                currentPostSlug={slug}
+                currentPostTitle={post.title}
+              />
+            </div>
           </div>
-        </div>
+        </Suspense>
 
         <Footer />
         <CookieConsent />
       </div>
-    </>
   );
 }
