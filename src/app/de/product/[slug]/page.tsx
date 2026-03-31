@@ -52,14 +52,14 @@ function isValidPrice(price: any): boolean {
   if (price === 'N/A' || price === '' || price === null || price === undefined) return false;
   const priceStr = price.toString().trim();
   if (priceStr === '' || priceStr === 'N/A') return false;
-  const priceNum = parseFloat(priceStr.replace(/[£€$]/g, '').replace(/,/g, '').trim());
+  const priceNum = parseFloat(priceStr.replace(/[€€$]/g, '').replace(/,/g, '').trim());
   return !isNaN(priceNum) && priceNum > 0;
 }
 
 // Helper function to parse price to number
 function parsePriceToNumber(price: any): number {
   if (!isValidPrice(price)) return 0;
-  return parseFloat(price.toString().replace(/[£€$]/g, '').replace(/,/g, '').trim() || '0');
+  return parseFloat(price.toString().replace(/[€€$]/g, '').replace(/,/g, '').trim() || '0');
 }
 
 // Helper function to calculate price for a pack size (handles vendor-specific logic)
@@ -297,16 +297,16 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       const priceStr = price.toString().trim();
       if (priceStr === '' || priceStr === 'N/A' || priceStr.toLowerCase() === 'out of stock') return null;
       if (priceStr.includes('€')) {
-        // Extract number from £X.XX format and reformat
+        // Extract number from €X.XX format and reformat
         const numStr = priceStr.replace('€', '');
         const num = parseFloat(numStr);
         if (isNaN(num) || num <= 0) return null;
-        return `£${num.toFixed(2)}`;
+        return `€${num.toFixed(2)}`;
       } else {
-        // Add £ and format to 2 decimal places
+        // Add € and format to 2 decimal places
         const num = parseFloat(priceStr);
         if (isNaN(num) || num <= 0) return null;
-        return `£${num.toFixed(2)}`;
+        return `€${num.toFixed(2)}`;
       }
     };
 
@@ -383,7 +383,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         if (price && price !== '' && price !== null && price !== undefined && price !== 'N/A') {
           const priceStr = price.toString().trim();
           if (priceStr !== '' && priceStr !== 'N/A' && priceStr.toLowerCase() !== 'out of stock') {
-            const num = parseFloat(priceStr.replace(/[£€$]/g, '').replace(/,/g, ''));
+            const num = parseFloat(priceStr.replace(/[€€$]/g, '').replace(/,/g, ''));
             if (!isNaN(num) && num > 0) {
               validPrices[key] = price;
             }
@@ -470,7 +470,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         // 2. OR packPrice meets the free threshold (threshold-based free shipping)
         const hasFreeShipping = shippingCost === 0 || (packPrice >= freeThreshold && freeThreshold > 0);
         
-        console.log(`${store.name}: Pack price £${packPrice}, Shipping cost £${shippingCost}, Threshold £${freeThreshold}, Qualifies: ${hasFreeShipping}`);
+        console.log(`${store.name}: Pack price €${packPrice}, Shipping cost €${shippingCost}, Threshold €${freeThreshold}, Qualifies: ${hasFreeShipping}`);
         
         return hasFreeShipping;
       });
@@ -542,7 +542,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         // Calculate price for selected pack size with 15 pack logic
         const variant = store.variants[0];
         const calculatedPriceNum = calculatePackPrice(variant, packSize, store.name);
-        const calculatedPrice = calculatedPriceNum > 0 ? `£${calculatedPriceNum.toFixed(2)}` : null;
+        const calculatedPrice = calculatedPriceNum > 0 ? `€${calculatedPriceNum.toFixed(2)}` : null;
         
         return {
       ...store,
@@ -593,7 +593,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         retailer_url: store.variants?.[0]?.link || store.url || '#',
         shipping_note: store.shipping_info || 'Standardversand',
         last_seen: new Date().toISOString(),
-        currency: 'GBP',
+        currency: 'EUR',
         rating_value: store.rating || 4.5,
         review_count: 0,
         sku: '',
@@ -606,7 +606,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         { 
           pack_size: 1, 
           price: parseFloat(stores[0]?.variants?.[0]?.prices?.['1pack']?.replace('€', '') || stores[0]?.prices?.['1pack']?.replace('€', '') || '0'), 
-          currency: 'GBP',
+          currency: 'EUR',
           price_per_pouch: parseFloat(stores[0]?.variants?.[0]?.prices?.['1pack']?.replace('€', '') || stores[0]?.prices?.['1pack']?.replace('€', '') || '0'),
           retailer_name: stores[0]?.name || 'Unknown',
           retailer_url: stores[0]?.variants?.[0]?.link || stores[0]?.url || '',
@@ -617,7 +617,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         { 
           pack_size: 5, 
           price: parseFloat(stores[0]?.variants?.[0]?.prices?.['5pack']?.replace('€', '') || stores[0]?.prices?.['5pack']?.replace('€', '') || '0'), 
-          currency: 'GBP',
+          currency: 'EUR',
           price_per_pouch: parseFloat(stores[0]?.variants?.[0]?.prices?.['5pack']?.replace('€', '') || stores[0]?.prices?.['5pack']?.replace('€', '') || '0') / 5,
           retailer_name: stores[0]?.name || 'Unknown',
           retailer_url: stores[0]?.variants?.[0]?.link || stores[0]?.url || '',
@@ -628,7 +628,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         { 
           pack_size: 10, 
           price: parseFloat(stores[0]?.variants?.[0]?.prices?.['10pack']?.replace('€', '') || stores[0]?.prices?.['10pack']?.replace('€', '') || '0'), 
-          currency: 'GBP',
+          currency: 'EUR',
           price_per_pouch: parseFloat(stores[0]?.variants?.[0]?.prices?.['10pack']?.replace('€', '') || stores[0]?.prices?.['10pack']?.replace('€', '') || '0') / 10,
           retailer_name: stores[0]?.name || 'Unknown',
           retailer_url: stores[0]?.variants?.[0]?.link || stores[0]?.url || '',
@@ -639,7 +639,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         { 
           pack_size: 20, 
           price: parseFloat(stores[0]?.variants?.[0]?.prices?.['20pack']?.replace('€', '') || stores[0]?.prices?.['20pack']?.replace('€', '') || '0'), 
-          currency: 'GBP',
+          currency: 'EUR',
           price_per_pouch: parseFloat(stores[0]?.variants?.[0]?.prices?.['20pack']?.replace('€', '') || stores[0]?.prices?.['20pack']?.replace('€', '') || '0') / 20,
           retailer_name: stores[0]?.name || 'Unknown',
           retailer_url: stores[0]?.variants?.[0]?.link || stores[0]?.url || '',
@@ -700,7 +700,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         if (store.variants && store.variants.length > 0) {
           const variant = store.variants[0]; // Use first variant
           const packPriceKey = `${packSizeNumber}pack`;
-          const priceStr = variant.prices?.[packPriceKey] || variant.price || '£0';
+          const priceStr = variant.prices?.[packPriceKey] || variant.price || '€0';
           actualPrice = parseFloat(priceStr.replace('€', '') || '0');
           retailerUrl = variant.link || store.url || '';
         } else {
@@ -714,7 +714,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         return {
           pack_size: packSizeNumber,
           price: actualPrice,
-          currency: 'GBP',
+          currency: 'EUR',
           price_per_pouch: pricePerPouch,
           retailer_name: store.name || 'Unknown',
           retailer_url: retailerUrl,
@@ -845,10 +845,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description: product.description,
     image: product.image,
     lowestPrice: product.stores && product.stores.length > 0 
-      ? Math.min(...product.stores.filter(s => s.price).map(s => parseFloat(s.price.replace(/[£$]/g, ''))))
+      ? Math.min(...product.stores.filter(s => s.price).map(s => parseFloat(s.price.replace(/[€$]/g, ''))))
       : 0,
     highestPrice: product.stores && product.stores.length > 0 
-      ? Math.max(...product.stores.filter(s => s.price).map(s => parseFloat(s.price.replace(/[£$]/g, ''))))
+      ? Math.max(...product.stores.filter(s => s.price).map(s => parseFloat(s.price.replace(/[€$]/g, ''))))
       : 0,
     storeCount: product.stores?.length || 0,
     // Only include aggregateRating if we have valid reviews (reviewCount > 0)
@@ -980,10 +980,10 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     description: product.description,
     image: product.image,
     lowestPrice: product.stores && product.stores.length > 0 
-      ? Math.min(...product.stores.filter(s => s.price).map(s => parseFloat(s.price.replace(/[£$]/g, ''))))
+      ? Math.min(...product.stores.filter(s => s.price).map(s => parseFloat(s.price.replace(/[€$]/g, ''))))
       : 0,
     highestPrice: product.stores && product.stores.length > 0 
-      ? Math.max(...product.stores.filter(s => s.price).map(s => parseFloat(s.price.replace(/[£$]/g, ''))))
+      ? Math.max(...product.stores.filter(s => s.price).map(s => parseFloat(s.price.replace(/[€$]/g, ''))))
       : 0,
     storeCount: product.stores?.length || 0,
     // Only include aggregateRating if we have valid reviews (reviewCount > 0)
@@ -1050,13 +1050,13 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
           vpPrices.forEach((vp: any) => {
             const productId = nameVendorToProduct.get(`${vp.name}__${vp.de_vendor_id}`);
             if (productId && vp.price_1pack) {
-              const priceStr = String(vp.price_1pack).replace(/[£$€]/g, '');
+              const priceStr = String(vp.price_1pack).replace(/[€$€]/g, '');
               const priceNum = parseFloat(priceStr);
               if (!isNaN(priceNum) && priceNum > 0) {
                 const existing = lowestPrices.get(productId);
-                const existingNum = existing ? parseFloat(existing.replace(/[£$]/g, '')) : Infinity;
+                const existingNum = existing ? parseFloat(existing.replace(/[€$]/g, '')) : Infinity;
                 if (priceNum < existingNum) {
-                  lowestPrices.set(productId, `£${priceNum.toFixed(2)}`);
+                  lowestPrices.set(productId, `€${priceNum.toFixed(2)}`);
                 }
               }
             }
@@ -1072,14 +1072,14 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       relatedProducts = brandProducts
         .filter((p: any) => (storeCounts.get(p.id) || 0) > 0)
         .map((p: any) => {
-          const price = lowestPrices.get(p.id) || (p.price > 0 ? `£${parseFloat(p.price).toFixed(2)}` : '£3.99');
-          const priceNum = parseFloat(price.replace(/[£$]/g, ''));
+          const price = lowestPrices.get(p.id) || (p.price > 0 ? `€${parseFloat(p.price).toFixed(2)}` : '€3.99');
+          const priceNum = parseFloat(price.replace(/[€$]/g, ''));
           return {
             id: p.id,
             name: p.name,
             image_url: p.image_url,
             price: price,
-            original_price: !isNaN(priceNum) && priceNum > 1 ? `£${(priceNum * 1.25).toFixed(2)}` : undefined,
+            original_price: !isNaN(priceNum) && priceNum > 1 ? `€${(priceNum * 1.25).toFixed(2)}` : undefined,
             store_count: storeCounts.get(p.id) || 0,
             tracking_count: trackingCounts.get(p.id) || 0,
             slug: p.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').trim()
@@ -1139,7 +1139,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               }
               
               // Extract price value
-              const priceValue = parseFloat(priceStr.replace(/[£$€]/g, ''));
+              const priceValue = parseFloat(priceStr.replace(/[€$€]/g, ''));
               if (isNaN(priceValue) || priceValue <= 0) {
                 return; // Skip invalid prices
               }
@@ -1147,7 +1147,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               // Determine currency from price string or default to GBP
               const priceCurrency = priceStr.includes('$') ? 'USD' : 
                                    priceStr.includes('€') ? 'EUR' : 
-                                   priceStr.includes('€') ? 'GBP' : 'GBP';
+                                   priceStr.includes('€') ? 'EUR' : 'EUR';
               
               // Extract pack size number for description
               const packSizeNumber = packSize.replace('pack', '');
@@ -1209,14 +1209,14 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
         const finalOffersData = offersData || (product.stores && product.stores.length > 0 ? (() => {
           const storesWithPrices = product.stores.filter((s: any) => {
             const price = s.price?.trim() || '';
-            return price !== '' && price !== 'Out of stock' && price !== 'N/A' && parseFloat(price.replace(/[£$]/g, '')) > 0;
+            return price !== '' && price !== 'Out of stock' && price !== 'N/A' && parseFloat(price.replace(/[€$]/g, '')) > 0;
           });
           if (storesWithPrices.length === 0) {
             console.warn('⚠️ No stores with valid prices found for offers generation');
             return undefined;
           }
           
-          const prices = storesWithPrices.map((s: any) => parseFloat(s.price.replace(/[£$]/g, '')));
+          const prices = storesWithPrices.map((s: any) => parseFloat(s.price.replace(/[€$]/g, '')));
           const lowPrice = Math.min(...prices).toFixed(2);
           const highPrice = Math.max(...prices).toFixed(2);
           
@@ -1228,12 +1228,12 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
             "offerCount": storesWithPrices.length,
             "offers": storesWithPrices.map((store: any) => {
               // Extract price value
-              const priceValue = parseFloat(store.price?.replace(/[£$]/g, '') || '0');
+              const priceValue = parseFloat(store.price?.replace(/[€$]/g, '') || '0');
               
               // Determine currency from price string or default to GBP
               const priceCurrency = store.price?.includes('$') ? 'USD' : 
                                    store.price?.includes('€') ? 'EUR' : 
-                                   store.price?.includes('€') ? 'GBP' : 'GBP';
+                                   store.price?.includes('€') ? 'EUR' : 'EUR';
               
               // Determine availability
               const availability = store.stock_status === 'out_of_stock' || 
