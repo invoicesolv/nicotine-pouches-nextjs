@@ -331,31 +331,31 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
     const storesMap = new Map();
     vendorProducts?.forEach((vp: any) => {
       const vendorKey = vp.es_vendor_id;
-      const vendor = vp.vendors;
-      
+      const vendor = vp.es_vendors || {};
+
       if (!storesMap.has(vendorKey)) {
         storesMap.set(vendorKey, {
-      id: vp.id,
-          name: vendor.name,
-      logo: vendor.logo_url,
-          rating: vendor.rating || 4.5,
-          trustpilot_score: vendor.trustpilot_score || null,
-          review_count: vendor.review_count || 0,
-          shipping_info: vendor.shipping_info || 'Standardversand',
-          shipping_cost: typeof vendor.shipping_cost === 'string' ? parseFloat(vendor.shipping_cost) || 0 : (vendor.shipping_cost || 0),
-          free_shipping_threshold: typeof vendor.free_shipping_threshold === 'string' ? parseFloat(vendor.free_shipping_threshold) || 0 : (vendor.free_shipping_threshold || 0),
-          delivery_speed: vendor.delivery_speed || null,
-          vendorId: vp.de_es_vendor_id,
+          id: vp.id,
+          name: vendor.name || 'Unknown Store',
+          logo: null,
+          rating: 4.5,
+          trustpilot_score: null,
+          review_count: 0,
+          shipping_info: 'Envío estándar',
+          shipping_cost: 0,
+          free_shipping_threshold: 0,
+          delivery_speed: null,
+          vendorId: vp.es_vendor_id,
           updated_at: vp.updated_at || vp.created_at || null,
           vendor: {
-            currency: vendor.currency || 'GBP',
-            needs_currency_conversion: vendor.needs_currency_conversion || false
+            currency: 'EUR',
+            needs_currency_conversion: false
           },
-          currency: vendor.currency || 'GBP',
-          needs_currency_conversion: vendor.needs_currency_conversion || false,
-          offer_type: vendor.offer_type || null,
-          offer_value: vendor.offer_value || null,
-          offer_description: vendor.offer_description || null,
+          currency: 'EUR',
+          needs_currency_conversion: false,
+          offer_type: null,
+          offer_value: null,
+          offer_description: null,
           variants: []
         });
       }
@@ -608,7 +608,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         nicotine_free_option: false,
         retailer_name: store.name,
         retailer_url: store.variants?.[0]?.link || store.url || '#',
-        shipping_note: store.shipping_info || 'Standardversand',
+        shipping_note: store.shipping_info || 'Envío estándar',
         last_seen: new Date().toISOString(),
         currency: 'GBP',
         rating_value: store.rating || 4.5,
