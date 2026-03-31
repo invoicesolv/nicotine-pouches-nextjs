@@ -249,7 +249,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       console.log('Found mappings:', mappings?.length || 0);
     }
 
-    // Build select with all price columns to determine available pack sizes
+    // Build select with columns that exist in de_vendor_products + de_vendors
     const vendorProductSelect = `
       id,
       name,
@@ -261,31 +261,18 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       price_10pack,
       price_15pack,
       price_20pack,
-      price_25pack,
       price_30pack,
       price_50pack,
       price_100pack,
-      previous_prices,
-      price_changed_at,
       stock_status,
+      image_url,
       updated_at,
       created_at,
-      de_vendors!inner(
+      de_vendors(
         id,
         name,
-        logo_url,
-        rating,
-        trustpilot_score,
-        review_count,
-        shipping_info,
-        shipping_cost,
-        free_shipping_threshold,
-        delivery_speed,
-        currency,
-        needs_currency_conversion,
-        offer_type,
-        offer_value,
-        offer_description
+        website,
+        status
       )
     `;
 

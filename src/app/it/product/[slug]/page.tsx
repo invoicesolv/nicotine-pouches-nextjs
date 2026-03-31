@@ -249,7 +249,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       console.log('Found mappings:', mappings?.length || 0);
     }
 
-    // Build select with all price columns to determine available pack sizes
+    // Build select with columns that exist in it_vendor_products + it_vendors
     const vendorProductSelect = `
       id,
       name,
@@ -261,31 +261,18 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       price_10pack,
       price_15pack,
       price_20pack,
-      price_25pack,
       price_30pack,
       price_50pack,
       price_100pack,
-      previous_prices,
-      price_changed_at,
       stock_status,
+      image_url,
       updated_at,
       created_at,
-      it_vendors!inner(
+      it_vendors(
         id,
         name,
-        logo_url,
-        rating,
-        trustpilot_score,
-        review_count,
-        shipping_info,
-        shipping_cost,
-        free_shipping_threshold,
-        delivery_speed,
-        currency,
-        needs_currency_conversion,
-        offer_type,
-        offer_value,
-        offer_description
+        website,
+        status
       )
     `;
 
@@ -354,7 +341,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
           rating: vendor.rating || 4.5,
           trustpilot_score: vendor.trustpilot_score || null,
           review_count: vendor.review_count || 0,
-          shipping_info: vendor.shipping_info || 'Spedizione standard',
+          shipping_info: vendor.shipping_info || 'Standardversand',
           shipping_cost: typeof vendor.shipping_cost === 'string' ? parseFloat(vendor.shipping_cost) || 0 : (vendor.shipping_cost || 0),
           free_shipping_threshold: typeof vendor.free_shipping_threshold === 'string' ? parseFloat(vendor.free_shipping_threshold) || 0 : (vendor.free_shipping_threshold || 0),
           delivery_speed: vendor.delivery_speed || null,
@@ -621,7 +608,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         nicotine_free_option: false,
         retailer_name: store.name,
         retailer_url: store.variants?.[0]?.link || store.url || '#',
-        shipping_note: store.shipping_info || 'Spedizione standard',
+        shipping_note: store.shipping_info || 'Standardversand',
         last_seen: new Date().toISOString(),
         currency: 'GBP',
         rating_value: store.rating || 4.5,
@@ -686,13 +673,13 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       page_url: product.page_url || `https://nicotine-pouches.org/product/${slug}`,
       site_name: 'Nikotinbeutel Deutschland',
       publisher: {
-        name: 'Bustine di Nicotina IT',
+        name: 'Nikotinbeutel DE',
         logo: '/logo.png',
         url: 'https://nicotine-pouches.org'
       },
       breadcrumbs: [
-        { name: 'Home', url: '/de' },
-        { name: 'Prodotti', url: '/de/vergleichen' },
+        { name: 'Startseite', url: '/de' },
+        { name: 'Produkte', url: '/de/vergleichen' },
         { name: product.name || 'Unknown Product', url: product.page_url || `https://nicotine-pouches.org/product/${slug}` }
       ],
       hreflang: generateSafeHreflang(generateProductHreflang(slug, false, false)),
@@ -763,13 +750,13 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       page_url: product.page_url || `https://nicotine-pouches.org/product/${slug}`,
       site_name: 'Nikotinbeutel Deutschland',
       publisher: {
-        name: 'Bustine di Nicotina IT',
+        name: 'Nikotinbeutel DE',
         logo: '/logo.png',
         url: 'https://nicotine-pouches.org'
       },
       breadcrumbs: [
-        { name: 'Home', url: '/de' },
-        { name: 'Prodotti', url: '/de/vergleichen' },
+        { name: 'Startseite', url: '/de' },
+        { name: 'Produkte', url: '/de/vergleichen' },
         { name: product.name || 'Unknown Product', url: product.page_url || `https://nicotine-pouches.org/product/${slug}` }
       ],
       hreflang: generateSafeHreflang(generateProductHreflang(slug, false, false)),
@@ -818,7 +805,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       headline: product.headline || '',
       image: product.image_url || '/placeholder-product.jpg',
       rating: 0, // Default rating since wp_products doesn't have rating
-      description: product.content || 'Nessuna descrizione disponibile',
+      description: product.content || 'Keine Beschreibung verfügbar',
       description_short: product.description_short || '',
       description_long: product.description_long || '',
       brand: brand,
@@ -856,8 +843,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   
   if (!product) {
     return {
-      title: 'Prodotto non trovato',
-      description: 'Il prodotto richiesto non è stato trovato.'
+      title: 'Produkt nicht gefunden',
+      description: 'Das angeforderte Produkt wurde nicht gefunden.'
     };
   }
 
