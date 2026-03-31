@@ -234,22 +234,9 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
     
     console.log('Found product:', { id: product.id, name: product.name, brand, flavour });
 
-    // Get vendor products using the correct mapping approach
+    // For DE: find ALL vendors carrying this product by exact name match
     let vendorProducts = [];
-    
-    // First, get mappings for this product
-    const { data: mappings, error: mappingError } = await supabase()
-      .from('de_vendor_product_mapping')
-      .select('vendor_product, de_vendor_id')
-      .eq('product_id', product.id);
 
-    if (mappingError) {
-      console.error('Error fetching mappings:', mappingError);
-      } else {
-      console.log('Found mappings:', mappings?.length || 0);
-    }
-
-    // Build select with columns that exist in de_vendor_products + de_vendors
     const vendorProductSelect = `
       id,
       name,
@@ -276,32 +263,28 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       )
     `;
 
-    if (mappings && mappings.length > 0) {
-      // Get vendor products - only select needed columns, limit to 20 vendors max
-      const { data: vpData, error: vpError } = await supabase()
-        .from('de_vendor_products')
-        .select(vendorProductSelect)
-        .in('name', mappings.map((m: any) => m.vendor_product))
-        .in('de_vendor_id', mappings.map((m: any) => m.de_vendor_id))
-        .limit(20);
+    // Search by exact product name across all vendors
+    const { data: vpData, error: vpError } = await supabase()
+      .from('de_vendor_products')
+      .select(vendorProductSelect)
+      .ilike('name', product.name)
+      .limit(20);
 
-      if (vpError) {
-        console.error('Error fetching mapped vendor products:', vpError);
-      } else {
-        vendorProducts = vpData || [];
-      }
+    if (vpError) {
+      console.error('Error fetching vendor products:', vpError);
     } else {
-      // Fallback: search for products with similar brand name - only needed columns
-      const { data: vpData, error: vpError } = await supabase()
+      vendorProducts = vpData || [];
+    }
+
+    // If no exact match, try fuzzy match
+    if (vendorProducts.length <= 1) {
+      const { data: fuzzyData } = await supabase()
         .from('de_vendor_products')
         .select(vendorProductSelect)
-        .ilike('name', `%${brand.toLowerCase()}%`)
-        .limit(10);
-
-      if (vpError) {
-        console.error('Error fetching vendor products by brand:', vpError);
-      } else {
-        vendorProducts = vpData || [];
+        .ilike('name', `%${product.name}%`)
+        .limit(20);
+      if (fuzzyData && fuzzyData.length > vendorProducts.length) {
+        vendorProducts = fuzzyData;
       }
     }
     
