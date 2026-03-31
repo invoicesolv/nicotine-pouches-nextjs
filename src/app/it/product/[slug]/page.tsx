@@ -369,8 +369,16 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       if (vp.price_50pack !== undefined) rawPrices['50pack'] = vp.price_50pack;
       if (vp.price_100pack !== undefined) rawPrices['100pack'] = vp.price_100pack;
       
-      // Apply currency conversion if needed
-      const convertedPrices = convertVendorPrices(vendor, rawPrices);
+      // Format prices as EUR (no conversion needed for DE)
+      const convertedPrices: Record<string, string> = {};
+      for (const [key, value] of Object.entries(rawPrices)) {
+        if (value !== null && value !== undefined && value !== '') {
+          const num = typeof value === 'string' ? parseFloat(value.toString().replace(/[€£$,]/g, '')) : Number(value);
+          if (!isNaN(num) && num > 0) {
+            convertedPrices[key] = `€${num.toFixed(2)}`;
+          }
+        }
+      }
       
       // Determine stock status
       const stockStatus = vp.stock_status || 'in_stock';
@@ -400,7 +408,13 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
           if (val !== null && val !== undefined && val !== '') raw[uiKey] = val;
         }
         if (Object.keys(raw).length > 0) {
-          prevPrices = convertVendorPrices(vendor, raw);
+          prevPrices = {};
+          for (const [key, value] of Object.entries(raw)) {
+            if (value !== null && value !== undefined && value !== '') {
+              const num = typeof value === 'string' ? parseFloat(value.toString().replace(/[€£$,]/g, '')) : Number(value);
+              if (!isNaN(num) && num > 0) prevPrices[key] = `€${num.toFixed(2)}`;
+            }
+          }
         }
       }
 
