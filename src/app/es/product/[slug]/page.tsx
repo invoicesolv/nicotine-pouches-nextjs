@@ -240,7 +240,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
     // First, get mappings for this product
     const { data: mappings, error: mappingError } = await supabase()
       .from('es_vendor_product_mapping')
-      .select('vendor_product, vendor_id')
+      .select('vendor_product, es_vendor_id')
       .eq('product_id', product.id);
 
     if (mappingError) {
@@ -253,7 +253,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
     const vendorProductSelect = `
       id,
       name,
-      vendor_id,
+      es_vendor_id,
       url,
       price_1pack,
       price_3pack,
@@ -354,11 +354,11 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
           rating: vendor.rating || 4.5,
           trustpilot_score: vendor.trustpilot_score || null,
           review_count: vendor.review_count || 0,
-          shipping_info: vendor.shipping_info || 'Standardversand',
+          shipping_info: vendor.shipping_info || 'Envío estándar',
           shipping_cost: typeof vendor.shipping_cost === 'string' ? parseFloat(vendor.shipping_cost) || 0 : (vendor.shipping_cost || 0),
           free_shipping_threshold: typeof vendor.free_shipping_threshold === 'string' ? parseFloat(vendor.free_shipping_threshold) || 0 : (vendor.free_shipping_threshold || 0),
           delivery_speed: vendor.delivery_speed || null,
-          vendorId: vp.es_vendor_id,
+          vendorId: vp.de_es_vendor_id,
           updated_at: vp.updated_at || vp.created_at || null,
           vendor: {
             currency: vendor.currency || 'GBP',
@@ -621,7 +621,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         nicotine_free_option: false,
         retailer_name: store.name,
         retailer_url: store.variants?.[0]?.link || store.url || '#',
-        shipping_note: store.shipping_info || 'Standardversand',
+        shipping_note: store.shipping_info || 'Envío estándar',
         last_seen: new Date().toISOString(),
         currency: 'GBP',
         rating_value: store.rating || 4.5,
@@ -686,13 +686,13 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       page_url: product.page_url || `https://nicotine-pouches.org/product/${slug}`,
       site_name: 'Nikotinbeutel Deutschland',
       publisher: {
-        name: 'Nikotinbeutel DE',
+        name: 'Bolsas de Nicotina ES',
         logo: '/logo.png',
         url: 'https://nicotine-pouches.org'
       },
       breadcrumbs: [
-        { name: 'Startseite', url: '/de' },
-        { name: 'Produkte', url: '/de/vergleichen' },
+        { name: 'Inicio', url: '/de' },
+        { name: 'Productos', url: '/de/vergleichen' },
         { name: product.name || 'Unknown Product', url: product.page_url || `https://nicotine-pouches.org/product/${slug}` }
       ],
       hreflang: generateSafeHreflang(generateProductHreflang(slug, false, false)),
@@ -763,13 +763,13 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       page_url: product.page_url || `https://nicotine-pouches.org/product/${slug}`,
       site_name: 'Nikotinbeutel Deutschland',
       publisher: {
-        name: 'Nikotinbeutel DE',
+        name: 'Bolsas de Nicotina ES',
         logo: '/logo.png',
         url: 'https://nicotine-pouches.org'
       },
       breadcrumbs: [
-        { name: 'Startseite', url: '/de' },
-        { name: 'Produkte', url: '/de/vergleichen' },
+        { name: 'Inicio', url: '/de' },
+        { name: 'Productos', url: '/de/vergleichen' },
         { name: product.name || 'Unknown Product', url: product.page_url || `https://nicotine-pouches.org/product/${slug}` }
       ],
       hreflang: generateSafeHreflang(generateProductHreflang(slug, false, false)),
@@ -818,7 +818,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       headline: product.headline || '',
       image: product.image_url || '/placeholder-product.jpg',
       rating: 0, // Default rating since wp_products doesn't have rating
-      description: product.content || 'Keine Beschreibung verfügbar',
+      description: product.content || 'Sin descripción disponible',
       description_short: product.description_short || '',
       description_long: product.description_long || '',
       brand: brand,
@@ -856,8 +856,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   
   if (!product) {
     return {
-      title: 'Produkt nicht gefunden',
-      description: 'Das angeforderte Produkt wurde nicht gefunden.'
+      title: 'Producto no encontrado',
+      description: 'El producto solicitado no se ha encontrado.'
     };
   }
 
@@ -937,7 +937,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     ...(vendorIds.length > 0 ? [
       supabase().from('es_vendors').select('es_vendor_id').in('es_vendor_id', vendorIds).eq('is_approved', true),
       supabase().from('es_vendors').select('es_vendor_id').in('es_vendor_id', vendorIds),
-      supabase().from('es_vendors').select('id, name').in('id', vendorIds),
+      supabase().from('es_vendors').select('id, name, logo_url').in('id', vendorIds),
       supabase().from('es_vendors').select('*').in('es_vendor_id', vendorIds)
         .order('review_date', { ascending: false, nullsFirst: false }).limit(10),
       supabase().from('es_vendors').select('*', { count: 'exact', head: true }).in('es_vendor_id', vendorIds)
@@ -951,10 +951,10 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
 
     // Count review counts per vendor
     userReviews?.data?.forEach((r: any) => {
-      vendorReviewCountMap.set(r.vendor_id, (vendorReviewCountMap.get(r.vendor_id) || 0) + 1);
+      vendorReviewCountMap.set(r.es_vendor_id, (vendorReviewCountMap.get(r.es_vendor_id) || 0) + 1);
     });
     trustpilotReviewsList?.data?.forEach((r: any) => {
-      vendorReviewCountMap.set(r.vendor_id, (vendorReviewCountMap.get(r.vendor_id) || 0) + 1);
+      vendorReviewCountMap.set(r.es_vendor_id, (vendorReviewCountMap.get(r.es_vendor_id) || 0) + 1);
     });
 
     totalTrustpilotReviewCount = reviewCountResult?.count || 0;
@@ -993,8 +993,8 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     reviewsResult?.data?.forEach((review: any) => {
       allTrustpilotReviews.push({
         ...review,
-        vendor_name: vendorNameMap.get(review.vendor_id) || 'Unknown Vendor',
-        vendor_logo: vendorLogoMap.get(review.vendor_id) || null
+        vendor_name: vendorNameMap.get(review.es_vendor_id) || 'Unknown Vendor',
+        vendor_logo: vendorLogoMap.get(review.es_vendor_id) || null
       });
     });
   }
@@ -1043,7 +1043,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
 
       // Fetch mappings + tracking in parallel (was 4 sequential queries, now 2 parallel)
       const [mappingsResult, trackingResult] = await Promise.all([
-        supabase().from('es_vendor_product_mapping').select('product_id, es_vendor_id, vendor_product').in('product_id', productIds),
+        supabase().from('es_vendor_product_mapping').select('product_id, de_es_vendor_id, vendor_product').in('product_id', productIds),
         supabase().from('es_vendor_products').select('product_id').in('product_id', productIds)
       ]);
 
@@ -1065,7 +1065,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       if (vpMappings.length > 0) {
         const { data: vpPrices } = await supabase()
           .from('es_vendor_products')
-          .select('name, vendor_id, price_1pack')
+          .select('name, es_vendor_id, price_1pack')
           .in('name', vpMappings.map((m: any) => m.vendor_product))
           .in('es_vendor_id', vpMappings.map((m: any) => m.es_vendor_id))
           .not('price_1pack', 'is', null)

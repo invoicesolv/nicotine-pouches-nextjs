@@ -240,7 +240,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
     // First, get mappings for this product
     const { data: mappings, error: mappingError } = await supabase()
       .from('de_vendor_product_mapping')
-      .select('vendor_product, vendor_id')
+      .select('vendor_product, de_vendor_id')
       .eq('product_id', product.id);
 
     if (mappingError) {
@@ -253,7 +253,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
     const vendorProductSelect = `
       id,
       name,
-      vendor_id,
+      de_vendor_id,
       url,
       price_1pack,
       price_3pack,
@@ -358,7 +358,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
           shipping_cost: typeof vendor.shipping_cost === 'string' ? parseFloat(vendor.shipping_cost) || 0 : (vendor.shipping_cost || 0),
           free_shipping_threshold: typeof vendor.free_shipping_threshold === 'string' ? parseFloat(vendor.free_shipping_threshold) || 0 : (vendor.free_shipping_threshold || 0),
           delivery_speed: vendor.delivery_speed || null,
-          vendorId: vp.de_vendor_id,
+          vendorId: vp.de_de_vendor_id,
           updated_at: vp.updated_at || vp.created_at || null,
           vendor: {
             currency: vendor.currency || 'GBP',
@@ -951,10 +951,10 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
 
     // Count review counts per vendor
     userReviews?.data?.forEach((r: any) => {
-      vendorReviewCountMap.set(r.vendor_id, (vendorReviewCountMap.get(r.vendor_id) || 0) + 1);
+      vendorReviewCountMap.set(r.de_vendor_id, (vendorReviewCountMap.get(r.de_vendor_id) || 0) + 1);
     });
     trustpilotReviewsList?.data?.forEach((r: any) => {
-      vendorReviewCountMap.set(r.vendor_id, (vendorReviewCountMap.get(r.vendor_id) || 0) + 1);
+      vendorReviewCountMap.set(r.de_vendor_id, (vendorReviewCountMap.get(r.de_vendor_id) || 0) + 1);
     });
 
     totalTrustpilotReviewCount = reviewCountResult?.count || 0;
@@ -993,8 +993,8 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     reviewsResult?.data?.forEach((review: any) => {
       allTrustpilotReviews.push({
         ...review,
-        vendor_name: vendorNameMap.get(review.vendor_id) || 'Unknown Vendor',
-        vendor_logo: vendorLogoMap.get(review.vendor_id) || null
+        vendor_name: vendorNameMap.get(review.de_vendor_id) || 'Unknown Vendor',
+        vendor_logo: vendorLogoMap.get(review.de_vendor_id) || null
       });
     });
   }
@@ -1043,7 +1043,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
 
       // Fetch mappings + tracking in parallel (was 4 sequential queries, now 2 parallel)
       const [mappingsResult, trackingResult] = await Promise.all([
-        supabase().from('de_vendor_product_mapping').select('product_id, de_vendor_id, vendor_product').in('product_id', productIds),
+        supabase().from('de_vendor_product_mapping').select('product_id, de_de_vendor_id, vendor_product').in('product_id', productIds),
         supabase().from('de_vendor_products').select('product_id').in('product_id', productIds)
       ]);
 
@@ -1065,7 +1065,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       if (vpMappings.length > 0) {
         const { data: vpPrices } = await supabase()
           .from('de_vendor_products')
-          .select('name, vendor_id, price_1pack')
+          .select('name, de_vendor_id, price_1pack')
           .in('name', vpMappings.map((m: any) => m.vendor_product))
           .in('de_vendor_id', vpMappings.map((m: any) => m.de_vendor_id))
           .not('price_1pack', 'is', null)
