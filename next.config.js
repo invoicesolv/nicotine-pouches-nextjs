@@ -11,27 +11,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'nicotine-pouches.org',
-      },
-      {
-        protocol: 'https',
-        hostname: 'gianna.templweb.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'twowombats.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'vyolbmzuezpoqtdgongz.supabase.co',
-      },
-      {
-        protocol: 'https',
-        hostname: 'cdn.shopify.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
+        hostname: '**',
       },
     ],
     formats: ['image/webp', 'image/avif'],
