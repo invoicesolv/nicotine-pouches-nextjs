@@ -930,6 +930,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     totalTrustpilotReviewCount = reviewCountResult?.count || 0;
 
     const vendorLogoMapping: { [key: string]: string } = {
+      // UK vendors
       'Two Wombats': '/vendor-logos/two-wombats.jpg',
       'HAYYP': '/vendor-logos/HAYPP.jpg',
       'Snusifer': '/vendor-logos/Snusifer.png',
@@ -939,13 +940,10 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       'Northerner UK': '/vendor-logos/northerner_black_mobile.webp',
       'Northerner US': '/vendor-logos/northerner_black_mobile.webp',
       'Nicokick': '/vendor-logos/Nicokick.png',
-      'Nicokick (55788)': '/vendor-logos/Nicokick.png',
       'Nicpouch': '/vendor-logos/NICPOUCHUK.jpg',
       'GotPouches': '/vendor-logos/gotpouches.png',
       'SnusDirect': '/vendor-logos/snusdirekt.avif',
       'SnusDaddy': '/vendor-logos/pouchdaddy.png',
-      'Prime Nic Pouches': '/vendor-logos/PrimeNicPouches.png',
-      'Prime': '/vendor-logos/PrimeNicPouches.png',
       'PrimeNicPouches': '/vendor-logos/PrimeNicPouches.png',
       'PrimeVapes': '/vendor-logos/PrimeVapes.png',
       'NicoUK': '/vendor-logos/NicoUK.png',
@@ -953,6 +951,19 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       'SnusBoys': '/vendor-logos/SnusBoys.png',
       'NicPouchesDirect': '/vendor-logos/NicPouchesDirect.png',
       'Prilla': '/vendor-logos/Prilla.svg',
+      // DE/IT/ES vendors
+      'PouchDaddy': '/vendor-logos/pouchdaddy.png',
+      'Gigasnus': '/vendor-logos/gigasnus.png',
+      'SnusMart': '/vendor-logos/snusmart.png',
+      'Pouches.eu': '/vendor-logos/pouches-eu.png',
+      'Snuzone': '/vendor-logos/snuzone.png',
+      'SnusHus': '/vendor-logos/snushus.png',
+      'SnusCorp': '/vendor-logos/snuscorp.png',
+      'NicoVibes': '/vendor-logos/nicovibes.png',
+      'Killapods': '/vendor-logos/killapods.png',
+      'Snusladen': '/vendor-logos/snusladen.webp',
+      'Pouchland': '/vendor-logos/pouchland.png',
+      'SnusForSale': '/vendor-logos/snusforsale.png',
     };
 
     vendorsResult?.data?.forEach((vendor: any) => {
