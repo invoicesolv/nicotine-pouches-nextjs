@@ -316,11 +316,27 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       const vendorKey = vp.it_vendor_id;
       const vendor = vp.it_vendors || {};
 
+      // Vendor logo mapping for DE/IT/ES stores
+      const euVendorLogos: Record<string, string> = {
+        'PouchDaddy': '/vendor-logos/pouchdaddy.png',
+        'Gigasnus': '/vendor-logos/gigasnus.png',
+        'SnusMart': '/vendor-logos/snusmart.png',
+        'Pouches.eu': '/vendor-logos/pouches-eu.png',
+        'Snuzone': '/vendor-logos/snuzone.png',
+        'SnusHus': '/vendor-logos/snushus.png',
+        'SnusCorp': '/vendor-logos/snuscorp.png',
+        'NicoVibes': '/vendor-logos/nicovibes.png',
+        'Killapods': '/vendor-logos/killapods.png',
+        'Snusladen': '/vendor-logos/snusladen.webp',
+        'Pouchland': '/vendor-logos/pouchland.png',
+        'SnusForSale': '/vendor-logos/snusforsale.png',
+      };
+
       if (!storesMap.has(vendorKey)) {
         storesMap.set(vendorKey, {
           id: vp.id,
           name: vendor.name || 'Unknown Store',
-          logo: null,
+          logo: euVendorLogos[vendor.name] || null,
           rating: 4.5,
           trustpilot_score: null,
           review_count: 0,
