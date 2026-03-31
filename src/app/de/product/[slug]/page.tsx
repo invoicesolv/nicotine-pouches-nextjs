@@ -138,7 +138,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
     
     // First try to find by exact name match in wp_products
     let { data: product, error } = await supabase()
-      .from('wp_products')
+      .from('de_vendor_products')
       .select('*')
       .eq('name', properCaseName)
       .single();
@@ -155,7 +155,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
 
       // Single ilike query using the base search term
       const { data: ilikeProducts, error: ilikeError } = await supabase()
-        .from('wp_products')
+        .from('de_vendor_products')
         .select('*')
         .ilike('name', `%${baseSearchTerm}%`)
         .limit(10);
@@ -188,7 +188,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
         const words = slug.split('-').filter(w => w.length > 2);
         if (words.length > 0) {
           const { data: fuzzyProducts, error: fuzzyError } = await supabase()
-            .from('wp_products')
+            .from('de_vendor_products')
             .select('*')
             .or(words.map(w => `name.ilike.%${w}%`).join(','))
             .limit(10);
@@ -239,7 +239,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
     
     // First, get mappings for this product
     const { data: mappings, error: mappingError } = await supabase()
-      .from('vendor_product_mapping')
+      .from('de_vendor_product_mapping')
       .select('vendor_product, vendor_id')
       .eq('product_id', product.id);
 
@@ -270,7 +270,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
       stock_status,
       updated_at,
       created_at,
-      vendors!inner(
+      de_vendors!inner(
         id,
         name,
         logo_url,
@@ -292,10 +292,10 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
     if (mappings && mappings.length > 0) {
       // Get vendor products - only select needed columns, limit to 20 vendors max
       const { data: vpData, error: vpError } = await supabase()
-        .from('vendor_products')
+        .from('de_vendor_products')
         .select(vendorProductSelect)
         .in('name', mappings.map((m: any) => m.vendor_product))
-        .in('vendor_id', mappings.map((m: any) => m.vendor_id))
+        .in('de_vendor_id', mappings.map((m: any) => m.de_vendor_id))
         .limit(20);
 
       if (vpError) {
@@ -306,7 +306,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
     } else {
       // Fallback: search for products with similar brand name - only needed columns
       const { data: vpData, error: vpError } = await supabase()
-        .from('vendor_products')
+        .from('de_vendor_products')
         .select(vendorProductSelect)
         .ilike('name', `%${brand.toLowerCase()}%`)
         .limit(10);
@@ -343,7 +343,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
     // Transform vendor products to store format and group by vendor
     const storesMap = new Map();
     vendorProducts?.forEach((vp: any) => {
-      const vendorKey = vp.vendor_id;
+      const vendorKey = vp.de_vendor_id;
       const vendor = vp.vendors;
       
       if (!storesMap.has(vendorKey)) {
@@ -358,7 +358,7 @@ async function getProduct(slug: string, packSize: string = '1pack', shippingFilt
           shipping_cost: typeof vendor.shipping_cost === 'string' ? parseFloat(vendor.shipping_cost) || 0 : (vendor.shipping_cost || 0),
           free_shipping_threshold: typeof vendor.free_shipping_threshold === 'string' ? parseFloat(vendor.free_shipping_threshold) || 0 : (vendor.free_shipping_threshold || 0),
           delivery_speed: vendor.delivery_speed || null,
-          vendorId: vp.vendor_id,
+          vendorId: vp.de_vendor_id,
           updated_at: vp.updated_at || vp.created_at || null,
           vendor: {
             currency: vendor.currency || 'GBP',
@@ -935,12 +935,12 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   const [ratingResult, ...reviewResults] = await Promise.all([
     getProductAggregateRating(product.id),
     ...(vendorIds.length > 0 ? [
-      supabase().from('reviews').select('vendor_id').in('vendor_id', vendorIds).eq('is_approved', true),
-      supabase().from('trustpilot_reviews').select('vendor_id').in('vendor_id', vendorIds),
-      supabase().from('vendors').select('id, name, logo_url').in('id', vendorIds),
-      supabase().from('trustpilot_reviews').select('*').in('vendor_id', vendorIds)
+      supabase().from('de_vendors').select('de_vendor_id').in('de_vendor_id', vendorIds).eq('is_approved', true),
+      supabase().from('de_vendors').select('de_vendor_id').in('de_vendor_id', vendorIds),
+      supabase().from('de_vendors').select('id, name, logo_url').in('id', vendorIds),
+      supabase().from('de_vendors').select('*').in('de_vendor_id', vendorIds)
         .order('review_date', { ascending: false, nullsFirst: false }).limit(10),
-      supabase().from('trustpilot_reviews').select('*', { count: 'exact', head: true }).in('vendor_id', vendorIds)
+      supabase().from('de_vendors').select('*', { count: 'exact', head: true }).in('de_vendor_id', vendorIds)
     ] : [])
   ]);
 
@@ -1031,7 +1031,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   try {
     const brandName = product.brand || product.name.split(' ')[0];
     const { data: brandProducts } = await supabase()
-      .from('wp_products')
+      .from('de_vendor_products')
       .select('id, name, image_url, price')
       .ilike('name', `${brandName}%`)
       .neq('id', product.id)
@@ -1043,8 +1043,8 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
 
       // Fetch mappings + tracking in parallel (was 4 sequential queries, now 2 parallel)
       const [mappingsResult, trackingResult] = await Promise.all([
-        supabase().from('vendor_product_mapping').select('product_id, vendor_id, vendor_product').in('product_id', productIds),
-        supabase().from('price_alerts').select('product_id').in('product_id', productIds)
+        supabase().from('de_vendor_product_mapping').select('product_id, de_vendor_id, vendor_product').in('product_id', productIds),
+        supabase().from('de_vendor_products').select('product_id').in('product_id', productIds)
       ]);
 
       const vpMappings = mappingsResult.data || [];
@@ -1054,7 +1054,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       const vendorSets = new Map<number, Set<number>>();
       vpMappings.forEach((m: any) => {
         if (!vendorSets.has(m.product_id)) vendorSets.set(m.product_id, new Set());
-        vendorSets.get(m.product_id)!.add(m.vendor_id);
+        vendorSets.get(m.product_id)!.add(m.de_vendor_id);
       });
       vendorSets.forEach((vendors, productId) => {
         storeCounts.set(productId, vendors.size);
@@ -1064,21 +1064,21 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       const lowestPrices = new Map<number, string>();
       if (vpMappings.length > 0) {
         const { data: vpPrices } = await supabase()
-          .from('vendor_products')
+          .from('de_vendor_products')
           .select('name, vendor_id, price_1pack')
           .in('name', vpMappings.map((m: any) => m.vendor_product))
-          .in('vendor_id', vpMappings.map((m: any) => m.vendor_id))
+          .in('de_vendor_id', vpMappings.map((m: any) => m.de_vendor_id))
           .not('price_1pack', 'is', null)
           .limit(100);
 
         if (vpPrices) {
           const nameVendorToProduct = new Map<string, number>();
           vpMappings.forEach((m: any) => {
-            nameVendorToProduct.set(`${m.vendor_product}__${m.vendor_id}`, m.product_id);
+            nameVendorToProduct.set(`${m.vendor_product}__${m.de_vendor_id}`, m.product_id);
           });
 
           vpPrices.forEach((vp: any) => {
-            const productId = nameVendorToProduct.get(`${vp.name}__${vp.vendor_id}`);
+            const productId = nameVendorToProduct.get(`${vp.name}__${vp.de_vendor_id}`);
             if (productId && vp.price_1pack) {
               const priceStr = String(vp.price_1pack).replace(/[£$€]/g, '');
               const priceNum = parseFloat(priceStr);
